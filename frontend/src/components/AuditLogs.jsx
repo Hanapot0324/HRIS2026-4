@@ -1,32 +1,47 @@
 import API_BASE_URL from '../apiConfig';
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import {
+  Container,
+  Paper,
+  Typography,
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TableRow,
-  Container,
+  Button,
   Box,
-  Typography,
+  Alert,
   TextField,
-  Paper,
-  TableContainer,
-  InputAdornment,
-  Chip,
+  Grid,
+  Card,
+  CardContent,
+  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
-  IconButton,
+  CircularProgress,
+  Chip,
+  Tooltip,
+  Avatar,
+  Fade,
+  Backdrop,
+  styled,
+  alpha,
+  Breadcrumbs,
+  Link,
+  CardHeader,
+  TablePagination,
+  MenuItem,
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
-  TablePagination,
+  FormHelperText,
+  InputAdornment,
 } from '@mui/material';
 import {
   Reorder as ReorderIcon,
@@ -36,8 +51,97 @@ import {
   VisibilityOff as VisibilityOffIcon,
   Lock as LockIcon,
   Close as CloseIcon,
+  Home,
+  Security,
+  FilterList,
+  Refresh,
+  CheckCircle,
+  Error,
+  Info,
+  Warning,
+  Assessment,
+  Edit,
+  Delete,
+  Save,
+  Cancel,
+  SupervisorAccount,
+  AdminPanelSettings,
+  Work,
+  Person,
 } from '@mui/icons-material';
 import LoadingOverlay from './LoadingOverlay'; // Adjust path as needed
+
+// Professional styled components matching PagesList.jsx EXACTLY
+const GlassCard = styled(Card)(({ theme }) => ({
+  borderRadius: 20,
+  background: 'rgba(254, 249, 225, 0.95)',
+  backdropFilter: 'blur(10px)',
+  boxShadow: '0 8px 40px rgba(109, 35, 35, 0.08)',
+  border: '1px solid rgba(109, 35, 35, 0.1)',
+  overflow: 'hidden',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  '&:hover': {
+    boxShadow: '0 12px 48px rgba(109, 35, 35, 0.15)',
+    transform: 'translateY(-4px)',
+  },
+}));
+
+const ProfessionalButton = styled(Button)(({ theme, variant }) => ({
+  borderRadius: 12,
+  fontWeight: 600,
+  padding: '12px 24px',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  textTransform: 'none',
+  fontSize: '0.95rem',
+  letterSpacing: '0.025em',
+  boxShadow:
+    variant === 'contained' ? '0 4px 14px rgba(109, 35, 35, 0.25)' : 'none',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow:
+      variant === 'contained' ? '0 6px 20px rgba(109, 35, 35, 0.35)' : 'none',
+  },
+  '&:active': {
+    transform: 'translateY(0)',
+  },
+}));
+
+const ModernTextField = styled(TextField)(({ theme }) => ({
+  '& .MuiOutlinedInput-root': {
+    borderRadius: 12,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    '&:hover': {
+      transform: 'translateY(-1px)',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    },
+    '&.Mui-focused': {
+      transform: 'translateY(-1px)',
+      boxShadow: '0 4px 20px rgba(109, 35, 35, 0.25)',
+      backgroundColor: 'rgba(255, 255, 255, 1)',
+    },
+  },
+  '& .MuiInputLabel-root': {
+    fontWeight: 500,
+  },
+}));
+
+const PremiumTableContainer = styled(TableContainer)(({ theme }) => ({
+  borderRadius: 16,
+  overflow: 'hidden',
+  boxShadow: '0 4px 24px rgba(109, 35, 35, 0.06)',
+  border: '1px solid rgba(109, 35, 35, 0.08)',
+}));
+
+const PremiumTableCell = styled(TableCell)(({ theme, isHeader = false }) => ({
+  fontWeight: isHeader ? 600 : 500,
+  padding: '18px 20px',
+  borderBottom: isHeader
+    ? '2px solid rgba(109, 35, 35, 0.3)'
+    : '1px solid rgba(109, 35, 35, 0.06)',
+  fontSize: '0.95rem',
+  letterSpacing: '0.025em',
+}));
 
 const AuditLogs = () => {
   const navigate = useNavigate();
@@ -51,6 +155,9 @@ const AuditLogs = () => {
   const [passwordError, setPasswordError] = useState('');
   const [loadingMessage, setLoadingMessage] = useState('');
   const [remainingTime, setRemainingTime] = useState(0);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   // Pagination states
   const [page, setPage] = useState(0);
@@ -61,6 +168,12 @@ const AuditLogs = () => {
 
   const HARDCODED_PASSWORD = '20134507';
   const SESSION_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+
+  // Color scheme matching PagesList.jsx EXACTLY
+  const primaryColor = '#FEF9E1';
+  const secondaryColor = '#FFF8E7';
+  const accentColor = '#6d2323';
+  const accentDark = '#8B3333';
 
   // Check if session is still valid
   const isSessionValid = () => {
@@ -150,33 +263,12 @@ const AuditLogs = () => {
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
-    console.log(
-      'Token from localStorage:',
-      token ? 'Token exists' : 'No token found'
-    );
-    if (token) {
-      console.log('Token length:', token.length);
-      console.log('Token starts with:', token.substring(0, 20) + '...');
-    }
     return {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     };
-  };
-
-  // Test authentication function
-  const testAuth = async () => {
-    try {
-      const res = await axios.get(
-        `${API_BASE_URL}/audit-logs`,
-        getAuthHeaders()
-      );
-      console.log('Auth test successful:', res.data);
-    } catch (error) {
-      console.error('Auth test failed:', error.response?.data || error.message);
-    }
   };
 
   useEffect(() => {
@@ -222,6 +314,7 @@ const AuditLogs = () => {
   const fetchLogs = async () => {
     try {
       setLoading(true);
+      setRefreshing(true);
       const response = await axios.get(`${API_BASE_URL}/audit-logs`, getAuthHeaders());
       setLogs(response.data);
 
@@ -229,11 +322,19 @@ const AuditLogs = () => {
       setTimeout(() => {
         setLoading(false);
         setLoadingMessage('');
+        setRefreshing(false);
+        
+        if (refreshing && logs.length > 0) {
+          setSuccessMessage('Audit logs refreshed successfully');
+          setTimeout(() => setSuccessMessage(''), 3000);
+        }
       }, 2000);
     } catch (err) {
       console.error('Error fetching audit logs:', err.response?.data || err.message);
       setLoading(false);
       setLoadingMessage('');
+      setRefreshing(false);
+      setErrorMessage('Failed to fetch audit logs');
       
       // Handle authentication errors
       if (err.response?.status === 401 || err.response?.status === 403) {
@@ -335,13 +436,25 @@ const AuditLogs = () => {
   const getActionColor = (action) => {
     switch (action?.toLowerCase()) {
       case 'create':
-        return 'success';
+        return {
+          sx: { bgcolor: alpha('#4caf50', 0.15), color: '#2e7d32' },
+          icon: <CheckCircle />,
+        };
       case 'update':
-        return 'warning';
+        return {
+          sx: { bgcolor: alpha('#ff9800', 0.15), color: '#e65100' },
+          icon: <Edit />,
+        };
       case 'delete':
-        return 'error';
+        return {
+          sx: { bgcolor: alpha('#f44336', 0.15), color: '#c62828' },
+          icon: <Delete />,
+        };
       default:
-        return 'default';
+        return {
+          sx: { bgcolor: alpha(accentColor, 0.15), color: accentColor },
+          icon: <Info />,
+        };
     }
   };
 
@@ -353,16 +466,22 @@ const AuditLogs = () => {
         maxWidth="sm"
         fullWidth
         disableEscapeKeyDown
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            bgcolor: primaryColor,
+          },
+        }}
       >
         <DialogTitle
           sx={{
-            textAlign: 'center',
-            bgcolor: '#6D2323',
-            color: 'white',
+            background: `linear-gradient(135deg, ${accentColor} 0%, ${accentDark} 100%)`,
+            color: primaryColor,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            p: 2,
+            p: 3,
+            fontWeight: 700,
           }}
         >
           <Box display="flex" alignItems="center" justifyContent="center" flex={1}>
@@ -372,7 +491,7 @@ const AuditLogs = () => {
           <IconButton
             onClick={handleCloseDialog}
             sx={{
-              color: 'white',
+              color: primaryColor,
               '&:hover': {
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
               },
@@ -385,12 +504,12 @@ const AuditLogs = () => {
           <Typography
             variant="body1"
             color="text.secondary"
-            sx={{ mb: 3, textAlign: 'center' }}
+            sx={{ mb: 3, textAlign: 'center', color: accentColor }}
           >
             This section contains sensitive audit information. Please enter the
             access password.
           </Typography>
-          <TextField
+          <ModernTextField
             fullWidth
             type={showPassword ? 'text' : 'password'}
             label="Access Password"
@@ -402,31 +521,33 @@ const AuditLogs = () => {
             error={!!passwordError}
             helperText={passwordError}
             onKeyPress={(e) => e.key === 'Enter' && handlePasswordSubmit()}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                '&:hover fieldset': {
-                  borderColor: '#6D2323',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: '#6D2323',
-                },
-              },
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword(!showPassword)}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                  </IconButton>
+                </InputAdornment>
+              ),
             }}
           />
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button
+        <DialogActions sx={{ p: 3, bgcolor: alpha(primaryColor, 0.5) }}>
+          <ProfessionalButton
             onClick={handlePasswordSubmit}
             variant="contained"
             fullWidth
             sx={{
-              bgcolor: '#6D2323',
-              '&:hover': { bgcolor: '#5a1e1e' },
-              py: 1.5,
+              bgcolor: accentColor,
+              color: primaryColor,
+              '&:hover': { bgcolor: accentDark },
             }}
           >
             Access Audit Logs
-          </Button>
+          </ProfessionalButton>
         </DialogActions>
       </Dialog>
     );
@@ -436,360 +557,560 @@ const AuditLogs = () => {
     <>
       <LoadingOverlay open={loading} message={loadingMessage} />
 
-      <Container maxWidth="xl" sx={{ mt: 4 }}>
-        {/* Header */}
-        <Paper
-          elevation={3}
-          sx={{
-            backgroundColor: '#6D2323',
-            color: '#ffffff',
-            padding: '24px',
-            borderRadius: '12px',
-            marginTop: '-7%',
-            mb: 3,
-          }}
-        >
-          <Box display="flex" alignItems="center" justifyContent="space-between">
-            <Box display="flex" alignItems="center">
-              <ReorderIcon sx={{ fontSize: '2.5rem', marginRight: '16px' }} />
-              <Box>
-                <Typography
-                  variant="h4"
-                  component="h1"
-                  sx={{ margin: 0, fontWeight: 'bold' }}
+      <Box
+        sx={{
+          background: `linear-gradient(135deg, ${accentColor} 0%, ${accentDark} 50%, ${accentColor} 100%)`,
+          py: 4,
+          borderRadius: '14px',
+          width: '100vw',
+          mx: 'auto',
+          maxWidth: '100%',
+          overflow: 'hidden',
+          position: 'relative',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          minHeight: '92vh',
+        }}
+      >
+        <Box sx={{ px: 6, mx: 'auto', maxWidth: '1600px' }}>
+          {/* Breadcrumbs */}
+          <Fade in timeout={300}>
+            <Box sx={{ mb: 3 }}>
+              <Breadcrumbs aria-label="breadcrumb" sx={{ fontSize: '0.9rem' }}>
+                <Link
+                  underline="hover"
+                  color="inherit"
+                  href="/dashboard"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: primaryColor,
+                  }}
                 >
+                  <Home sx={{ mr: 0.5, fontSize: 20 }} />
+                  Dashboard
+                </Link>
+                <Typography
+                  color="text.primary"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontWeight: 600,
+                    color: primaryColor,
+                  }}
+                >
+                  <Assessment sx={{ mr: 0.5, fontSize: 20 }} />
                   Audit Logs
                 </Typography>
-                <Typography variant="body1" sx={{ margin: 0, opacity: 0.9 }}>
-                  View all recorded system activities
-                </Typography>
-              </Box>
+              </Breadcrumbs>
             </Box>
-            
-            {/* Session Info and Logout */}
-            <Box display="flex" alignItems="center" gap={2}>
-              {remainingTime > 0 && (
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Session expires in: {remainingTime} min
-                </Typography>
-              )}
-              <Button
-                variant="outlined"
-                onClick={clearSession}
-                sx={{
-                  color: 'white',
-                  borderColor: 'white',
-                  '&:hover': {
-                    borderColor: 'white',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  },
-                }}
-              >
-                Logout
-              </Button>
-              <IconButton
-                onClick={() => navigate('/')}
-                sx={{
-                  color: 'white',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  },
-                }}
-              >
-                <CloseIcon />
-              </IconButton>
-            </Box>
-          </Box>
-        </Paper>
+          </Fade>
 
-        {/* Filters and Search */}
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={3}
-          flexWrap="wrap"
-          gap={2}
-        >
-          <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
-            <Typography variant="h6" color="text.secondary">
-              Total Records: {logs.length}
-            </Typography>
-            {(searchQuery || selectedMonth) && (
-              <Typography variant="body2" color="text.secondary">
-                Showing {filteredLogs.length} filtered results
-              </Typography>
-            )}
-          </Box>
+          {/* Header */}
+          <Fade in timeout={500}>
+            <Box sx={{ mb: 4 }}>
+              <GlassCard>
+                <Box
+                  sx={{
+                    p: 5,
+                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
+                    color: accentColor,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: -50,
+                      right: -50,
+                      width: 200,
+                      height: 200,
+                      background:
+                        'radial-gradient(circle, rgba(109,35,35,0.1) 0%, rgba(109,35,35,0) 70%)',
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: -30,
+                      left: '30%',
+                      width: 150,
+                      height: 150,
+                      background:
+                        'radial-gradient(circle, rgba(109,35,35,0.08) 0%, rgba(109,35,35,0) 70%)',
+                    }}
+                  />
 
-          <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
-            {/* Month Filter */}
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Filter by Month</InputLabel>
-              <Select
-                value={selectedMonth}
-                onChange={(e) => {
-                  setSelectedMonth(e.target.value);
-                  setPage(0);
-                }}
-                label="Filter by Month"
-                sx={{
-                  backgroundColor: 'white',
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#6D2323',
-                  },
-                }}
-                endAdornment={
-                  selectedMonth && (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={handleClearMonth}
-                        sx={{ mr: 1 }}
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    position="relative"
+                    zIndex={1}
+                  >
+                    <Box display="flex" alignItems="center">
+                      <Avatar
+                        sx={{
+                          bgcolor: 'rgba(109,35,35,0.15)',
+                          mr: 4,
+                          width: 64,
+                          height: 64,
+                          boxShadow: '0 8px 24px rgba(109,35,35,0.15)',
+                        }}
                       >
-                        <ClearIcon fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  )
-                }
-              >
-                <MenuItem value="">All Months</MenuItem>
-                {getUniqueMonths().map((month) => (
-                  <MenuItem key={month.value} value={month.value}>
-                    {month.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Search Bar */}
-            <TextField
-              size="small"
-              variant="outlined"
-              placeholder="Search by employee number, action, table name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{
-                backgroundColor: 'white',
-                borderRadius: 2,
-                width: '400px',
-                '& .MuiOutlinedInput-root': {
-                  '&:hover fieldset': {
-                    borderColor: '#6D2323',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#6D2323',
-                  },
-                },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: '#6D2323' }} />
-                  </InputAdornment>
-                ),
-                endAdornment: searchQuery && (
-                  <InputAdornment position="end">
-                    <ClearIcon
-                      sx={{
-                        color: '#6D2323',
-                        cursor: 'pointer',
-                        '&:hover': { opacity: 0.7 },
-                      }}
-                      onClick={handleClearSearch}
-                    />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
-        </Box>
-
-        {/* Table Container with Scrolling */}
-        <Paper
-          elevation={4}
-          sx={{
-            borderRadius: '12px',
-            overflow: 'hidden',
-            marginBottom: '30px',
-          }}
-        >
-          <TableContainer
-            sx={{
-              maxHeight: '60vh',
-              '&::-webkit-scrollbar': {
-                width: '8px',
-                height: '8px',
-              },
-              '&::-webkit-scrollbar-track': {
-                backgroundColor: '#f1f1f1',
-              },
-              '&::-webkit-scrollbar-thumb': {
-                backgroundColor: '#6D2323',
-                borderRadius: '4px',
-              },
-              '&::-webkit-scrollbar-thumb:hover': {
-                backgroundColor: '#5a1e1e',
-              },
-            }}
-          >
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell
-                    sx={{
-                      fontWeight: 'bold',
-                      backgroundColor: '#f5f5f5',
-                      borderBottom: '2px solid #6D2323',
-                      fontSize: '0.95rem',
-                    }}
-                  >
-                    Employee Number
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: 'bold',
-                      backgroundColor: '#f5f5f5',
-                      borderBottom: '2px solid #6D2323',
-                      fontSize: '0.95rem',
-                    }}
-                  >
-                    Action
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: 'bold',
-                      backgroundColor: '#f5f5f5',
-                      borderBottom: '2px solid #6D2323',
-                      fontSize: '0.95rem',
-                    }}
-                  >
-                    Table Name
-                  </TableCell>
-
-                  <TableCell
-                    sx={{
-                      fontWeight: 'bold',
-                      backgroundColor: '#f5f5f5',
-                      borderBottom: '2px solid #6D2323',
-                      fontSize: '0.95rem',
-                    }}
-                  >
-                    Target Employee
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: 'bold',
-                      backgroundColor: '#f5f5f5',
-                      borderBottom: '2px solid #6D2323',
-                      fontSize: '0.95rem',
-                    }}
-                  >
-                    Timestamp
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedLogs.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      style={{ textAlign: 'center', padding: '40px' }}
-                    >
-                      <Typography variant="h6" color="text.secondary">
-                        {searchQuery || selectedMonth
-                          ? 'No matching logs found.'
-                          : 'No audit logs available.'}
-                      </Typography>
-                      {(searchQuery || selectedMonth) && (
+                        <ReorderIcon sx={{ fontSize: 32, color: accentColor }} />
+                      </Avatar>
+                      <Box>
                         <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ mt: 1 }}
+                          variant="h4"
+                          component="h1"
+                          sx={{
+                            fontWeight: 700,
+                            mb: 1,
+                            lineHeight: 1.2,
+                            color: accentColor,
+                          }}
                         >
-                          Try adjusting your search criteria or filters
+                          Audit Logs
                         </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            opacity: 0.8,
+                            fontWeight: 400,
+                            color: accentDark,
+                          }}
+                        >
+                          View all recorded system activities
+                        </Typography>
+                      </Box>
+                    </Box>
+                    
+                    {/* Session Info and Logout */}
+                    <Box display="flex" alignItems="center" gap={2}>
+                      {remainingTime > 0 && (
+                        <Chip
+                          label={`Session expires in: ${remainingTime} min`}
+                          size="small"
+                          sx={{
+                            bgcolor: 'rgba(109,35,35,0.15)',
+                            color: accentColor,
+                            fontWeight: 500,
+                          }}
+                        />
                       )}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedLogs.map((log, index) => (
-                    <TableRow
-                      key={index}
+                      <Tooltip title="Refresh Logs">
+                        <IconButton
+                          onClick={fetchLogs}
+                          disabled={loading}
+                          sx={{
+                            bgcolor: 'rgba(109,35,35,0.1)',
+                            '&:hover': { bgcolor: 'rgba(109,35,35,0.2)' },
+                            color: accentColor,
+                            width: 48,
+                            height: 48,
+                            '&:disabled': {
+                              bgcolor: 'rgba(109,35,35,0.05)',
+                              color: 'rgba(109,35,35,0.3)',
+                            },
+                          }}
+                        >
+                          {loading ? (
+                            <CircularProgress
+                              size={24}
+                              sx={{ color: accentColor }}
+                            />
+                          ) : (
+                            <Refresh />
+                          )}
+                        </IconButton>
+                      </Tooltip>
+                      <ProfessionalButton
+                        variant="outlined"
+                        onClick={clearSession}
+                        sx={{
+                          borderColor: accentColor,
+                          color: accentColor,
+                          '&:hover': {
+                            borderColor: accentDark,
+                            bgcolor: alpha(accentColor, 0.05),
+                          },
+                        }}
+                      >
+                        Logout
+                      </ProfessionalButton>
+                      <IconButton
+                        onClick={() => navigate('/')}
+                        sx={{
+                          color: accentColor,
+                          '&:hover': {
+                            backgroundColor: 'rgba(109, 35, 35, 0.1)',
+                          },
+                        }}
+                      >
+                        <CloseIcon />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </Box>
+              </GlassCard>
+            </Box>
+          </Fade>
+
+          {/* Success/Error Messages */}
+          {successMessage && (
+            <Fade in timeout={300}>
+              <Alert
+                severity="success"
+                sx={{
+                  mb: 3,
+                  borderRadius: 3,
+                  '& .MuiAlert-message': { fontWeight: 500 },
+                }}
+                icon={<CheckCircle />}
+                onClose={() => setSuccessMessage('')}
+              >
+                {successMessage}
+              </Alert>
+            </Fade>
+          )}
+
+          {errorMessage && (
+            <Fade in timeout={300}>
+              <Alert
+                severity="error"
+                sx={{
+                  mb: 3,
+                  borderRadius: 3,
+                  '& .MuiAlert-message': { fontWeight: 500 },
+                }}
+                icon={<Error />}
+                onClose={() => setErrorMessage('')}
+              >
+                {errorMessage}
+              </Alert>
+            </Fade>
+          )}
+
+          {/* Search & Filter */}
+          <Fade in timeout={700}>
+            <GlassCard sx={{ mb: 4 }}>
+              <CardHeader
+                title={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar
                       sx={{
-                        '&:nth-of-type(odd)': {
-                          backgroundColor: '#fafafa',
-                        },
-                        '&:hover': {
-                          backgroundColor: '#f0f0f0',
-                        },
+                        bgcolor: alpha(primaryColor, 0.8),
+                        color: accentColor,
                       }}
                     >
-                      <TableCell sx={{ fontSize: '0.9rem' }}>
-                        <Typography variant="body2" fontWeight="medium">
-                          {log.employeeNumber || '-'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ fontSize: '0.9rem' }}>
-                        {log.action ? (
-                          <Chip
-                            label={log.action}
-                            color={getActionColor(log.action)}
+                      <FilterList />
+                    </Avatar>
+                    <Box>
+                      <Typography
+                        variant="h5"
+                        component="div"
+                        sx={{ fontWeight: 600, color: accentColor }}
+                      >
+                        Search & Filter
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ color: accentDark }}
+                      >
+                        Find and filter audit logs by various criteria
+                      </Typography>
+                    </Box>
+                  </Box>
+                }
+                sx={{
+                  bgcolor: alpha(primaryColor, 0.5),
+                  pb: 2,
+                  borderBottom: '1px solid rgba(109,35,35,0.1)',
+                }}
+              />
+              <CardContent sx={{ p: 4 }}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={8}>
+                    <ModernTextField
+                      fullWidth
+                      label="Search Logs"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search by employee number, action, table name..."
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchIcon sx={{ color: accentColor }} />
+                          </InputAdornment>
+                        ),
+                        endAdornment: searchQuery && (
+                          <InputAdornment position="end">
+                            <IconButton
+                              onClick={handleClearSearch}
+                              sx={{ color: accentColor }}
+                            >
+                              <ClearIcon />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <FormControl fullWidth>
+                      <InputLabel
+                        sx={{
+                          fontWeight: 500,
+                          color: accentColor,
+                          '&.Mui-focused': { color: accentColor },
+                        }}
+                      >
+                        Filter by Month
+                      </InputLabel>
+                      <Select
+                        value={selectedMonth}
+                        onChange={(e) => {
+                          setSelectedMonth(e.target.value);
+                          setPage(0);
+                        }}
+                        label="Filter by Month"
+                        sx={{
+                          borderRadius: 3,
+                          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                          '&:hover': {
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          },
+                          '&.Mui-focused': {
+                            boxShadow: '0 4px 20px rgba(109, 35, 35, 0.25)',
+                            backgroundColor: 'rgba(255, 255, 255, 1)',
+                          },
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: alpha(accentColor, 0.3),
+                          },
+                          '&:hover .MuiOutlinedInput-notchedOutline': {
+                            borderColor: alpha(accentColor, 0.5),
+                          },
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: accentColor,
+                          },
+                        }}
+                      >
+                        <MenuItem value="">All Months</MenuItem>
+                        {getUniqueMonths().map((month) => (
+                          <MenuItem key={month.value} value={month.value}>
+                            {month.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {selectedMonth && (
+                        <FormHelperText sx={{ color: alpha(accentColor, 0.7), fontSize: '0.8rem' }}>
+                          <Button
                             size="small"
-                            sx={{ fontWeight: 'bold' }}
-                          />
-                        ) : (
-                          '-'
-                        )}
-                      </TableCell>
-                      <TableCell sx={{ fontSize: '0.9rem' }}>
-                        {log.table_name || '-'}
-                      </TableCell>
+                            onClick={handleClearMonth}
+                            sx={{ p: 0, minWidth: 'auto', color: accentColor }}
+                          >
+                            Clear filter
+                          </Button>
+                        </FormHelperText>
+                      )}
+                    </FormControl>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </GlassCard>
+          </Fade>
 
-                      <TableCell sx={{ fontSize: '0.9rem' }}>
-                        {log.targetEmployeeNumber || '-'}
-                      </TableCell>
-                      <TableCell sx={{ fontSize: '0.9rem' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {formatDateForDisplay(log.timestamp)}
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ))
+          {/* Loading Backdrop */}
+          <Backdrop
+            sx={{
+              color: primaryColor,
+              zIndex: (theme) => theme.zIndex.drawer + 1,
+            }}
+            open={loading && !refreshing}
+          >
+            <Box sx={{ textAlign: 'center' }}>
+              <CircularProgress color="inherit" size={60} thickness={4} />
+              <Typography variant="h6" sx={{ mt: 2, color: primaryColor }}>
+                Loading audit logs...
+              </Typography>
+            </Box>
+          </Backdrop>
+
+          {/* Logs Table */}
+          {!loading && (
+            <Fade in timeout={900}>
+              <GlassCard>
+                <Box
+                  sx={{
+                    p: 3,
+                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
+                    color: accentColor,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    borderBottom: '1px solid rgba(109,35,35,0.1)',
+                  }}
+                >
+                  <Box>
+                    <Typography
+                      variant="h5"
+                      sx={{ fontWeight: 600, color: accentColor }}
+                    >
+                      Audit Logs
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ opacity: 0.8, color: accentDark }}
+                    >
+                      {searchQuery || selectedMonth
+                        ? `Showing ${filteredLogs.length} of ${logs.length} logs matching your criteria`
+                        : `Total: ${logs.length} audit logs`}
+                    </Typography>
+                  </Box>
+                  <Chip
+                    label={`${logs.length} Total Records`}
+                    size="small"
+                    sx={{
+                      bgcolor: 'rgba(109,35,35,0.15)',
+                      color: accentColor,
+                      fontWeight: 500,
+                    }}
+                  />
+                </Box>
+
+                <PremiumTableContainer component={Paper} elevation={0}>
+                  <Table sx={{ minWidth: 800 }}>
+                    <TableHead sx={{ bgcolor: alpha(primaryColor, 0.7) }}>
+                      <TableRow>
+                        <PremiumTableCell isHeader sx={{ color: accentColor }}>
+                          Employee Number
+                        </PremiumTableCell>
+                        <PremiumTableCell isHeader sx={{ color: accentColor }}>
+                          Action
+                        </PremiumTableCell>
+                        <PremiumTableCell isHeader sx={{ color: accentColor }}>
+                          Table Name
+                        </PremiumTableCell>
+                        <PremiumTableCell isHeader sx={{ color: accentColor }}>
+                          Target Employee
+                        </PremiumTableCell>
+                        <PremiumTableCell isHeader sx={{ color: accentColor }}>
+                          Timestamp
+                        </PremiumTableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {paginatedLogs.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={5}
+                            sx={{ textAlign: 'center', py: 8 }}
+                          >
+                            <Box sx={{ textAlign: 'center' }}>
+                              <Info
+                                sx={{
+                                  fontSize: 80,
+                                  color: alpha(accentColor, 0.3),
+                                  mb: 3,
+                                }}
+                              />
+                              <Typography
+                                variant="h5"
+                                color={alpha(accentColor, 0.6)}
+                                gutterBottom
+                                sx={{ fontWeight: 600 }}
+                              >
+                                No Logs Found
+                              </Typography>
+                              <Typography
+                                variant="body1"
+                                color={alpha(accentColor, 0.4)}
+                              >
+                                {searchQuery || selectedMonth
+                                  ? 'Try adjusting your search criteria or filters'
+                                  : 'No audit logs available'}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        paginatedLogs.map((log, index) => (
+                          <TableRow
+                            key={index}
+                            sx={{
+                              '&:nth-of-type(even)': {
+                                bgcolor: alpha(primaryColor, 0.3),
+                              },
+                              '&:hover': { bgcolor: alpha(accentColor, 0.05) },
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            <PremiumTableCell sx={{ fontWeight: 600, color: accentColor }}>
+                              {log.employeeNumber || '-'}
+                            </PremiumTableCell>
+                            <PremiumTableCell>
+                              {log.action ? (
+                                <Chip
+                                  label={log.action}
+                                  size="small"
+                                  icon={getActionColor(log.action).icon}
+                                  sx={{
+                                    ...getActionColor(log.action).sx,
+                                    fontWeight: 600,
+                                    padding: '4px 8px',
+                                  }}
+                                />
+                              ) : (
+                                '-'
+                              )}
+                            </PremiumTableCell>
+                            <PremiumTableCell sx={{ color: accentDark }}>
+                              {log.table_name || '-'}
+                            </PremiumTableCell>
+                            <PremiumTableCell sx={{ color: accentDark }}>
+                              {log.targetEmployeeNumber || '-'}
+                            </PremiumTableCell>
+                            <PremiumTableCell sx={{ color: accentDark }}>
+                              <Typography variant="body2">
+                                {formatDateForDisplay(log.timestamp)}
+                              </Typography>
+                            </PremiumTableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </PremiumTableContainer>
+
+                {/* Pagination */}
+                {filteredLogs.length > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 2 }}>
+                    <TablePagination
+                      component="div"
+                      count={filteredLogs.length}
+                      page={page}
+                      onPageChange={handleChangePage}
+                      rowsPerPage={rowsPerPage}
+                      onRowsPerPageChange={handleChangeRowsPerPage}
+                      rowsPerPageOptions={[5, 10, 25, 50, 100]}
+                      sx={{
+                        '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows':
+                          {
+                            color: accentColor,
+                            fontWeight: 600,
+                          },
+                      }}
+                    />
+                  </Box>
                 )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          {/* Pagination */}
-          {filteredLogs.length > 0 && (
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={filteredLogs.length}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              onPageChange={handleChangePage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-              sx={{
-                borderTop: '1px solid #e0e0e0',
-                '& .MuiTablePagination-actions': {
-                  '& .MuiIconButton-root': {
-                    '&:hover': {
-                      backgroundColor: 'rgba(109, 35, 35, 0.1)',
-                    },
-                  },
-                },
-                '& .MuiTablePagination-select': {
-                  '&:focus': {
-                    backgroundColor: 'rgba(109, 35, 35, 0.1)',
-                  },
-                },
-              }}
-            />
+              </GlassCard>
+            </Fade>
           )}
-        </Paper>
-      </Container>
+        </Box>
+      </Box>
     </>
   );
 };

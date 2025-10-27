@@ -3,12 +3,12 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
-  Container, Box, Grid, Dialog, Typography, Avatar, Button, IconButton, Tooltip, Modal, Badge, Paper, Card, CardContent, LinearProgress, Chip, Fade, Grow, Skeleton, Menu, MenuItem, Divider, List, ListItem, ListItemText, ListItemIcon, Checkbox, Tab, Tabs, TextField, DialogTitle, DialogContent, DialogActions,
+  Container, Box, Grid, Dialog, Typography, Avatar, Button, IconButton, Tooltip, Modal, Badge, Paper, Card, CardContent, LinearProgress, Chip, Fade, Grow, Skeleton, Menu, MenuItem, Divider, List, ListItem, ListItemText, ListItemIcon, Checkbox, Tab, Tabs, TextField, DialogTitle, DialogContent, DialogActions, Switch, FormControlLabel,
 } from "@mui/material";
 import {
   Notifications as NotificationsIcon, ArrowDropDown as ArrowDropDownIcon, AccessTime, Receipt, ContactPage, UploadFile, Person, GroupAdd, TransferWithinAStation, Group, Pages, ReceiptLong, AcUnit, TrendingUp, TrendingDown, ArrowForward, PlayArrow, Pause, MoreVert,
   AccountCircle, Settings, HelpOutline, PrivacyTip, Logout, Event, Schedule, Lock, Star, Upgrade, Add, Close, Money, Work, Assessment, Timeline, Delete, Edit, Build,
-  PersonAdd
+  PersonAdd, Info, Lightbulb
 } from "@mui/icons-material";
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
@@ -37,6 +37,70 @@ import {
 import logo from "../assets/logo.PNG";
 import SuccessfulOverlay from "./SuccessfulOverlay";
 
+// Enhanced Custom Tooltip Component with tutorial-style information
+const CustomTooltip = ({ children, title, description, steps, link, settings, tooltipsEnabled, ...props }) => {
+  if (!tooltipsEnabled) {
+    return <>{children}</>;
+  }
+  
+  return (
+    <Tooltip 
+      title={
+        <Box sx={{ maxWidth: 320 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Info sx={{ fontSize: 16 }} />
+            {title}
+          </Typography>
+          {description && (
+            <Typography variant="body2" sx={{ mb: 1, fontSize: '0.8rem', lineHeight: 1.4 }}>
+              {description}
+            </Typography>
+          )}
+          {steps && (
+            <Box sx={{ mb: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Lightbulb sx={{ fontSize: 14 }} />
+                How to use:
+              </Typography>
+              {steps.map((step, index) => (
+                <Typography key={index} variant="body2" sx={{ ml: 1, fontSize: '0.75rem', lineHeight: 1.3 }}>
+                  {index + 1}. {step}
+                </Typography>
+              ))}
+            </Box>
+          )}
+          {link && (
+            <Typography variant="caption" sx={{ fontStyle: 'italic', display: 'block', mt: 1, opacity: 0.9 }}>
+              📚 Learn more: {link}
+            </Typography>
+          )}
+        </Box>
+      } 
+      arrow 
+      placement="top"
+      componentsProps={{
+        tooltip: {
+          sx: {
+            backgroundColor: settings.primaryColor,
+            color: settings.accentColor,
+            fontSize: '0.8rem',
+            fontWeight: 500,
+            padding: '12px 16px',
+            borderRadius: '8px',
+            maxWidth: '350px',
+            '& .MuiTooltip-arrow': {
+              color: settings.primaryColor,
+            }
+          }
+        }
+      }}
+      {...props}
+    >
+      {children}
+    </Tooltip>
+  );
+};
+
 const useSystemSettings = () => {
   const [settings, setSettings] = useState({
     primaryColor: '#894444',
@@ -50,7 +114,6 @@ const useSystemSettings = () => {
   });
 
   useEffect(() => {
-    
     const storedSettings = localStorage.getItem('systemSettings');
     if (storedSettings) {
       try {
@@ -61,7 +124,6 @@ const useSystemSettings = () => {
       }
     }
 
-    
     const fetchSettings = async () => {
       try {
         const url = API_BASE_URL.includes('/api') 
@@ -82,7 +144,26 @@ const useSystemSettings = () => {
   return settings;
 };
 
+const useTooltipSettings = () => {
+  const [tooltipsEnabled, setTooltipsEnabled] = useState(true);
 
+  useEffect(() => {
+    const storedPreference = localStorage.getItem('tooltipsEnabled');
+    if (storedPreference !== null) {
+      setTooltipsEnabled(JSON.parse(storedPreference));
+    }
+  }, []);
+
+  const toggleTooltips = useCallback(() => {
+    const newValue = !tooltipsEnabled;
+    setTooltipsEnabled(newValue);
+    localStorage.setItem('tooltipsEnabled', JSON.stringify(newValue));
+  }, [tooltipsEnabled]);
+
+  return { tooltipsEnabled, toggleTooltips };
+};
+
+// Enhanced STAT_CARDS with detailed tooltips
 const STAT_CARDS = (settings) => [
   {
     label: "Total Employees",
@@ -92,7 +173,17 @@ const STAT_CARDS = (settings) => [
     icon: <PeopleIcon />,
     gradient: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`,
     shadow: `0 15px 40px ${settings.primaryColor}33`,
-   
+    tooltip: {
+      title: "Total Employees",
+      description: "This shows the total number of employees registered in the system across all departments.",
+      steps: [
+        "Click to view detailed employee list",
+        "Filter by department or employment status",
+        "Export data for reporting purposes",
+        "Add new employees from the Registration module"
+      ],
+      link: "User Guide: Employee Management"
+    }
   },
   {
     label: "Present Today",
@@ -104,6 +195,17 @@ const STAT_CARDS = (settings) => [
     shadow: `0 15px 40px ${settings.primaryColor}33`,
     trend: "+12%",
     trendUp: true,
+    tooltip: {
+      title: "Today's Attendance",
+      description: "Real-time count of employees who have marked their attendance for today.",
+      steps: [
+        "View attendance details by department",
+        "Check late arrivals and absences",
+        "Generate daily attendance reports",
+        "Mark manual attendance if needed"
+      ],
+      link: "Tutorial: Attendance Tracking"
+    }
   },
   {
     label: "Pending Payroll",
@@ -115,6 +217,17 @@ const STAT_CARDS = (settings) => [
     shadow: `0 15px 40px ${settings.primaryColor}33`,
     trend: "-8%",
     trendUp: false,
+    tooltip: {
+      title: "Pending Payroll",
+      description: "Number of payroll records awaiting processing for the current period.",
+      steps: [
+        "Review payroll calculations",
+        "Verify deductions and bonuses",
+        "Approve for processing",
+        "Schedule payment dates"
+      ],
+      link: "Guide: Payroll Processing"
+    }
   },
   {
     label: "Processed Payroll",
@@ -126,6 +239,17 @@ const STAT_CARDS = (settings) => [
     shadow: `0 15px 40px ${settings.primaryColor}33`,
     trend: "+6%",
     trendUp: true,
+    tooltip: {
+      title: "Processed Payroll",
+      description: "Successfully processed payroll transactions ready for payment.",
+      steps: [
+        "View payment status",
+        "Download payment advices",
+        "Generate bank transfer files",
+        "Send payslip notifications"
+      ],
+      link: "Tutorial: Payroll Distribution"
+    }
   },
   {
     label: "Released Payslips",
@@ -137,23 +261,178 @@ const STAT_CARDS = (settings) => [
     shadow: `0 15px 40px ${settings.primaryColor}33`,
     trend: "+2%",
     trendUp: true,
+    tooltip: {
+      title: "Released Payslips",
+      description: "Number of payslips distributed to employees for the current period.",
+      steps: [
+        "Track payslip delivery status",
+        "Resend failed notifications",
+        "Download payslip copies",
+        "Maintain payslip history"
+      ],
+      link: "Guide: Payslip Management"
+    }
   },
 ];
 
+// Enhanced QUICK_ACTIONS with tutorial-style tooltips
 const QUICK_ACTIONS = (settings) => [
-  { label: "Users", link: "/users-list", icon: <Group />, gradient: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})` },
-  { label: "Payroll", link: "/payroll-table", icon: <PaymentsIcon />, gradient: `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})` },
-  { label: "Leaves", link: "/leave-request", icon: <TransferWithinAStation />, gradient: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})` },
-  { label: "DTRs", link: "/daily_time_record_faculty", icon: <AccessTimeIcon />, gradient: `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})` },
-  { label: "Announcements", link: "/announcement", icon: <CampaignIcon />, gradient: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})` },
-  { label: "Holidays", link: "/holiday", icon: <AcUnit />, gradient: `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})` },
-  { label: "Audit Logs", link: "/audit-logs", icon: <History />, gradient: `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})` },
-  { label: "Registration", link: "/registration", icon: <PersonAdd />, gradient: `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})` },
-  { label: "Payslip", link: "/distribution-payslip", icon: <PersonAdd />, gradient: `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})` },
+  { 
+    label: "Users", 
+    link: "/users-list", 
+    icon: <Group />, 
+    gradient: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`, 
+    tooltip: {
+      title: "User Management",
+      description: "Manage user accounts, permissions, and access levels for the HR system.",
+      steps: [
+        "Add new users or edit existing ones",
+        "Assign roles and department permissions",
+        "Reset passwords or deactivate accounts",
+        "Monitor user activity and login history"
+      ],
+      link: "Tutorial: User Administration"
+    }
+  },
+  { 
+    label: "Payroll", 
+    link: "/payroll-table", 
+    icon: <PaymentsIcon />, 
+    gradient: `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})`, 
+    tooltip: {
+      title: "Payroll Management",
+      description: "Process and manage employee payroll with automated calculations.",
+      steps: [
+        "Select pay period and employees",
+        "Review salary calculations",
+        "Process deductions and taxes",
+        "Generate payment reports"
+      ],
+      link: "Guide: Payroll Processing"
+    }
+  },
+  { 
+    label: "Leaves", 
+    link: "/leave-request", 
+    icon: <TransferWithinAStation />, 
+    gradient: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`, 
+    tooltip: {
+      title: "Leave Management",
+      description: "Review and approve employee leave requests and track leave balances.",
+      steps: [
+        "Approve/reject leave applications",
+        "View leave calendar and history",
+        "Update leave policies",
+        "Generate leave reports"
+      ],
+      link: "Tutorial: Leave Management"
+    }
+  },
+  { 
+    label: "DTRs", 
+    link: "/daily_time_record_faculty", 
+    icon: <AccessTimeIcon />, 
+    gradient: `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})`, 
+    tooltip: {
+      title: "Daily Time Records",
+      description: "View and manage daily time records and attendance logs.",
+      steps: [
+        "View employee check-in/out times",
+        "Edit time entries if needed",
+        "Generate attendance reports",
+        "Export timesheet data"
+      ],
+      link: "Guide: Time Tracking"
+    }
+  },
+  { 
+    label: "Announcements", 
+    link: "/announcement", 
+    icon: <CampaignIcon />, 
+    gradient: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`, 
+    tooltip: {
+      title: "Announcements",
+      description: "Create and manage company announcements for all employees.",
+      steps: [
+        "Create new announcements",
+        "Schedule publication dates",
+        "Target specific departments",
+        "Track view statistics"
+      ],
+      link: "Tutorial: Communication"
+    }
+  },
+  { 
+    label: "Holidays", 
+    link: "/holiday", 
+    icon: <AcUnit />, 
+    gradient: `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})`, 
+    tooltip: {
+      title: "Holiday Management",
+      description: "Manage company holidays and special non-working days.",
+      steps: [
+        "Add company holidays",
+        "Set recurring holidays",
+        "Notify employees in advance",
+        "Update payroll calendars"
+      ],
+      link: "Guide: Calendar Management"
+    }
+  },
+  { 
+    label: "Audit Logs", 
+    link: "/audit-logs", 
+    icon: <History />, 
+    gradient: `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})`, 
+    tooltip: {
+      title: "Audit Logs",
+      description: "View system activity logs and track all user actions.",
+      steps: [
+        "Monitor system access",
+        "Track data changes",
+        "Generate audit reports",
+        "Ensure compliance"
+      ],
+      link: "Guide: Security & Compliance"
+    }
+  },
+  { 
+    label: "Registration", 
+    link: "/registration", 
+    icon: <PersonAdd />, 
+    gradient: `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})`, 
+    tooltip: {
+      title: "Employee Registration",
+      description: "Register new employees and set up their profiles.",
+      steps: [
+        "Enter employee details",
+        "Upload required documents",
+        "Set initial permissions",
+        "Create login credentials"
+      ],
+      link: "Tutorial: Onboarding"
+    }
+  },
+  { 
+    label: "Payslip", 
+    link: "/distribution-payslip", 
+    icon: <ReceiptLongIcon />, 
+    gradient: `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})`, 
+    tooltip: {
+      title: "Payslip Distribution",
+      description: "Distribute payslips to employees through various channels.",
+      steps: [
+        "Select distribution method",
+        "Email payslips to employees",
+        "Generate printed copies",
+        "Track delivery status"
+      ],
+      link: "Guide: Payslip Distribution"
+    }
+  },
 ];
 
 const COLORS = (settings) => [settings.primaryColor, settings.secondaryColor, settings.hoverColor, settings.primaryColor, settings.secondaryColor];
-
 
 const useAuth = () => {
   const [username, setUsername] = useState("");
@@ -199,8 +478,6 @@ const useAuth = () => {
   return { username, fullName, employeeNumber, profilePicture };
 };
 
-
-
 const useDashboardData = (settings) => {
   const [stats, setStats] = useState({
     employees: 0,
@@ -213,15 +490,13 @@ const useDashboardData = (settings) => {
     payslipCount: 0
   });
   
-  
   const [weeklyAttendanceData, setWeeklyAttendanceData] = useState([]);
   const [departmentAttendanceData, setDepartmentAttendanceData] = useState([]);
-  const [payrollStatusData, setPayrollStatusData] = useState([
+  const [payrollStatusData, setPayrollStatusData] = [
     { status: "Processed", value: 0, fill: '#800020' },
     { status: "Pending", value: 0, fill: '#A52A2A' },
     { status: "Failed", value: 0, fill: '#f44336' },
-  ]);
-  
+  ];
   
   const [monthlyAttendanceTrend, setMonthlyAttendanceTrend] = useState([
     { month: "Jan", attendance: 94.2, leaves: 8.5, overtime: 12.3 },
@@ -251,7 +526,6 @@ const useDashboardData = (settings) => {
   const [holidays, setHolidays] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  
   useEffect(() => {
     if (attendanceChartData.length > 0) {
       setAttendanceChartData(prev => prev.map((item, idx) => ({
@@ -277,7 +551,6 @@ const useDashboardData = (settings) => {
       try {
         console.log(' Starting data fetch...');
 
-        
         try {
           console.log(' Fetching dashboard stats...');
           const dashboardStatsRes = await axios.get(`${API_BASE_URL}/api/dashboard/stats`, { headers });
@@ -291,7 +564,6 @@ const useDashboardData = (settings) => {
             todayAttendance: dashStats.presentToday || 0,
           }));
 
-          
           const totalEmp = dashStats.totalEmployees || 0;
           const presentToday = dashStats.presentToday || 0;
           const absentToday = totalEmp - presentToday;
@@ -308,7 +580,6 @@ const useDashboardData = (settings) => {
           console.error(" Failed to fetch dashboard stats:", err?.message);
         }
 
-        
         try {
           console.log(' Fetching weekly attendance...');
           const weeklyAttendanceRes = await axios.get(
@@ -318,7 +589,6 @@ const useDashboardData = (settings) => {
           const weeklyData = weeklyAttendanceRes.data;
           
           console.log(' Weekly attendance received:', weeklyData);
-          
           
           const transformedWeekly = Array.isArray(weeklyData) ? weeklyData.map(item => ({
             day: item.day,
@@ -332,11 +602,9 @@ const useDashboardData = (settings) => {
 
         } catch (err) {
           console.error(" Failed to fetch weekly attendance:", err?.message);
-          
           setWeeklyAttendanceData([]);
         }
 
-        
         try {
           console.log('Fetching department distribution...');
           const deptDistRes = await axios.get(
@@ -346,7 +614,6 @@ const useDashboardData = (settings) => {
           const deptData = deptDistRes.data;
           
           console.log(' Department data received:', deptData);
-          
           
           const transformedDept = Array.isArray(deptData) ? deptData.map(item => ({
             department: item.department,
@@ -363,7 +630,6 @@ const useDashboardData = (settings) => {
           setDepartmentAttendanceData([]);
         }
 
-        
         try {
           console.log('Fetching payroll summary...');
           const payrollSummaryRes = await axios.get(
@@ -380,7 +646,6 @@ const useDashboardData = (settings) => {
             processedPayroll: payrollSummary.processed || 0,
           }));
 
-          
           const newPayrollStatus = [
             { status: "Processed", value: payrollSummary.processed || 0, fill: settings.primaryColor },
             { status: "Pending", value: payrollSummary.pending || 0, fill: settings.secondaryColor },
@@ -392,7 +657,6 @@ const useDashboardData = (settings) => {
 
         } catch (err) {
           console.error(" Failed to fetch payroll summary:", err?.message);
-          
           setPayrollStatusData([
             { status: "Processed", value: 0, fill: settings.primaryColor },
             { status: "Pending", value: 0, fill: settings.secondaryColor },
@@ -400,7 +664,6 @@ const useDashboardData = (settings) => {
           ]);
         }
 
-        
         try {
           console.log('Fetching monthly attendance trend...');
           const monthlyAttendanceRes = await axios.get(
@@ -411,14 +674,12 @@ const useDashboardData = (settings) => {
           
           console.log(' Monthly attendance received:', monthlyData.length, 'days');
           
-          
           const weeklyAverages = [];
           let weekData = [];
           
           if (Array.isArray(monthlyData)) {
             monthlyData.forEach((day, index) => {
               weekData.push(day.present);
-              
               
               if ((index + 1) % 7 === 0 || index === monthlyData.length - 1) {
                 const avg = weekData.reduce((a, b) => a + b, 0) / weekData.length;
@@ -442,7 +703,6 @@ const useDashboardData = (settings) => {
           console.error("Failed to fetch monthly attendance:", err?.message);
         }
 
-        
         try {
           console.log(' Fetching payslip count...');
           const finalizedPayrollRes = await axios.get(
@@ -458,11 +718,10 @@ const useDashboardData = (settings) => {
 
         } catch (err) {
           console.error(" Failed to fetch payslip count:", err?.message);
-          
           setStats(prev => ({ ...prev, payslipCount: 0 }));
         }
 
-        
+        // Fixed announcement fetching
         try {
           console.log(' Fetching announcements...');
           const annRes = await axios.get(`${API_BASE_URL}/api/announcements`, { headers });
@@ -475,7 +734,7 @@ const useDashboardData = (settings) => {
           setAnnouncements([]);
         }
 
-        
+        // Fixed holiday fetching
         try {
           console.log(' Fetching holidays...');
           const res = await axios.get(`${API_BASE_URL}/holiday`, { headers });
@@ -509,7 +768,6 @@ const useDashboardData = (settings) => {
 
     fetchAllData();
 
-    
     console.log(' Setting up auto-refresh (5 minutes)');
     const interval = setInterval(fetchAllData, 5 * 60 * 1000);
     return () => {
@@ -586,116 +844,7 @@ const useTime = () => {
   return currentTime;
 };
 
-
-const StatCard = ({ card, index, stats, loading, hoveredCard, setHoveredCard, settings }) => (
-  <Grow in timeout={500 + index * 100}>
-    <Card 
-      onMouseEnter={() => setHoveredCard(index)} 
-      onMouseLeave={() => setHoveredCard(null)} 
-      sx={{ 
-        background: hoveredCard === index ? card.gradient : settings.accentColor, 
-        backdropFilter: 'blur(15px)', 
-        border: hoveredCard === index ? 'none' : `1px solid ${settings.primaryColor}26`, 
-        borderRadius: 4, 
-        transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)', 
-        transform: hoveredCard === index ? 'translateY(-12px) scale(1.02)' : 'translateY(0)', 
-        boxShadow: hoveredCard === index ? card.shadow : '0 4px 12px rgba(0,0,0,0.1)', 
-        position: 'relative', 
-        overflow: 'hidden', 
-        '&::before': { 
-          content: '""', 
-          position: 'absolute', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          background: hoveredCard === index ? 'none' : card.gradient, 
-          opacity: 0.1, 
-          transition: 'opacity 0.5s'
-        }, 
-        '&::after': { 
-          content: '""', 
-          position: 'absolute', 
-          top: -50, 
-          right: -50, 
-          width: 150, 
-          height: 150, 
-          background: 'radial-gradient(circle, rgba(254,249,225,0.2) 0%, transparent 70%)', 
-          borderRadius: '50%', 
-          transform: hoveredCard === index ? 'scale(2)' : 'scale(0)', 
-          transition: 'transform 0.6s ease-out' 
-        } 
-      }}
-    >
-      <CardContent sx={{ p: 3, position: 'relative', zIndex: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Box sx={{ 
-            width: 64, 
-            height: 64, 
-            borderRadius: 3, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            background: hoveredCard === index ? 'rgba(254, 249, 225, 0.2)' : `${settings.primaryColor}1A`, 
-            backdropFilter: 'blur(10px)', 
-            color: hoveredCard === index ? '#ffffff' : settings.textPrimaryColor, 
-            transition: 'all 0.5s', 
-            transform: hoveredCard === index ? 'rotate(360deg) scale(1.1)' : 'rotate(0) scale(1)', 
-            boxShadow: hoveredCard === index ? '0 8px 24px rgba(0,0,0,0.2)' : 'none' 
-          }}>
-            {React.cloneElement(card.icon, { sx: { fontSize: 36 } })}
-          </Box>
-          <Chip 
-            icon={card.trendUp ? <TrendingUp /> : <TrendingDown />} 
-            label={card.trend} 
-            size="small" 
-            sx={{ 
-              bgcolor: hoveredCard === index ? 'rgba(254,249,225,0.15)' : `${settings.primaryColor}1A`, 
-              backdropFilter: 'blur(10px)', 
-              color: hoveredCard === index ? '#ffffff' : settings.textPrimaryColor, 
-              fontWeight: 700, 
-              border: hoveredCard === index ? '1px solid rgba(254,249,225,0.2)' : `1px solid ${settings.primaryColor}26`, 
-              '& .MuiChip-icon': { color: hoveredCard === index ? '#ffffff' : settings.textPrimaryColor } 
-            }} 
-          />
-        </Box>
-        <Typography 
-          variant="h2" 
-          sx={{ 
-            fontWeight: 800, 
-            mb: 0.5, 
-            color: hoveredCard === index ? '#ffffff' : settings.textPrimaryColor, 
-            textShadow: hoveredCard === index ? '0 2px 10px rgba(0,0,0,0.3)' : 'none' 
-          }}
-        >
-          {loading ? <Skeleton variant="text" width={80} sx={{ bgcolor: 'rgba(128, 0, 32, 0.1)' }} /> : 
-           (stats[card.valueKey] !== undefined ? stats[card.valueKey] : card.defaultValue)}
-        </Typography>
-        <Typography 
-          variant="h6" 
-          sx={{ 
-            fontWeight: 600, 
-            mb: 0.5, 
-            color: hoveredCard === index ? 'rgba(254,249,225,0.9)' : settings.textPrimaryColor, 
-            textShadow: hoveredCard === index ? '0 1px 5px rgba(0,0,0,0.3)' : 'none' 
-          }}
-        >
-          {card.textValue}
-        </Typography>
-        <Typography sx={{ color: hoveredCard === index ? 'rgba(254,249,225,0.9)' : settings.textSecondaryColor, fontSize: '1rem', fontWeight: 600, mb: 0.5 }}>
-          {card.label}
-        </Typography>
-        <Typography sx={{ color: hoveredCard === index ? 'rgba(254,249,225,0.6)' : settings.textSecondaryColor, fontSize: '0.85rem' }}>
-          {card.subtitle}
-        </Typography>
-        {loading && <LinearProgress sx={{ mt: 2, borderRadius: 1, height: 4, bgcolor: 'rgba(128, 0, 32, 0.1)', '& .MuiLinearProgress-bar': { bgcolor: hoveredCard === index ? '#ffffff' : settings.primaryColor, borderRadius: 1 } }} />}
-      </CardContent>
-    </Card>
-  </Grow>
-);
-
-
-const CompactStatCard = ({ card, index, stats, loading, hoveredCard, setHoveredCard, settings }) => (
+const CompactStatCard = ({ card, index, stats, loading, hoveredCard, setHoveredCard, settings, tooltipsEnabled }) => (
   <Grow in timeout={300 + index * 50}>
     <Card 
       onMouseEnter={() => setHoveredCard(index)} 
@@ -703,7 +852,7 @@ const CompactStatCard = ({ card, index, stats, loading, hoveredCard, setHoveredC
       sx={{ 
         height: 120,
         background: settings.accentColor, 
-        border: `1px solid ${hoveredCard === index ? settings.primaryColor : settings.primaryColor}26`, 
+        border: `2px solid ${hoveredCard === index ? settings.primaryColor : settings.primaryColor}26`, 
         borderRadius: 4, 
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
         transform: hoveredCard === index ? 'translateY(-4px) scale(1.02)' : 'translateY(0)', 
@@ -713,49 +862,58 @@ const CompactStatCard = ({ card, index, stats, loading, hoveredCard, setHoveredC
         overflow: 'hidden'
       }}
     >
-      <CardContent sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Box sx={{ 
-            width: 40, 
-            height: 30, 
-            borderRadius: 1, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            background: `${settings.primaryColor}1A`, 
-            color: settings.textPrimaryColor, 
-            transition: 'all 0.3s', 
-            transform: hoveredCard === index ? 'rotate(360deg) scale(1.1)' : 'rotate(0) scale(1)', 
-          }}>
-            {React.cloneElement(card.icon, { sx: { fontSize: 24 } })}
-          </Box>
-
-        </Box>
-        <Box>
-          <Typography 
-            variant="h4" 
-            sx={{ 
-              fontWeight: 700, 
+      <CustomTooltip 
+        title={card.tooltip.title}
+        description={card.tooltip.description}
+        steps={card.tooltip.steps}
+        link={card.tooltip.link}
+        settings={settings} 
+        tooltipsEnabled={tooltipsEnabled}
+      >
+        <CardContent sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Box sx={{ 
+              width: 40, 
+              height: 30, 
+              borderRadius: 1, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              background: `${settings.primaryColor}1A`, 
               color: settings.textPrimaryColor, 
-              lineHeight: 1
-            }}
-          >
-            {loading ? <Skeleton variant="text" width={60} height={32} /> : 
-             (stats[card.valueKey] !== undefined ? stats[card.valueKey] : card.defaultValue)}
-          </Typography>
-          <Typography sx={{ color: settings.textPrimaryColor, fontSize: '0.75rem', fontWeight: 500 }}>
-            {card.textValue}
-          </Typography>
-          <Typography sx={{ color: settings.textSecondaryColor, fontSize: '0.7rem', fontWeight: 500 }}>
-            {card.label}
-          </Typography>
-        </Box>
-      </CardContent>
+              transition: 'all 0.3s', 
+              transform: hoveredCard === index ? 'rotate(360deg) scale(1.1)' : 'rotate(0) scale(1)', 
+            }}>
+              {React.cloneElement(card.icon, { sx: { fontSize: 24 } })}
+            </Box>
+
+          </Box>
+          <Box>
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                fontWeight: 700, 
+                color: settings.textPrimaryColor, 
+                lineHeight: 1
+              }}
+            >
+              {loading ? <Skeleton variant="text" width={60} height={32} /> : 
+               (stats[card.valueKey] !== undefined ? stats[card.valueKey] : card.defaultValue)}
+            </Typography>
+            <Typography sx={{ color: settings.textPrimaryColor, fontSize: '0.75rem', fontWeight: 500 }}>
+              {card.textValue}
+            </Typography>
+            <Typography sx={{ color: settings.textSecondaryColor, fontSize: '0.7rem', fontWeight: 500 }}>
+              {card.label}
+            </Typography>
+          </Box>
+        </CardContent>
+      </CustomTooltip>
     </Card>
   </Grow>
 );
 
-const AnnouncementCarousel = ({ announcements, currentSlide, isPlaying, handlePrevSlide, handleNextSlide, handleSlideSelect, togglePlayPause, handleOpenModal, settings }) => (
+const AnnouncementCarousel = ({ announcements, currentSlide, isPlaying, handlePrevSlide, handleNextSlide, handleSlideSelect, togglePlayPause, handleOpenModal, settings, tooltipsEnabled }) => (
   <Fade in timeout={600}>
     <Card sx={{ 
       background: settings.accentColor, 
@@ -787,59 +945,65 @@ const AnnouncementCarousel = ({ announcements, currentSlide, isPlaying, handlePr
               inset: 0, 
               background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 70%)' 
             }} />
-            <IconButton 
-              onClick={(e) => { e.stopPropagation(); handlePrevSlide(); }} 
-              sx={{ 
-                position: 'absolute', 
-                left: 24, 
-                top: '50%', 
-                transform: 'translateY(-50%)', 
-                bgcolor: `${settings.primaryColor}4D`, 
-                backdropFilter: 'blur(10px)', 
-                border: `1px solid ${settings.primaryColor}26`, 
-                '&:hover': { bgcolor: `${settings.primaryColor}80`, transform: 'translateY(-50%) scale(1.1)' }, 
-                color: '#ffffff', 
-                boxShadow: '0 4px 24px rgba(0,0,0,0.2)', 
-                transition: 'all 0.3s' 
-              }}
-            >
-              <ArrowBackIosNewIcon />
-            </IconButton>
-            <IconButton 
-              onClick={(e) => { e.stopPropagation(); handleNextSlide(); }} 
-              sx={{ 
-                position: 'absolute', 
-                right: 24, 
-                top: '50%', 
-                transform: 'translateY(-50%)', 
-                bgcolor: `${settings.primaryColor}4D`, 
-                backdropFilter: 'blur(10px)', 
-                border: `1px solid ${settings.primaryColor}26`, 
-                '&:hover': { bgcolor: `${settings.primaryColor}80`, transform: 'translateY(-50%) scale(1.1)' }, 
-                color: '#ffffff', 
-                boxShadow: '0 4px 24px rgba(0,0,0,0.2)', 
-                transition: 'all 0.3s' 
-              }}
-            >
-              <ArrowForwardIosIcon />
-            </IconButton>
-            <IconButton 
-              onClick={(e) => { e.stopPropagation(); togglePlayPause(); }} 
-              sx={{ 
-                position: 'absolute', 
-                top: 24, 
-                right: 24, 
-                bgcolor: `${settings.primaryColor}4D`, 
-                backdropFilter: 'blur(10px)', 
-                border: `1px solid ${settings.primaryColor}26`, 
-                '&:hover': { bgcolor: `${settings.primaryColor}80`, transform: 'scale(1.1)' }, 
-                color: '#ffffff', 
-                boxShadow: '0 4px 24px rgba(0,0,0,0.2)', 
-                transition: 'all 0.3s' 
-              }}
-            >
-              {isPlaying ? <Pause /> : <PlayArrow />}
-            </IconButton>
+            <CustomTooltip title="Previous announcement" settings={settings} tooltipsEnabled={tooltipsEnabled}>
+              <IconButton 
+                onClick={(e) => { e.stopPropagation(); handlePrevSlide(); }} 
+                sx={{ 
+                  position: 'absolute', 
+                  left: 24, 
+                  top: '50%', 
+                  transform: 'translateY(-50%)', 
+                  bgcolor: `${settings.primaryColor}4D`, 
+                  backdropFilter: 'blur(10px)', 
+                  border: `1px solid ${settings.primaryColor}26`, 
+                  '&:hover': { bgcolor: `${settings.primaryColor}80`, transform: 'translateY(-50%) scale(1.1)' }, 
+                  color: '#ffffff', 
+                  boxShadow: '0 4px 24px rgba(0,0,0,0.2)', 
+                  transition: 'all 0.3s' 
+                }}
+              >
+                <ArrowBackIosNewIcon />
+              </IconButton>
+            </CustomTooltip>
+            <CustomTooltip title="Next announcement" settings={settings} tooltipsEnabled={tooltipsEnabled}>
+              <IconButton 
+                onClick={(e) => { e.stopPropagation(); handleNextSlide(); }} 
+                sx={{ 
+                  position: 'absolute', 
+                  right: 24, 
+                  top: '50%', 
+                  transform: 'translateY(-50%)', 
+                  bgcolor: `${settings.primaryColor}4D`, 
+                  backdropFilter: 'blur(10px)', 
+                  border: `1px solid ${settings.primaryColor}26`, 
+                  '&:hover': { bgcolor: `${settings.primaryColor}80`, transform: 'translateY(-50%) scale(1.1)' }, 
+                  color: '#ffffff', 
+                  boxShadow: '0 4px 24px rgba(0,0,0,0.2)', 
+                  transition: 'all 0.3s' 
+                }}
+              >
+                <ArrowForwardIosIcon />
+              </IconButton>
+            </CustomTooltip>
+            <CustomTooltip title={isPlaying ? "Pause carousel" : "Play carousel"} settings={settings} tooltipsEnabled={tooltipsEnabled}>
+              <IconButton 
+                onClick={(e) => { e.stopPropagation(); togglePlayPause(); }} 
+                sx={{ 
+                  position: 'absolute', 
+                  top: 24, 
+                  right: 24, 
+                  bgcolor: `${settings.primaryColor}4D`, 
+                  backdropFilter: 'blur(10px)', 
+                  border: `1px solid ${settings.primaryColor}26`, 
+                  '&:hover': { bgcolor: `${settings.primaryColor}80`, transform: 'scale(1.1)' }, 
+                  color: '#ffffff', 
+                  boxShadow: '0 4px 24px rgba(0,0,0,0.2)', 
+                  transition: 'all 0.3s' 
+                }}
+              >
+                {isPlaying ? <Pause /> : <PlayArrow />}
+              </IconButton>
+            </CustomTooltip>
             <Box 
               onClick={() => handleOpenModal(announcements[currentSlide])} 
               sx={{ 
@@ -889,7 +1053,7 @@ const AnnouncementCarousel = ({ announcements, currentSlide, isPlaying, handlePr
                 }}
               >
                 <AccessTimeIcon sx={{ fontSize: 18 }} />
-                {new Date(announcements[currentSlide]?.date).toDateString()}
+                {announcements[currentSlide]?.date ? new Date(announcements[currentSlide].date).toDateString() : ""}
               </Typography>
             </Box>
             <Box sx={{ 
@@ -901,23 +1065,24 @@ const AnnouncementCarousel = ({ announcements, currentSlide, isPlaying, handlePr
               alignItems: 'center' 
             }}>
               {announcements.map((_, idx) => (
-                <Box 
-                  key={idx} 
-                  sx={{ 
-                    width: currentSlide === idx ? 32 : 10, 
-                    height: 10, 
-                    borderRadius: 5, 
-                    bgcolor: currentSlide === idx ? '#ffffff' : 'rgba(254,249,225,0.4)', 
-                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', 
-                    cursor: 'pointer', 
-                    border: '1px solid rgba(254,249,225,0.3)', 
-                    '&:hover': { 
-                      bgcolor: 'rgba(254,249,225,0.7)', 
-                      transform: 'scale(1.2)' 
-                    } 
-                  }} 
-                  onClick={(e) => { e.stopPropagation(); handleSlideSelect(idx); }} 
-                />
+                <CustomTooltip key={idx} title={`Go to slide ${idx + 1}`} settings={settings} tooltipsEnabled={tooltipsEnabled}>
+                  <Box 
+                    sx={{ 
+                      width: currentSlide === idx ? 32 : 10, 
+                      height: 10, 
+                      borderRadius: 5, 
+                      bgcolor: currentSlide === idx ? '#ffffff' : 'rgba(254,249,225,0.4)', 
+                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', 
+                      cursor: 'pointer', 
+                      border: '1px solid rgba(254,249,225,0.3)', 
+                      '&:hover': { 
+                        bgcolor: 'rgba(254,249,225,0.7)', 
+                        transform: 'scale(1.2)' 
+                      } 
+                    }} 
+                    onClick={(e) => { e.stopPropagation(); handleSlideSelect(idx); }} 
+                  />
+                </CustomTooltip>
               ))}
             </Box>
           </>
@@ -931,7 +1096,7 @@ const AnnouncementCarousel = ({ announcements, currentSlide, isPlaying, handlePr
             gap: 2 
           }}>
             <CampaignIcon sx={{ fontSize: 80, color: `${settings.primaryColor}4D` }} />
-            <Typography variant="h5" sx={{ color: settings.textPrimaryColor }}>
+            <Typography variant="h5" sx={{ color: settings.textSecondaryColor }}>
               No announcements available
             </Typography>
           </Box>
@@ -941,7 +1106,7 @@ const AnnouncementCarousel = ({ announcements, currentSlide, isPlaying, handlePr
   </Fade>
 );
 
-const CompactChart = ({ title, children, height = 200, settings }) => (
+const CompactChart = ({ title, children, height = 200, settings, tooltipsEnabled }) => (
   <Card sx={{ 
     background: settings.accentColor, 
     backdropFilter: 'blur(15px)', 
@@ -963,7 +1128,7 @@ const CompactChart = ({ title, children, height = 200, settings }) => (
   </Card>
 );
 
-const CompactCalendar = ({ calendarDate, setCalendarDate, holidays, settings }) => {
+const CompactCalendar = ({ calendarDate, setCalendarDate, holidays, settings, tooltipsEnabled }) => {
   const month = calendarDate.getMonth();
   const year = calendarDate.getFullYear();
 
@@ -991,13 +1156,15 @@ const CompactCalendar = ({ calendarDate, setCalendarDate, holidays, settings }) 
     }}>
       <CardContent sx={{ p: 1.5, height: '100%', display: 'flex', flexDirection: 'column' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-          <IconButton 
-            size="small" 
-            onClick={() => setCalendarDate(new Date(year, month - 1, 1))} 
-            sx={{ color: settings.textPrimaryColor, p: 0.5 }}
-          >
-            <ArrowBackIosNewIcon fontSize="small" />
-          </IconButton>
+          <CustomTooltip title="Previous month" settings={settings} tooltipsEnabled={tooltipsEnabled}>
+            <IconButton 
+              size="small" 
+              onClick={() => setCalendarDate(new Date(year, month - 1, 1))} 
+              sx={{ color: settings.textPrimaryColor, p: 0.5 }}
+            >
+              <ArrowBackIosNewIcon fontSize="small" />
+            </IconButton>
+          </CustomTooltip>
           <Typography sx={{ 
             fontWeight: 600, 
             fontSize: '0.8rem', 
@@ -1005,13 +1172,15 @@ const CompactCalendar = ({ calendarDate, setCalendarDate, holidays, settings }) 
           }}>
             {new Date(year, month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
           </Typography>
-          <IconButton 
-            size="small" 
-            onClick={() => setCalendarDate(new Date(year, month + 1, 1))} 
-            sx={{ color: settings.textPrimaryColor, p: 0.5 }}
-          >
-            <ArrowForwardIosIcon fontSize="small" />
-          </IconButton>
+          <CustomTooltip title="Next month" settings={settings} tooltipsEnabled={tooltipsEnabled}>
+            <IconButton 
+              size="small" 
+              onClick={() => setCalendarDate(new Date(year, month + 1, 1))} 
+              sx={{ color: settings.textPrimaryColor, p: 0.5 }}
+            >
+              <ArrowForwardIosIcon fontSize="small" />
+            </IconButton>
+          </CustomTooltip>
         </Box>
         <Grid container spacing={0.3} sx={{ mb: 0.3 }}>
           {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => (
@@ -1020,7 +1189,7 @@ const CompactCalendar = ({ calendarDate, setCalendarDate, holidays, settings }) 
                 textAlign: 'center', 
                 fontWeight: 600, 
                 fontSize: '0.55rem', 
-                color: settings.textPrimaryColor 
+                color: settings.textSecondaryColor 
               }}>
                 {day}
               </Typography>
@@ -1034,23 +1203,29 @@ const CompactCalendar = ({ calendarDate, setCalendarDate, holidays, settings }) 
             const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
             return (
               <Grid item xs={12 / 7} key={index}>
-                <Box sx={{ 
-                  textAlign: 'center', 
-                  py: 0.3, 
-                  fontSize: '0.65rem', 
-                  borderRadius: 0.5, 
-                  color: holidayData ? '#ffffff' : day ? settings.textPrimaryColor : 'transparent', 
-                  background: holidayData ? `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})` : isToday ? '#c4c4c4ff' : 'transparent', 
-                  fontWeight: holidayData || isToday ? 600 : 400, 
-                  cursor: 'pointer', 
-                  transition: 'all 0.2s', 
-                  '&:hover': { 
-                    background: holidayData ? `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})` : '#e0e0e0', 
-                    transform: 'scale(1.1)' 
-                  } 
-                }}>
-                  {day || ""}
-                </Box>
+                <CustomTooltip 
+                  title={holidayData ? holidayData.name : (isToday ? "Today" : day ? `Day ${day}` : "")} 
+                  settings={settings} 
+                  tooltipsEnabled={tooltipsEnabled}
+                >
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    py: 0.3, 
+                    fontSize: '0.65rem', 
+                    borderRadius: 0.5, 
+                    color: holidayData ? '#ffffff' : day ? settings.textPrimaryColor : 'transparent', 
+                    background: holidayData ? `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})` : isToday ? '#c4c4c4ff' : 'transparent', 
+                    fontWeight: holidayData || isToday ? 600 : 400, 
+                    cursor: 'pointer', 
+                    transition: 'all 0.2s', 
+                    '&:hover': { 
+                      background: holidayData ? `linear-gradient(135deg, ${settings.secondaryColor}, ${settings.primaryColor})` : '#e0e0e0', 
+                      transform: 'scale(1.1)' 
+                    } 
+                  }}>
+                    {day || ""}
+                  </Box>
+                </CustomTooltip>
               </Grid>
             );
           })}
@@ -1060,130 +1235,12 @@ const CompactCalendar = ({ calendarDate, setCalendarDate, holidays, settings }) 
   );
 };
 
-const RecentActivity = ({ settings }) => {
-  const activities = [
-    {
-      id: 1,
-      user: "John Doe",
-      action: "Processed payroll for June 2024",
-      time: "2 minutes ago",
-      icon: <PaymentsIcon />,
-      color: settings.textPrimaryColor
-    },
-    {
-      id: 2,
-      user: "Jane Smith",
-      action: "Updated employee records",
-      time: "15 minutes ago",
-      icon: <Person />,
-      color: settings.textPrimaryColor
-    },
-    {
-      id: 3,
-      user: "Robert Johnson",
-      action: "Generated monthly attendance report",
-      time: "1 hour ago",
-      icon: <Assessment />,
-      color: settings.textPrimaryColor
-    },
-    {
-      id: 4,
-      user: "Emily Davis",
-      action: "New announcement posted: Company Holiday Schedule",
-      time: "2 hours ago",
-      icon: <CampaignIcon />,
-      color: settings.textPrimaryColor
-    },
-    {
-      id: 5,
-      user: "System",
-      action: "Database backup completed successfully",
-      time: "3 hours ago",
-      icon: <CheckCircleIcon />,
-      color: settings.textPrimaryColor
-    }
-  ];
-
-  return (
-    <Card sx={{ 
-      background: settings.accentColor, 
-      backdropFilter: 'blur(15px)', 
-      border: `1px solid ${settings.primaryColor}26`, 
-      borderRadius: 4, 
-      boxShadow: `0 15px 40px ${settings.primaryColor}33`,
-      height: 320
-    }}>
-      <CardContent sx={{ p: 1.5, height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1.5, color: settings.textPrimaryColor, fontSize: '0.85rem' }}>
-          Recent Activity
-        </Typography>
-        <Box sx={{ flex: 1, overflowY: 'auto' }}>
-          {activities.map((activity, index) => (
-            <Grow in timeout={300 + index * 50} key={activity.id}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'flex-start', 
-                gap: 1, 
-                mb: 1.5,
-                p: 0.5,
-                borderRadius: 1,
-                transition: 'all 0.2s',
-                '&:hover': {
-                  background: `${settings.primaryColor}0A`,
-                  transform: 'translateX(2px)'
-                }
-              }}>
-                <Box sx={{ 
-                  width: 28, 
-                  height: 28, 
-                  borderRadius: 1, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  background: `${activity.color}1A`, 
-                  color: activity.color,
-                  flexShrink: 0
-                }}>
-                  {React.cloneElement(activity.icon, { sx: { fontSize: 16 } })}
-                </Box>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ 
-                    fontSize: '0.7rem', 
-                    fontWeight: 600, 
-                    color: settings.textPrimaryColor,
-                    lineHeight: 1.3,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical'
-                  }}>
-                    {activity.action}
-                  </Typography>
-                  <Typography sx={{ 
-                    fontSize: '0.6rem', 
-                    color: settings.textSecondaryColor,
-                    mt: 0.25
-                  }}>
-                    {activity.user} • {activity.time}
-                  </Typography>
-                </Box>
-              </Box>
-            </Grow>
-          ))}
-        </Box>
-      </CardContent>
-    </Card>
-  );
-};
-
-const TaskList = ({ settings }) => {
+const TaskList = ({ settings, tooltipsEnabled }) => {
   const [tasks, setTasks] = useState([]);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [newTask, setNewTask] = useState({ title: "", priority: "medium" });
   const [showSuccess, setShowSuccess] = useState(false);
 
-  
   useEffect(() => {
     axios.get(`${API_BASE_URL}/tasks`).then((res) => {
       if (Array.isArray(res.data)) {
@@ -1213,7 +1270,7 @@ const TaskList = ({ settings }) => {
       setTasks([res.data, ...tasks]);
       setNewTask({ title: "", priority: "medium" });
       setAddTaskOpen(false);
-      setShowSuccess(true); 
+      setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
     } catch (err) {
       console.error('Error adding task:', err);
@@ -1229,7 +1286,6 @@ const TaskList = ({ settings }) => {
     }
   };
 
-  
   const getPriorityLabel = (priority) => {
     switch(priority) {
       case "high": return "Urgent";
@@ -1249,34 +1305,34 @@ const TaskList = ({ settings }) => {
           borderRadius: 4,
           mb: 2,
           boxShadow: `0 15px 40px ${settings.primaryColor}33`,
-          height: 270, 
+          height: 270,
           display: "flex",
           flexDirection: "column",
         }}
       >
         {showSuccess && <SuccessfulOverlay message="Task added successfully!" />}
         <CardContent sx={{ p: 2, display: "flex", flexDirection: "column", height: "100%" }}>
-          {}
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 600, color: settings.textPrimaryColor, fontSize: "0.95rem" }}>
               Tasks
             </Typography>
-            <IconButton
-              size="small"
-              onClick={() => setAddTaskOpen(true)}
-              sx={{
-                bgcolor: settings.textPrimaryColor,
-                color: "#ffffff",
-                "&:hover": { bgcolor: settings.hoverColor },
-                width: 28,
-                height: 28,
-              }}
-            >
-              <Add fontSize="small" />
-            </IconButton>
+            <CustomTooltip title="Add new task" settings={settings} tooltipsEnabled={tooltipsEnabled}>
+              <IconButton
+                size="small"
+                onClick={() => setAddTaskOpen(true)}
+                sx={{
+                  bgcolor: settings.textPrimaryColor,
+                  color: "#ffffff",
+                  "&:hover": { bgcolor: settings.hoverColor },
+                  width: 28,
+                  height: 28,
+                }}
+              >
+                <Add fontSize="small" />
+              </IconButton>
+            </CustomTooltip>
           </Box>
 
-          {}
           <Box sx={{ 
             flex: 1, 
             overflowY: "auto", 
@@ -1303,15 +1359,17 @@ const TaskList = ({ settings }) => {
                   key={task.id}
                   sx={{ p: 0, mb: 1, display: "flex", alignItems: "center" }}
                 >
-                  <Checkbox
-                    checked={task.completed}
-                    onChange={() => handleToggle(task.id)}
-                    size="small"
-                    sx={{
-                      color: settings.textPrimaryColor,
-                      "&.Mui-checked": { color: settings.textPrimaryColor },
-                    }}
-                  />
+                  <CustomTooltip title={task.completed ? "Mark as incomplete" : "Mark as complete"} settings={settings} tooltipsEnabled={tooltipsEnabled}>
+                    <Checkbox
+                      checked={task.completed}
+                      onChange={() => handleToggle(task.id)}
+                      size="small"
+                      sx={{
+                        color: settings.textPrimaryColor,
+                        "&.Mui-checked": { color: settings.textPrimaryColor },
+                      }}
+                    />
+                  </CustomTooltip>
                   <ListItemText
                     primary={task.title}
                     primaryTypographyProps={{
@@ -1343,14 +1401,15 @@ const TaskList = ({ settings }) => {
                       mr: 1,
                     }}
                   />
-                  {}
-                  <IconButton
-                    size="small"
-                    onClick={() => handleDelete(task.id)}
-                    sx={{ color: settings.textPrimaryColor }}
-                  >
-                    <Delete fontSize="small" />
-                  </IconButton>
+                  <CustomTooltip title="Delete task" settings={settings} tooltipsEnabled={tooltipsEnabled}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDelete(task.id)}
+                      sx={{ color: settings.textPrimaryColor }}
+                    >
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </CustomTooltip>
                 </ListItem>
               ))}
             </List>
@@ -1358,7 +1417,6 @@ const TaskList = ({ settings }) => {
         </CardContent>
       </Card>
 
-      {}
       <Dialog
         open={addTaskOpen}
         onClose={() => setAddTaskOpen(false)}
@@ -1371,7 +1429,7 @@ const TaskList = ({ settings }) => {
             bgcolor: settings.accentColor,
             backdropFilter: "blur(12px)",
             border: `1px solid ${settings.primaryColor}26`,
-            boxShadow: `0 15px 40px ${settings.primaryColor}33`,
+            boxShadow: `0 15px 40px ${settings.primaryColor}33}`,
           },
         }}
       >
@@ -1440,7 +1498,7 @@ const TaskList = ({ settings }) => {
                   }),
                 }}
               >
-                {getPriorityLabel(priority)} {}
+                {getPriorityLabel(priority)}
               </Button>
             ))}
           </Box>
@@ -1478,7 +1536,7 @@ const TaskList = ({ settings }) => {
   );
 };
 
-const QuickActions = ({ settings }) => (
+const QuickActions = ({ settings, tooltipsEnabled }) => (
   <Card sx={{ 
     background: settings.accentColor, 
     backdropFilter: 'blur(15px)', 
@@ -1496,85 +1554,51 @@ const QuickActions = ({ settings }) => (
           <Grid item xs={4} key={i}>
             <Grow in timeout={400 + i * 50}>
               <Link to={item.link} style={{ textDecoration: "none" }}>
-                <Box sx={{ 
-                  p: 1, 
-                  borderRadius: 1.5, 
-                  background: `${settings.primaryColor}0A`, 
-                  border: `1px solid ${settings.primaryColor}26`, 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  gap: 0.5, 
-                  transition: 'all 0.3s', 
-                  cursor: 'pointer',
-                  height: 43,
-                  '&:hover': { 
-                    background: `${settings.primaryColor}1A`, 
-                    transform: 'translateY(-2px)', 
-                    boxShadow: `0 4px 12px ${settings.primaryColor}33` 
-                  } 
-                }}>
-                  <Box sx={{ color: settings.textPrimaryColor }}>
-                    {React.cloneElement(item.icon, { sx: { fontSize: 20 } })}
-                  </Box>
-                  <Typography sx={{ 
-                    fontSize: '0.6rem', 
-                    fontWeight: 600, 
-                    color: settings.textPrimaryColor, 
-                    textAlign: 'center' 
+                <CustomTooltip 
+                  title={item.tooltip.title}
+                  description={item.tooltip.description}
+                  steps={item.tooltip.steps}
+                  link={item.tooltip.link}
+                  settings={settings} 
+                  tooltipsEnabled={tooltipsEnabled}
+                >
+                  <Box sx={{ 
+                    p: 1, 
+                    borderRadius: 1.5, 
+                    background: `${settings.primaryColor}0A`, 
+                    border: `1px solid ${settings.primaryColor}26`, 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    gap: 0.5, 
+                    transition: 'all 0.3s', 
+                    cursor: 'pointer',
+                    height: 43,
+                    '&:hover': { 
+                      background: `${settings.primaryColor}1A`, 
+                      transform: 'translateY(-2px)', 
+                      boxShadow: `0 4px 12px ${settings.primaryColor}33` 
+                    } 
                   }}>
-                    {item.label}
-                  </Typography>
-                </Box>
+                    <Box sx={{ color: settings.textPrimaryColor }}>
+                      {React.cloneElement(item.icon, { sx: { fontSize: 20 } })}
+                    </Box>
+                    <Typography sx={{ 
+                      fontSize: '0.6rem', 
+                      fontWeight: 600, 
+                      color: settings.textPrimaryColor, 
+                      textAlign: 'center' 
+                    }}>
+                      {item.label}
+                    </Typography>
+                  </Box>
+                </CustomTooltip>
               </Link>
             </Grow>
           </Grid>
         ))}
       </Grid>
     </CardContent>
-  </Card>
-);
-
-const UpgradeCard = ({ settings }) => (
-  <Card sx={{ 
-    background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`, 
-    borderRadius: 4, 
-    p: 2, 
-    mt: 2, 
-    color: '#ffffff',
-    position: 'relative',
-    overflow: 'hidden'
-  }}>
-    <Box sx={{ position: 'absolute', top: -20, right: -20, opacity: 0.1 }}>
-      <Lock sx={{ fontSize: 120 }} />
-    </Box>
-    <Box sx={{ position: 'relative', zIndex: 1 }}>
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, fontSize: '0.95rem' }}>
-        HR Analytics Pro
-      </Typography>
-      <Typography variant="body2" sx={{ mb: 2, fontSize: '0.75rem', opacity: 0.9 }}>
-        Unlock advanced payroll analytics and reporting
-      </Typography>
-      <Button 
-        variant="contained" 
-        size="small"
-        endIcon={<Upgrade />}
-        sx={{ 
-          background: '#ffffff', 
-          color: settings.textPrimaryColor, 
-          fontWeight: 600,
-          fontSize: '0.75rem',
-          px: 2,
-          py: 0.5,
-          '&:hover': { 
-            background: '#f5f5f5', 
-            transform: 'translateY(-1px)' 
-          } 
-        }}
-      >
-        Upgrade Now
-      </Button>
-    </Box>
   </Card>
 );
 
@@ -1693,10 +1717,10 @@ const LogoutDialog = ({ open, settings }) => (
   </Dialog>
 );
 
-
 const AdminHome = () => {
   const { username, fullName, employeeNumber, profilePicture } = useAuth();
   const settings = useSystemSettings();
+  const { tooltipsEnabled, toggleTooltips } = useTooltipSettings();
   const { 
     stats, 
     weeklyAttendanceData, 
@@ -1753,6 +1777,7 @@ const AdminHome = () => {
 
   return (
     <Box sx={{ 
+      background: settings.primaryColor, 
       minHeight: '100vh', 
       py: 2, 
       borderRadius: '14px',
@@ -1777,9 +1802,8 @@ const AdminHome = () => {
               backdropFilter: 'blur(15px)',
               borderRadius: 4,
               p: 2,
-              border: `1px solid ${settings.secondaryColor}`,
-              boxShadow: `0 15px 40px ${settings.primaryColor}33`,
-              mt: -5
+              border: `1px solid ${settings.primaryColor}26`,
+              boxShadow: `0 15px 40px ${settings.primaryColor}33}`,
             }}
           >
             <Box>
@@ -1811,7 +1835,7 @@ const AdminHome = () => {
             </Box>
 
             <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-              <Tooltip title="Refresh">
+              <CustomTooltip title="Refresh page" settings={settings} tooltipsEnabled={tooltipsEnabled}>
                 <IconButton
                   size="small"
                   sx={{
@@ -1823,9 +1847,9 @@ const AdminHome = () => {
                 >
                   <AutorenewIcon fontSize="small" />
                 </IconButton>
-              </Tooltip>
+              </CustomTooltip>
 
-              <Tooltip title="Notifications">
+              <CustomTooltip title="Notifications" settings={settings} tooltipsEnabled={tooltipsEnabled}>
                 <IconButton
                   size="small"
                   sx={{
@@ -1839,7 +1863,7 @@ const AdminHome = () => {
                     <NotificationsIcon fontSize="small" />
                   </Badge>
                 </IconButton>
-              </Tooltip>
+              </CustomTooltip>
 
               <Box
                 sx={{
@@ -1875,10 +1899,10 @@ const AdminHome = () => {
                 PaperProps={{ 
                   sx: { 
                     borderRadius: 2, 
-                    minWidth: 180, 
+                    minWidth: 200, 
                     backgroundColor: settings.accentColor,
                     border: `1px solid ${settings.primaryColor}26`,
-                    boxShadow: `0 15px 40px ${settings.primaryColor}33`,
+                    boxShadow: `0 15px 40px ${settings.primaryColor}33}`,
                     '& .MuiMenuItem-root': { 
                       fontSize: '0.875rem',
                       color: settings.textPrimaryColor,
@@ -1905,12 +1929,37 @@ const AdminHome = () => {
                 <MenuItem onClick={() => { handleMenuClose(); handleLogout(); }}>
                   <Logout sx={{ mr: 1, fontSize: 20, color: settings.textPrimaryColor }} /> Sign Out
                 </MenuItem>
+                <Divider sx={{ borderColor: `${settings.primaryColor}26` }} /> 
+                <Box sx={{ px: 2, py: 1 }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={tooltipsEnabled}
+                        onChange={toggleTooltips}
+                        size="small"
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': {
+                            color: settings.primaryColor,
+                          },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                            backgroundColor: settings.primaryColor,
+                          },
+                        }}
+                      />
+                    }
+                    label={
+                      <Typography sx={{ fontSize: '0.875rem', color: settings.textPrimaryColor }}>
+                        Show Tooltips
+                      </Typography>
+                    }
+                  />
+                </Box>
               </Menu>
             </Box>
           </Box>
         </Grow>
 
-        {}
+        {/* Stat Cards */}
         <Box
           sx={{
             display: "flex",
@@ -1925,8 +1974,8 @@ const AdminHome = () => {
               key={card.label}
               sx={{
                 flex: "1 1 0",
-                maxWidth: "19%", 
-                minWidth: "140px", 
+                maxWidth: "19%",
+                minWidth: "140px",
               }}
             >
               <CompactStatCard
@@ -1935,12 +1984,13 @@ const AdminHome = () => {
                 stats={stats}
                 loading={loading}
                 settings={settings}
+                tooltipsEnabled={tooltipsEnabled}
               />
             </Box>
           ))}
         </Box>
 
-        {}
+        {/* Main Content Grid */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} md={7}>
             <AnnouncementCarousel 
@@ -1953,10 +2003,10 @@ const AdminHome = () => {
               togglePlayPause={togglePlayPause}
               handleOpenModal={handleOpenModal}
               settings={settings}
+              tooltipsEnabled={tooltipsEnabled}
             />
           </Grid>
           <Grid item xs={12} md={5}>
-            {}
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={6}>
                 <CompactCalendar 
@@ -1964,16 +2014,18 @@ const AdminHome = () => {
                   setCalendarDate={setCalendarDate} 
                   holidays={holidays} 
                   settings={settings}
+                  tooltipsEnabled={tooltipsEnabled}
                 />
               </Grid>
               <Grid item xs={6}>
-                <QuickActions settings={settings} />
+                <QuickActions settings={settings} tooltipsEnabled={tooltipsEnabled} />
               </Grid>
             </Grid>
-            <TaskList settings={settings} />
+            <TaskList settings={settings} tooltipsEnabled={tooltipsEnabled} />
           </Grid>
         </Grid>
 
+        {/* Charts Section */}
         <Grid container spacing={2}>
           <Grid item xs={12}>
             <Tabs 
@@ -1982,13 +2034,13 @@ const AdminHome = () => {
               sx={{ 
                 mb: 2,
                 '& .MuiTab-root': {
-                  color: settings.textPrimaryColor,
+                  color: settings.textSecondaryColor,
                   '&.Mui-selected': {
-                    color: settings.textPrimaryColor,
+                    color: settings.textSecondaryColor,
                   }
                 },
                 '& .MuiTabs-indicator': {
-                  backgroundColor: settings.textPrimaryColor,
+                  backgroundColor: settings.textSecondaryColor,
                 }
               }}
             >
@@ -1996,11 +2048,10 @@ const AdminHome = () => {
               <Tab label="Analytics" sx={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'none' }} />
             </Tabs>
 
-            
             {tabValue === 0 && (
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
-                  <CompactChart title="Weekly Attendance" height={200} settings={settings}>
+                  <CompactChart title="Weekly Attendance" height={200} settings={settings} tooltipsEnabled={tooltipsEnabled}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={weeklyAttendanceData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -2016,7 +2067,7 @@ const AdminHome = () => {
                 </Grid>
 
                 <Grid item xs={12} md={6}>
-                  <CompactChart title="Department Attendance Rate" height={200} settings={settings}>
+                  <CompactChart title="Department Attendance Rate" height={200} settings={settings} tooltipsEnabled={tooltipsEnabled}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={departmentAttendanceData} layout="horizontal">
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -2030,7 +2081,7 @@ const AdminHome = () => {
                 </Grid>
 
                 <Grid item xs={12} md={6}>
-                  <CompactChart title="Payroll Status" height={200} settings={settings}>
+                  <CompactChart title="Payroll Status" height={200} settings={settings} tooltipsEnabled={tooltipsEnabled}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie 
@@ -2054,7 +2105,7 @@ const AdminHome = () => {
                 </Grid>
 
                 <Grid item xs={12} md={6}>
-                  <CompactChart title="Today's Attendance Summary" height={200} settings={settings}>
+                  <CompactChart title="Today's Attendance Summary" height={200} settings={settings} tooltipsEnabled={tooltipsEnabled}>
                     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                       <Box sx={{ position: 'relative', width: 140, height: 140 }}>
                         <svg width="140" height="140" viewBox="0 0 140 140">
@@ -2097,7 +2148,7 @@ const AdminHome = () => {
             {tabValue === 1 && (
               <Grid container spacing={2}>
                 <Grid item xs={12}>
-                  <CompactChart title="Monthly Attendance Trend" height={250} settings={settings}>
+                  <CompactChart title="Monthly Attendance Trend" height={250} settings={settings} tooltipsEnabled={tooltipsEnabled}>
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={monthlyAttendanceTrend}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -2135,7 +2186,7 @@ const AdminHome = () => {
                 </Grid>
 
                 <Grid item xs={12}>
-                  <CompactChart title="Payroll Trend (₱)" height={200} settings={settings}>
+                  <CompactChart title="Payroll Trend (₱)" height={200} settings={settings} tooltipsEnabled={tooltipsEnabled}>
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={payrollTrendData}>
                         <defs>

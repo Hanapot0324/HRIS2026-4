@@ -40,7 +40,15 @@ import {
   Fab,
   Drawer,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  CardHeader,
+  Stack,
+  Fade,
+  Backdrop,
+  styled,
+  alpha,
+  Breadcrumbs,
+  Link,
 } from "@mui/material";
 import {
   People,
@@ -77,9 +85,83 @@ import {
   TrendingUp,
   Shield,
   LockPerson,
-  PersonPin
+  PersonPin,
+  Home,
+  Assessment,
 } from "@mui/icons-material";
 import SearchIcon from "@mui/icons-material/Search";
+
+// Professional styled components matching AttendanceDevice.jsx
+const GlassCard = styled(Card)(({ theme }) => ({
+  borderRadius: 20,
+  background: "rgba(254, 249, 225, 0.95)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 8px 40px rgba(109, 35, 35, 0.08)",
+  border: "1px solid rgba(109, 35, 35, 0.1)",
+  overflow: "hidden",
+  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+  "&:hover": {
+    boxShadow: "0 12px 48px rgba(109, 35, 35, 0.15)",
+    transform: "translateY(-4px)",
+  },
+}));
+
+const ProfessionalButton = styled(Button)(({ theme, variant }) => ({
+  borderRadius: 12,
+  fontWeight: 600,
+  padding: "12px 24px",
+  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+  textTransform: "none",
+  fontSize: "0.95rem",
+  letterSpacing: "0.025em",
+  boxShadow:
+    variant === "contained" ? "0 4px 14px rgba(109, 35, 35, 0.25)" : "none",
+  "&:hover": {
+    transform: "translateY(-2px)",
+    boxShadow:
+      variant === "contained" ? "0 6px 20px rgba(109, 35, 35, 0.35)" : "none",
+  },
+  "&:active": {
+    transform: "translateY(0)",
+  },
+}));
+
+const ModernTextField = styled(TextField)(({ theme }) => ({
+  "& .MuiOutlinedInput-root": {
+    borderRadius: 12,
+    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    "&:hover": {
+      transform: "translateY(-1px)",
+      backgroundColor: "rgba(255, 255, 255, 0.95)",
+    },
+    "&.Mui-focused": {
+      transform: "translateY(-1px)",
+      boxShadow: "0 4px 20px rgba(109, 35, 35, 0.25)",
+      backgroundColor: "rgba(255, 255, 255, 1)",
+    },
+  },
+  "& .MuiInputLabel-root": {
+    fontWeight: 500,
+  },
+}));
+
+const PremiumTableContainer = styled(TableContainer)(({ theme }) => ({
+  borderRadius: 16,
+  overflow: "hidden",
+  boxShadow: "0 4px 24px rgba(109, 35, 35, 0.06)",
+  border: "1px solid rgba(109, 35, 35, 0.08)",
+}));
+
+const PremiumTableCell = styled(TableCell)(({ theme, isHeader = false }) => ({
+  fontWeight: isHeader ? 600 : 500,
+  padding: "18px 20px",
+  borderBottom: isHeader
+    ? "2px solid rgba(109, 35, 35, 0.3)"
+    : "1px solid rgba(109, 35, 35, 0.06)",
+  fontSize: "0.95rem",
+  letterSpacing: "0.025em",
+}));
 
 const UsersList = () => {
   const [users, setUsers] = useState([]);
@@ -99,7 +181,7 @@ const UsersList = () => {
   const [pageAccessLoading, setPageAccessLoading] = useState(false);
   const [roleFilter, setRoleFilter] = useState("");
   const [accessChangeInProgress, setAccessChangeInProgress] = useState({});
-  
+
   // Additional UI States
   const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
   const [selectedUserForDetails, setSelectedUserForDetails] = useState(null);
@@ -109,23 +191,20 @@ const UsersList = () => {
   const [hoveredRow, setHoveredRow] = useState(null);
   const [activeTab, setActiveTab] = useState("info");
   const [animatedValue, setAnimatedValue] = useState(0);
-  
+
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
 
-  // Color constants - limited to burgundy, black, white, and cream
-  const colors = {
-    primary: "#800020",      // Burgundy
-    primaryDark: "#660018",  // Dark Burgundy
-    secondary: "#9D2235",    // Light Burgundy
-    cream: "#FFF8E7",        // Cream
-    creamDark: "#FFF0E5",    // Dark Cream
-    black: "#000000",        // Black
-    white: "#FFFFFF"         // White
-  };
+  // Color scheme matching AttendanceDevice.jsx
+  const primaryColor = "#FEF9E1";
+  const secondaryColor = "#FFF8E7";
+  const accentColor = "#6d2323";
+  const accentDark = "#8B3333";
+  const blackColor = "#1a1a1a";
+  const whiteColor = "#FFFFFF";
+  const grayColor = "#6c757d";
 
-  // ---- Enhanced fetchUsers with loading states ----
   const fetchUsers = async () => {
     setLoading(true);
     setRefreshing(true);
@@ -133,8 +212,14 @@ const UsersList = () => {
 
     try {
       const [usersResp, personsResp] = await Promise.all([
-        fetch(`${API_BASE_URL}/users`, { method: "GET", headers: { "Content-Type": "application/json" } }),
-        fetch(`${API_BASE_URL}/personalinfo/person_table`, { method: "GET", headers: { "Content-Type": "application/json" } }),
+        fetch(`${API_BASE_URL}/users`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }),
+        fetch(`${API_BASE_URL}/personalinfo/person_table`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }),
       ]);
 
       if (!usersResp.ok) {
@@ -150,8 +235,12 @@ const UsersList = () => {
       const usersDataRaw = await usersResp.json();
       const personsDataRaw = await personsResp.json().catch(() => []);
 
-      const usersArray = Array.isArray(usersDataRaw) ? usersDataRaw : (usersDataRaw.users || usersDataRaw.data || []);
-      const personsArray = Array.isArray(personsDataRaw) ? personsDataRaw : (personsDataRaw.persons || personsDataRaw.data || []);
+      const usersArray = Array.isArray(usersDataRaw)
+        ? usersDataRaw
+        : usersDataRaw.users || usersDataRaw.data || [];
+      const personsArray = Array.isArray(personsDataRaw)
+        ? personsDataRaw
+        : personsDataRaw.persons || personsDataRaw.data || [];
 
       const mergedUsers = (usersArray || []).map((user) => {
         const person = (personsArray || []).find(
@@ -159,25 +248,32 @@ const UsersList = () => {
         );
 
         const fullName = person
-          ? `${person.firstName || ""} ${person.middleName || ""} ${person.lastName || ""} ${person.nameExtension || ""}`.trim()
-          : user.fullName || user.username || `${user.firstName || ""} ${user.lastName || ""}`.trim();
+          ? `${person.firstName || ""} ${person.middleName || ""} ${
+              person.lastName || ""
+            } ${person.nameExtension || ""}`.trim()
+          : user.fullName ||
+            user.username ||
+            `${user.firstName || ""} ${user.lastName || ""}`.trim();
 
         const avatar = person?.profile_picture
           ? `${API_BASE_URL}${person.profile_picture}`
-          : (user.avatar ? (String(user.avatar).startsWith("http") ? user.avatar : `${API_BASE_URL}${user.avatar}`) : null);
+          : user.avatar
+          ? String(user.avatar).startsWith("http")
+            ? user.avatar
+            : `${API_BASE_URL}${user.avatar}`
+          : null;
 
         return {
           ...user,
           fullName: fullName || "Username",
           avatar: avatar || null,
-          // Store full person data for detailed view
           personData: person || {},
         };
       });
 
       setUsers(mergedUsers);
       setFilteredUsers(mergedUsers);
-      
+
       if (refreshing) {
         setSuccessMessage("Users list refreshed successfully");
         setTimeout(() => setSuccessMessage(""), 3000);
@@ -193,7 +289,6 @@ const UsersList = () => {
     }
   };
 
-  // Fetch user's page access for the details drawer
   const fetchUserPageAccess = async (user) => {
     try {
       const accessResponse = await fetch(
@@ -206,13 +301,14 @@ const UsersList = () => {
 
       if (accessResponse.ok) {
         const accessDataRaw = await accessResponse.json();
-        const accessData = Array.isArray(accessDataRaw) ? accessDataRaw : (accessDataRaw.data || []);
+        const accessData = Array.isArray(accessDataRaw)
+          ? accessDataRaw
+          : accessDataRaw.data || [];
         const accessMap = (accessData || []).reduce((acc, curr) => {
           acc[curr.page_id] = String(curr.page_privilege) === "1";
           return acc;
         }, {});
-        
-        // Get pages data
+
         const pagesResponse = await fetch(`${API_BASE_URL}/pages`, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
@@ -220,23 +316,28 @@ const UsersList = () => {
 
         if (pagesResponse.ok) {
           let pagesData = await pagesResponse.json();
-          pagesData = Array.isArray(pagesData) ? pagesData : (pagesData.pages || pagesData.data || []);
-          pagesData = (pagesData || []).sort((a, b) => (a.id || 0) - (b.id || 0));
-          
-          // Filter pages the user has access to
-          const accessiblePages = pagesData.filter(page => accessMap[page.id] === true);
-          
-          // Update the selected user with page access info
-          setSelectedUserForDetails(prev => ({
+          pagesData = Array.isArray(pagesData)
+            ? pagesData
+            : pagesData.pages || pagesData.data || [];
+          pagesData = (pagesData || []).sort(
+            (a, b) => (a.id || 0) - (b.id || 0)
+          );
+
+          const accessiblePages = pagesData.filter(
+            (page) => accessMap[page.id] === true
+          );
+
+          setSelectedUserForDetails((prev) => ({
             ...prev,
             accessiblePages: accessiblePages,
             totalPages: pagesData.length,
-            // Add access status for proper display
-            hasAccess: accessiblePages.length > 0
+            hasAccess: accessiblePages.length > 0,
           }));
-          
-          // Animate the progress bar
-          const percentage = pagesData.length > 0 ? (accessiblePages.length / pagesData.length) * 100 : 0;
+
+          const percentage =
+            pagesData.length > 0
+              ? (accessiblePages.length / pagesData.length) * 100
+              : 0;
           let current = 0;
           const increment = percentage / 20;
           const timer = setInterval(() => {
@@ -254,7 +355,6 @@ const UsersList = () => {
     }
   };
 
-  // Page Access Management Functions
   const handlePageAccessClick = async (user) => {
     setSelectedUser(user);
     setPageAccessLoading(true);
@@ -268,7 +368,9 @@ const UsersList = () => {
 
       if (pagesResponse.ok) {
         let pagesData = await pagesResponse.json();
-        pagesData = Array.isArray(pagesData) ? pagesData : (pagesData.pages || pagesData.data || []);
+        pagesData = Array.isArray(pagesData)
+          ? pagesData
+          : pagesData.pages || pagesData.data || [];
         pagesData = (pagesData || []).sort((a, b) => (a.id || 0) - (b.id || 0));
         setPages(pagesData);
 
@@ -282,7 +384,9 @@ const UsersList = () => {
 
         if (accessResponse.ok) {
           const accessDataRaw = await accessResponse.json();
-          const accessData = Array.isArray(accessDataRaw) ? accessDataRaw : (accessDataRaw.data || []);
+          const accessData = Array.isArray(accessDataRaw)
+            ? accessDataRaw
+            : accessDataRaw.data || [];
           const accessMap = (accessData || []).reduce((acc, curr) => {
             acc[curr.page_id] = String(curr.page_privilege) === "1";
             return acc;
@@ -304,7 +408,7 @@ const UsersList = () => {
 
   const handleTogglePageAccess = async (pageId, currentAccess) => {
     const newAccess = !currentAccess;
-    setAccessChangeInProgress(prev => ({ ...prev, [pageId]: true }));
+    setAccessChangeInProgress((prev) => ({ ...prev, [pageId]: true }));
 
     try {
       if (currentAccess === false) {
@@ -335,8 +439,15 @@ const UsersList = () => {
 
             if (!createResponse.ok) {
               const errorData = await createResponse.json().catch(() => ({}));
-              setError(`Failed to create page access: ${errorData.error || "Unknown error"}`);
-              setAccessChangeInProgress(prev => ({ ...prev, [pageId]: false }));
+              setError(
+                `Failed to create page access: ${
+                  errorData.error || "Unknown error"
+                }`
+              );
+              setAccessChangeInProgress((prev) => ({
+                ...prev,
+                [pageId]: false,
+              }));
               return;
             }
           } else {
@@ -353,8 +464,15 @@ const UsersList = () => {
 
             if (!updateResponse.ok) {
               const errorData = await updateResponse.json().catch(() => ({}));
-              setError(`Failed to update page access: ${errorData.error || "Unknown error"}`);
-              setAccessChangeInProgress(prev => ({ ...prev, [pageId]: false }));
+              setError(
+                `Failed to update page access: ${
+                  errorData.error || "Unknown error"
+                }`
+              );
+              setAccessChangeInProgress((prev) => ({
+                ...prev,
+                [pageId]: false,
+              }));
               return;
             }
           }
@@ -373,8 +491,12 @@ const UsersList = () => {
 
         if (!updateResponse.ok) {
           const errorData = await updateResponse.json().catch(() => ({}));
-          setError(`Failed to update page access: ${errorData.error || "Unknown error"}`);
-          setAccessChangeInProgress(prev => ({ ...prev, [pageId]: false }));
+          setError(
+            `Failed to update page access: ${
+              errorData.error || "Unknown error"
+            }`
+          );
+          setAccessChangeInProgress((prev) => ({ ...prev, [pageId]: false }));
           return;
         }
       }
@@ -387,7 +509,7 @@ const UsersList = () => {
       console.error("Error updating page access:", err);
       setError("Network error occurred while updating page access");
     } finally {
-      setAccessChangeInProgress(prev => ({ ...prev, [pageId]: false }));
+      setAccessChangeInProgress((prev) => ({ ...prev, [pageId]: false }));
     }
   };
 
@@ -402,7 +524,6 @@ const UsersList = () => {
     setSelectedUserForDetails(user);
     setDetailsDrawerOpen(true);
     setAnimatedValue(0);
-    // Fetch page access when opening details
     fetchUserPageAccess(user);
   };
 
@@ -420,12 +541,16 @@ const UsersList = () => {
   useEffect(() => {
     const filtered = users.filter((user) => {
       const matchesSearch =
-        (user.fullName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.fullName || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         (user.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         String(user.employeeNumber || "").includes(searchTerm) ||
         (user.role || "").toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesRole = roleFilter ? (user.role || "").toLowerCase() === roleFilter.toLowerCase() : true;
+      const matchesRole = roleFilter
+        ? (user.role || "").toLowerCase() === roleFilter.toLowerCase()
+        : true;
 
       return matchesSearch && matchesRole;
     });
@@ -457,13 +582,25 @@ const UsersList = () => {
   const getRoleColor = (role = "") => {
     switch ((role || "").toLowerCase()) {
       case "superadmin":
-        return { bgcolor: colors.black, color: colors.black, icon: <SupervisorAccount /> };
+        return {
+          sx: { bgcolor: alpha(accentColor, 0.15), color: accentColor },
+          icon: <SupervisorAccount />,
+        };
       case "administrator":
-        return { bgcolor: colors.primaryDark, color: colors.black, icon: <AdminPanelSettings /> };
+        return {
+          sx: { bgcolor: alpha(accentDark, 0.15), color: accentDark },
+          icon: <AdminPanelSettings />,
+        };
       case "staff":
-        return { bgcolor: colors.secondary, color: colors.black, icon: <Work /> };
+        return {
+          sx: { bgcolor: alpha(accentColor, 0.1), color: accentColor },
+          icon: <Work />,
+        };
       default:
-        return { bgcolor: colors.primary, color: colors.black, icon: <Person /> };
+        return {
+          sx: { bgcolor: alpha(accentColor, 0.1), color: accentColor },
+          icon: <Person />,
+        };
     }
   };
 
@@ -480,969 +617,651 @@ const UsersList = () => {
   };
 
   return (
-    <>
-      <style>
-        {`
-          @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
-          
-          * {
-            font-family: 'Poppins', sans-serif !important;
-          }
-          
-          @keyframes slideIn {
-            from {
-              opacity: 0;
-              transform: translateY(-20px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-          
-          @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-          }
-          
-          @keyframes shimmer {
-            0% { background-position: -1000px 0; }
-            100% { background-position: 1000px 0; }
-          }
-          
-          @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-          }
-          
-          @keyframes glow {
-            0%, 100% { box-shadow: 0 0 20px rgba(128, 0, 32, 0.3); }
-            50% { box-shadow: 0 0 30px rgba(128, 0, 32, 0.5); }
-          }
-          
-          @keyframes slideRight {
-            from {
-              opacity: 0;
-              transform: translateX(30px);
-            }
-            to {
-              opacity: 1;
-              transform: translateX(0);
-            }
-          }
-          
-          @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-10px); }
-            60% { transform: translateY(-5px); }
-          }
-          
-          .animate-slide-in {
-            animation: slideIn 0.5s ease-out;
-          }
-          
-          .animate-slide-right {
-            animation: slideRight 0.4s ease-out;
-          }
-          
-          .animate-float {
-            animation: float 3s ease-in-out infinite;
-          }
-          
-          .animate-glow {
-            animation: glow 2s ease-in-out infinite;
-          }
-          
-          .animate-bounce {
-            animation: bounce 2s ease-in-out infinite;
-          }
-          
-          .card-hover {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-          }
-          
-          .card-hover:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(128, 0, 32, 0.2);
-          }
-          
-          .button-hover {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-          }
-          
-          .button-hover::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-          }
-          
-          .button-hover:hover::before {
-            width: 300px;
-            height: 300px;
-          }
-          
-          .button-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(128, 0, 32, 0.3);
-          }
-          
-          .row-hover {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          }
-          
-          .row-hover:hover {
-            background-color: rgba(255, 240, 229, 0.8) !important;
-            transform: scale(1.01);
-          }
-          
-          .icon-hover {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          }
-          
-          .icon-hover:hover {
-            transform: rotate(15deg) scale(1.1);
-          }
-          
-          .fab-hover {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          }
-          
-          .fab-hover:hover {
-            transform: scale(1.1) rotate(10deg);
-          }
-
-          .tab-active {
-            border-bottom: 3px solid ${colors.primary};
-            color: ${colors.primary};
-            font-weight: 600;
-          }
-
-          .shimmer {
-            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 20%, rgba(255,255,255,0.5) 60%, rgba(255,255,255,0));
-            background-size: 1000px 100%;
-            animation: shimmer 2s infinite;
-          }
-
-          /* Custom switch styles to override blue color */
-          .MuiSwitch-switchBase.Mui-checked {
-            color: ${colors.primary} !important;
-          }
-          .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track {
-            background-color: ${colors.primary} !important;
-          }
-          .MuiSwitch-track {
-            background-color: #ccc !important;
-          }
-
-          /* Premium drawer header gradient animation */
-          .drawer-header-gradient {
-            background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 50%, ${colors.primaryDark} 100%);
-            position: relative;
-            overflow: hidden;
-          }
-
-          .drawer-header-gradient::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.1) 75%, transparent 75%, transparent);
-            background-size: 30px 30px;
-            animation: drawerPattern 20s linear infinite;
-          }
-
-          @keyframes drawerPattern {
-            0% { background-position: 0 0; }
-            100% { background-position: 60px 60px; }
-          }
-
-          /* Tab indicator animation */
-          .tab-indicator {
-            position: relative;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          }
-
-          .tab-indicator::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: ${colors.primary};
-            transform: scaleX(0);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          }
-
-          .tab-indicator.active::after {
-            transform: scaleX(1);
-          }
-
-          /* Premium card hover effects */
-          .premium-card {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border-radius: 16px;
-            overflow: hidden;
-            position: relative;
-          }
-
-          .premium-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-          }
-
-          .premium-card:hover::before {
-            opacity: 1;
-          }
-
-          .premium-card:hover {
-            transform: translateY(-6px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(128, 0, 32, 0.15);
-          }
-
-          /* Info item hover effect */
-          .info-item {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border-radius: 12px;
-            padding: 12px;
-            position: relative;
-            overflow: hidden;
-          }
-
-          .info-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(128, 0, 32, 0.05), transparent);
-            transition: left 0.5s ease;
-          }
-
-          .info-item:hover::before {
-            left: 100%;
-          }
-
-          .info-item:hover {
-            background-color: rgba(128, 0, 32, 0.05);
-            transform: translateX(8px);
-          }
-
-          /* Page access item animation */
-          .page-access-item {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-          }
-
-          .page-access-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(128, 0, 32, 0.1), transparent);
-            transition: left 0.6s ease;
-          }
-
-          .page-access-item:hover::before {
-            left: 100%;
-          }
-
-          .page-access-item:hover {
-            transform: translateX(8px) scale(1.02);
-            box-shadow: 0 8px 20px rgba(128, 0, 32, 0.1);
-          }
-
-          /* Premium progress bar */
-          .premium-progress {
-            position: relative;
-            overflow: hidden;
-            border-radius: 10px;
-          }
-
-          .premium-progress::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: progressShimmer 2s infinite;
-          }
-
-          @keyframes progressShimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-          }
-
-          /* Floating elements */
-          .floating-element {
-            position: absolute;
-            animation: float 4s ease-in-out infinite;
-          }
-
-          .floating-element:nth-child(1) {
-            top: 10%;
-            left: 10%;
-            animation-delay: 0s;
-          }
-
-          .floating-element:nth-child(2) {
-            top: 20%;
-            right: 15%;
-            animation-delay: 1s;
-          }
-
-          .floating-element:nth-child(3) {
-            bottom: 20%;
-            left: 20%;
-            animation-delay: 2s;
-          }
-
-          /* Glass morphism effect */
-          .glass-effect {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-          }
-
-          /* Premium button */
-          .premium-button {
-            background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%);
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          }
-
-          .premium-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s ease;
-          }
-
-          .premium-button:hover::before {
-            left: 100%;
-          }
-
-          .premium-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(128, 0, 32, 0.3);
-          }
-
-          /* Interactive avatar */
-          .interactive-avatar {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-          }
-
-          .interactive-avatar:hover {
-            transform: scale(1.1) rotate(5deg);
-            box-shadow: 0 10px 25px rgba(128, 0, 32, 0.3);
-          }
-
-          /* Premium badge */
-          .premium-badge {
-            background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%);
-            color: ${colors.white};
-            font-weight: 600;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            box-shadow: 0 4px 10px rgba(128, 0, 32, 0.3);
-            animation: glow 2s ease-in-out infinite;
-          }
-        `}
-      </style>
-      
-      <Container maxWidth="xl" style={{ padding: "40px 0", minHeight: "92vh", background: `linear-gradient(135deg, ${colors.cream} 0%, ${colors.creamDark} 100%)` }}>
-        <Paper className="animate-slide-in" style={{ padding: "32px", borderRadius: "16px", border: `1px solid ${colors.primary}33`, background: `linear-gradient(135deg, ${colors.white} 0%, ${colors.cream} 100%)`, boxShadow: "0 20px 50px rgba(128, 0, 32, 0.1)", position: "relative", overflow: "hidden" }}>
-          
-          {/* Decorative floating elements */}
-          <div className="floating-element" style={{ width: "100px", height: "100px", borderRadius: "50%", background: "linear-gradient(135deg, rgba(128, 0, 32, 0.1) 0%, rgba(128, 0, 32, 0.05) 100%)", zIndex: 0 }} />
-          <div className="floating-element" style={{ width: "80px", height: "80px", borderRadius: "50%", background: "linear-gradient(135deg, rgba(128, 0, 32, 0.1) 0%, rgba(128, 0, 32, 0.05) 100%)", zIndex: 0 }} />
-          <div className="floating-element" style={{ width: "60px", height: "60px", borderRadius: "50%", background: "linear-gradient(135deg, rgba(128, 0, 32, 0.1) 0%, rgba(128, 0, 32, 0.05) 100%)", zIndex: 0 }} />
-
-          {/* Header */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "32px", gap: "16px", position: "relative", zIndex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-              <div className="animate-float" style={{ position: "relative" }}>
-                <People className="icon-hover" style={{ fontSize: "48px", color: colors.primary }} />
-                <div style={{ position: "absolute", top: "-5px", right: "-5px", width: "16px", height: "16px", borderRadius: "50%", backgroundColor: colors.primary, border: "2px solid white" }} />
-              </div>
-              <div>
-                <Typography variant="h4" style={{ color: colors.primary, fontWeight: 800, letterSpacing: "0.5px", fontFamily: "'Poppins', sans-serif" }}>
-                  Registered Users
-                </Typography>
-                <Typography variant="body2" style={{ color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                  Manage user accounts, roles, and page access
-                </Typography>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: "12px" }}>
-              <Button
-                variant="contained"
-                startIcon={<PersonAdd />}
-                onClick={() => navigate("/registration")}
-                className="premium-button"
-                style={{ 
-                  color: colors.white, 
-                  textTransform: "none", 
-                  borderRadius: "12px", 
-                  padding: "10px 24px",
-                  fontWeight: 600,
-                  fontFamily: "'Poppins', sans-serif"
+    <Box
+      sx={{
+        background: `linear-gradient(135deg, ${accentColor} 0%, ${accentDark} 50%, ${accentColor} 100%)`,
+        py: 4,
+        borderRadius: "14px",
+        width: "100vw",
+        mx: "auto",
+        maxWidth: "100%",
+        overflow: "hidden",
+        position: "relative",
+        left: "50%",
+        transform: "translateX(-50%)",
+        minHeight: "92vh",
+      }}
+    >
+      <Box sx={{ px: 6, mx: "auto", maxWidth: "1600px" }}>
+        {/* Breadcrumbs */}
+        <Fade in timeout={300}>
+          <Box sx={{ mb: 3 }}>
+            <Breadcrumbs aria-label="breadcrumb" sx={{ fontSize: "0.9rem" }}>
+              <Link
+                underline="hover"
+                color="inherit"
+                href="/dashboard"
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  color: primaryColor,
                 }}
               >
-                Single Registration
-              </Button>
-
-              <Button
-                variant="contained"
-                startIcon={<GroupAdd />}
-                onClick={() => navigate("/bulk-register")}
-                className="button-hover"
-                style={{ 
-                  backgroundColor: colors.black, 
-                  color: colors.white, 
-                  textTransform: "none", 
-                  borderRadius: "12px", 
-                  padding: "10px 24px",
+                <Home sx={{ mr: 0.5, fontSize: 20 }} />
+                Dashboard
+              </Link>
+              <Typography
+                color="text.primary"
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
                   fontWeight: 600,
-                  fontFamily: "'Poppins', sans-serif"
+                  color: primaryColor,
                 }}
               >
-                Bulk Registration
-              </Button>
+                <People sx={{ mr: 0.5, fontSize: 20 }} />
+                User Management
+              </Typography>
+            </Breadcrumbs>
+          </Box>
+        </Fade>
 
-              <Button
-                variant="outlined"
-                startIcon={<Pages />}
-                onClick={() => navigate("/pages-list")}
-                className="button-hover"
-                style={{ 
-                  borderColor: colors.primary, 
-                  color: colors.primary, 
-                  textTransform: "none", 
-                  borderRadius: "12px", 
-                  padding: "10px 24px",
-                  fontWeight: 600,
-                  fontFamily: "'Poppins', sans-serif"
+        {/* Header */}
+        <Fade in timeout={500}>
+          <Box sx={{ mb: 4 }}>
+            <GlassCard>
+              <Box
+                sx={{
+                  p: 5,
+                  background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
+                  color: accentColor,
+                  position: "relative",
+                  overflow: "hidden",
                 }}
               >
-                Pages Library
-              </Button>
-            </div>
-          </div>
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: -50,
+                    right: -50,
+                    width: 200,
+                    height: 200,
+                    background:
+                      "radial-gradient(circle, rgba(109,35,35,0.1) 0%, rgba(109,35,35,0) 70%)",
+                  }}
+                />
+                <Box
+                  sx={{
+                    position: "absolute",
+                    bottom: -30,
+                    left: "30%",
+                    width: 150,
+                    height: 150,
+                    background:
+                      "radial-gradient(circle, rgba(109,35,35,0.08) 0%, rgba(109,35,35,0) 70%)",
+                  }}
+                />
 
-          {/* Success Message */}
-          {successMessage && (
-            <Alert 
-              severity="success" 
-              className="animate-slide-in"
-              style={{ 
-                marginBottom: "24px", 
-                backgroundColor: "rgba(128, 0, 32, 0.1)", 
-                color: colors.primary, 
-                border: "1px solid rgba(128, 0, 32, 0.3)",
-                borderRadius: "12px",
-                fontFamily: "'Poppins', sans-serif"
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  position="relative"
+                  zIndex={1}
+                >
+                  <Box display="flex" alignItems="center">
+                    <Avatar
+                      sx={{
+                        bgcolor: "rgba(109,35,35,0.15)",
+                        mr: 4,
+                        width: 64,
+                        height: 64,
+                        boxShadow: "0 8px 24px rgba(109,35,35,0.15)",
+                      }}
+                    >
+                      <People sx={{ fontSize: 32, color: accentColor }} />
+                    </Avatar>
+                    <Box>
+                      <Typography
+                        variant="h4"
+                        component="h1"
+                        sx={{
+                          fontWeight: 700,
+                          mb: 1,
+                          lineHeight: 1.2,
+                          color: accentColor,
+                        }}
+                      >
+                        User Management
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          opacity: 0.8,
+                          fontWeight: 400,
+                          color: accentDark,
+                        }}
+                      >
+                        Manage user accounts, roles, and page access permissions
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box display="flex" alignItems="center" gap={2}>
+                    <Chip
+                      label={`${users.length} Users`}
+                      size="small"
+                      sx={{
+                        bgcolor: "rgba(109,35,35,0.15)",
+                        color: accentColor,
+                        fontWeight: 500,
+                        "& .MuiChip-label": { px: 1 },
+                      }}
+                    />
+                    <Tooltip title="Refresh Users">
+                      <IconButton
+                        onClick={fetchUsers}
+                        disabled={loading}
+                        sx={{
+                          bgcolor: "rgba(109,35,35,0.1)",
+                          "&:hover": { bgcolor: "rgba(109,35,35,0.2)" },
+                          color: accentColor,
+                          width: 48,
+                          height: 48,
+                          "&:disabled": {
+                            bgcolor: "rgba(109,35,35,0.05)",
+                            color: "rgba(109,35,35,0.3)",
+                          },
+                        }}
+                      >
+                        {loading ? (
+                          <CircularProgress
+                            size={24}
+                            sx={{ color: accentColor }}
+                          />
+                        ) : (
+                          <Refresh />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+
+                    <ProfessionalButton
+                      variant="contained"
+                      startIcon={<PersonAdd />}
+                      onClick={() => navigate("/registration")}
+                      sx={{
+                        bgcolor: accentColor,
+                        color: primaryColor,
+                        "&:hover": {
+                          bgcolor: accentDark,
+                        },
+                      }}
+                    >
+                      Single Registration
+                    </ProfessionalButton>
+
+                    <ProfessionalButton
+                      variant="contained"
+                      startIcon={<Pages />}
+                      onClick={() => navigate("/pages-list")}
+                      sx={{
+                        bgcolor: accentColor,
+                        color: primaryColor,
+                        "&:hover": {
+                          bgcolor: accentDark,
+                        },
+                      }}
+                    >
+                      Pages Library
+                    </ProfessionalButton>
+                  </Box>
+                </Box>
+              </Box>
+            </GlassCard>
+          </Box>
+        </Fade>
+
+        {/* Success Message */}
+        {successMessage && (
+          <Fade in timeout={300}>
+            <Alert
+              severity="success"
+              sx={{
+                mb: 3,
+                borderRadius: 3,
+                "& .MuiAlert-message": { fontWeight: 500 },
               }}
+              icon={<CheckCircle />}
             >
               {successMessage}
             </Alert>
-          )}
+          </Fade>
+        )}
 
-          {/* Stats Cards */}
-          <Grid container spacing={3} style={{ marginBottom: "32px" }}>
-            <Grid item xs={12} sm={6} md={2.4}>
-              <Card 
-                className="premium-card"
-                onMouseEnter={() => setHoveredCard('total')}
-                onMouseLeave={() => setHoveredCard(null)}
-                style={{ 
-                  backgroundColor: colors.white, 
-                  border: `1px solid ${colors.primary}33`, 
-                  borderRadius: "16px", 
-                  height: "100%", 
-                  display: "flex", 
-                  flexDirection: "column", 
-                  alignItems: "center", 
-                  justifyContent: "center", 
-                  position: "relative", 
-                  overflow: "hidden",
-                  transform: hoveredCard === 'total' ? 'translateY(-8px) scale(1.02)' : 'translateY(0)',
-                  boxShadow: hoveredCard === 'total' ? '0 20px 40px rgba(128, 0, 32, 0.15)' : '0 8px 20px rgba(0,0,0,0.1)'
-                }}
-              >
-                <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "6px", background: `linear-gradient(90deg, ${colors.primary} 0%, ${colors.secondary} 100%)` }} />
-                <CardContent style={{ textAlign: "center", padding: "24px", zIndex: 1 }}>
-                  <AccountCircle 
-                    className="icon-hover"
-                    style={{ 
-                      fontSize: hoveredCard === 'total' ? "52px" : "44px", 
-                      color: colors.primary, 
-                      marginBottom: "12px",
-                      transition: "all 0.3s ease"
-                    }} 
-                  />
-                  <Typography variant="h5" style={{ color: colors.primary, fontWeight: "bold", fontFamily: "'Poppins', sans-serif" }}>
-                    {users.length}
-                  </Typography>
-                  <Typography variant="body2" style={{ color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                    Total Users
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={2.4}>
-              <Card 
-                className="premium-card"
-                onMouseEnter={() => setHoveredCard('admin')}
-                onMouseLeave={() => setHoveredCard(null)}
-                style={{ 
-                  backgroundColor: colors.white, 
-                  border: `1px solid ${colors.primary}33`, 
-                  borderRadius: "16px", 
-                  height: "100%", 
-                  display: "flex", 
-                  flexDirection: "column", 
-                  alignItems: "center", 
-                  justifyContent: "center", 
-                  position: "relative", 
-                  overflow: "hidden",
-                  transform: hoveredCard === 'admin' ? 'translateY(-8px) scale(1.02)' : 'translateY(0)',
-                  boxShadow: hoveredCard === 'admin' ? '0 20px 40px rgba(128, 0, 32, 0.15)' : '0 8px 20px rgba(0,0,0,0.1)'
-                }}
-              >
-                <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "6px", background: `linear-gradient(90deg, ${colors.primaryDark} 0%, ${colors.black} 100%)` }} />
-                <CardContent style={{ textAlign: "center", padding: "24px", zIndex: 1 }}>
-                  <Business 
-                    className="icon-hover"
-                    style={{ 
-                      fontSize: hoveredCard === 'admin' ? "52px" : "44px", 
-                      color: colors.primary, 
-                      marginBottom: "12px",
-                      transition: "all 0.3s ease"
-                    }} 
-                  />
-                  <Typography variant="h5" style={{ color: colors.primary, fontWeight: "bold", fontFamily: "'Poppins', sans-serif" }}>
-                    {users.filter((u) => u.role === "administrator").length}
-                  </Typography>
-                  <Typography variant="body2" style={{ color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                    Administrators
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={2.4}>
-              <Card 
-                className="premium-card"
-                onMouseEnter={() => setHoveredCard('staff')}
-                onMouseLeave={() => setHoveredCard(null)}
-                style={{ 
-                  backgroundColor: colors.white, 
-                  border: `1px solid ${colors.primary}33`, 
-                  borderRadius: "16px", 
-                  height: "100%", 
-                  display: "flex", 
-                  flexDirection: "column", 
-                  alignItems: "center", 
-                  justifyContent: "center", 
-                  position: "relative", 
-                  overflow: "hidden",
-                  transform: hoveredCard === 'staff' ? 'translateY(-8px) scale(1.02)' : 'translateY(0)',
-                  boxShadow: hoveredCard === 'staff' ? '0 20px 40px rgba(128, 0, 32, 0.15)' : '0 8px 20px rgba(0,0,0,0.1)'
-                }}
-              >
-                <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "6px", background: `linear-gradient(90deg, ${colors.secondary} 0%, ${colors.primary} 100%)` }} />
-                <CardContent style={{ textAlign: "center", padding: "24px", zIndex: 1 }}>
-                  <Person 
-                    className="icon-hover"
-                    style={{ 
-                      fontSize: hoveredCard === 'staff' ? "52px" : "44px", 
-                      color: colors.primary, 
-                      marginBottom: "12px",
-                      transition: "all 0.3s ease"
-                    }} 
-                  />
-                  <Typography variant="h5" style={{ color: colors.primary, fontWeight: "bold", fontFamily: "'Poppins', sans-serif" }}>
-                    {users.filter((u) => u.role === "staff").length}
-                  </Typography>
-                  <Typography variant="body2" style={{ color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                    Staff Members
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={2.4}>
-              <Card 
-                className="premium-card"
-                onMouseEnter={() => setHoveredCard('super')}
-                onMouseLeave={() => setHoveredCard(null)}
-                style={{ 
-                  backgroundColor: colors.white, 
-                  border: `1px solid ${colors.primary}33`, 
-                  borderRadius: "16px", 
-                  height: "100%", 
-                  display: "flex", 
-                  flexDirection: "column", 
-                  alignItems: "center", 
-                  justifyContent: "center", 
-                  position: "relative", 
-                  overflow: "hidden",
-                  transform: hoveredCard === 'super' ? 'translateY(-8px) scale(1.02)' : 'translateY(0)',
-                  boxShadow: hoveredCard === 'super' ? '0 20px 40px rgba(128, 0, 32, 0.15)' : '0 8px 20px rgba(0,0,0,0.1)'
-                }}
-              >
-                <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "6px", background: "linear-gradient(90deg, #660018 0%, #800020 100%)" }} />
-                <CardContent style={{ textAlign: "center", padding: "24px", zIndex: 1 }}>
-                  <Person 
-                    className="icon-hover"
-                    style={{ 
-                      fontSize: hoveredCard === 'super' ? "52px" : "44px", 
-                      color: colors.primaryDark, 
-                      marginBottom: "12px",
-                      transition: "all 0.3s ease"
-                    }} 
-                  />
-                  <Typography variant="h5" style={{ color: colors.primaryDark, fontWeight: "bold", fontFamily: "'Poppins', sans-serif" }}>
-                    {users.filter((u) => u.role === "superadmin").length}
-                  </Typography>
-                  <Typography variant="body2" style={{ color: colors.primaryDark, fontFamily: "'Poppins', sans-serif" }}>
-                    Superadmins
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={2.4}>
-              <Card 
-                className="premium-card"
-                onMouseEnter={() => setHoveredCard('filtered')}
-                onMouseLeave={() => setHoveredCard(null)}
-                style={{ 
-                  backgroundColor: colors.white, 
-                  border: `1px solid ${colors.primary}33`, 
-                  borderRadius: "16px", 
-                  height: "100%", 
-                  display: "flex", 
-                  flexDirection: "column", 
-                  alignItems: "center", 
-                  justifyContent: "center", 
-                  position: "relative", 
-                  overflow: "hidden",
-                  transform: hoveredCard === 'filtered' ? 'translateY(-8px) scale(1.02)' : 'translateY(0)',
-                  boxShadow: hoveredCard === 'filtered' ? '0 20px 40px rgba(128, 0, 32, 0.15)' : '0 8px 20px rgba(0,0,0,0.1)'
-                }}
-              >
-                <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "6px", background: `linear-gradient(90deg, ${colors.primary} 0%, ${colors.secondary} 100%)` }} />
-                <CardContent style={{ textAlign: "center", padding: "24px", zIndex: 1 }}>
-                  <Visibility 
-                    className="icon-hover"
-                    style={{ 
-                      fontSize: hoveredCard === 'filtered' ? "52px" : "44px", 
-                      color: colors.primary, 
-                      marginBottom: "12px",
-                      transition: "all 0.3s ease"
-                    }} 
-                  />
-                  <Typography variant="h5" style={{ color: colors.primary, fontWeight: "bold", fontFamily: "'Poppins', sans-serif" }}>
-                    {filteredUsers.length}
-                  </Typography>
-                  <Typography variant="body2" style={{ color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                    Filtered Results
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-
-          {/* Controls */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "16px" }}>
-            <TextField
-              label="Search Users"
-              variant="outlined"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon style={{ color: colors.primary }} />
-                  </InputAdornment>
-                ),
-              }}
-              style={{ flex: 1, backgroundColor: colors.white, borderRadius: "16px" }}
+        {/* Error Alert */}
+        {error && (
+          <Fade in timeout={300}>
+            <Alert
+              severity="error"
               sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '16px',
-                  fontFamily: "'Poppins', sans-serif"
-                },
-                '& .MuiInputLabel-root': {
-                  fontFamily: "'Poppins', sans-serif"
-                }
+                mb: 3,
+                borderRadius: 3,
+                "& .MuiAlert-message": { fontWeight: 500 },
               }}
-            />
-
-            <TextField
-              select
-              label="Filter by Role"
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              style={{ minWidth: "240px", backgroundColor: colors.white, borderRadius: "16px" }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '16px',
-                  fontFamily: "'Poppins', sans-serif"
-                },
-                '& .MuiInputLabel-root': {
-                  fontFamily: "'Poppins', sans-serif"
-                }
-              }}
-            >
-              <MenuItem value="" style={{ fontFamily: "'Poppins', sans-serif" }}>All Roles</MenuItem>
-              <MenuItem value="Superadmin" style={{ fontFamily: "'Poppins', sans-serif" }}>Superadmin</MenuItem>
-              <MenuItem value="Administrator" style={{ fontFamily: "'Poppins', sans-serif" }}>Administrator</MenuItem>
-              <MenuItem value="Staff" style={{ fontFamily: "'Poppins', sans-serif" }}>Staff</MenuItem>
-            </TextField>
-
-            <Tooltip title="Refresh Users">
-              <IconButton
-                onClick={fetchUsers}
-                className={refreshing ? "icon-hover" : ""}
-                style={{ 
-                  backgroundColor: colors.primary, 
-                  color: colors.white, 
-                  boxShadow: "0 8px 20px rgba(128, 0, 32, 0.15)",
-                  animation: refreshing ? 'pulse 1s infinite' : 'none',
-                  borderRadius: "12px"
-                }}
-                disabled={loading}
-              >
-                {loading ? <CircularProgress size={24} color="inherit" /> : <Refresh />}
-              </IconButton>
-            </Tooltip>
-          </div>
-
-          {/* Summary */}
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-            <div>
-              {!loading && filteredUsers.length > 0 ? (
-                <Typography variant="body2" style={{ color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                  {searchTerm
-                    ? `Showing ${filteredUsers.length} of ${users.length} users matching "${searchTerm}"`
-                    : `Total: ${users.length} registered users`}
-                </Typography>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Error Alert */}
-          {error && (
-            <Alert 
-              severity="error" 
-              className="animate-slide-in"
-              style={{ 
-                marginBottom: "24px", 
-                backgroundColor: "rgba(128, 0, 32, 0.1)", 
-                color: colors.primary, 
-                border: "1px solid rgba(128, 0, 32, 0.3)",
-                borderRadius: "12px",
-                fontFamily: "'Poppins', sans-serif"
-              }}
+              icon={<Cancel />}
             >
               {error}
             </Alert>
-          )}
+          </Fade>
+        )}
 
-          {/* Loading State */}
-          {loading && (
-            <div style={{ width: "100%", marginBottom: "20px" }}>
-              <LinearProgress style={{ height: "8px", borderRadius: "4px", backgroundColor: "rgba(128, 0, 32, 0.1)" }} />
-            </div>
-          )}
+        {/* Stats Cards */}
+        <Fade in timeout={700}>
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6} md={2.4}>
+              <GlassCard>
+                <CardContent sx={{ textAlign: "center", p: 3 }}>
+                  <AccountCircle
+                    sx={{ fontSize: 44, color: accentColor, mb: 1 }}
+                  />
+                  <Typography
+                    variant="h5"
+                    sx={{ color: accentColor, fontWeight: 700 }}
+                  >
+                    {users.length}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: accentDark }}>
+                    Total Users
+                  </Typography>
+                </CardContent>
+              </GlassCard>
+            </Grid>
 
-          {/* Users Table */}
-          {!loading && (
-            <>
-              <TableContainer component={Paper} elevation={2} style={{ borderRadius: "16px", overflow: "hidden", boxShadow: "0 12px 30px rgba(128, 0, 32, 0.1)", border: `1px solid ${colors.primary}33` }}>
-                <Table>
-                  <TableHead>
-                    <TableRow style={{ backgroundColor: colors.primary }}>
-                      <TableCell style={{ color: colors.white, fontWeight: "700", fontSize: "0.95rem", fontFamily: "'Poppins', sans-serif" }}>
-                        <BadgeIcon style={{ marginRight: "8px" }} />
+            <Grid item xs={12} sm={6} md={2.4}>
+              <GlassCard>
+                <CardContent sx={{ textAlign: "center", p: 3 }}>
+                  <SupervisorAccount
+                    sx={{ fontSize: 44, color: accentColor, mb: 1 }}
+                  />
+                  <Typography
+                    variant="h5"
+                    sx={{ color: accentColor, fontWeight: 700 }}
+                  >
+                    {users.filter((u) => u.role === "superadmin").length}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: accentDark }}>
+                    Superadmins
+                  </Typography>
+                </CardContent>
+              </GlassCard>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={2.4}>
+              <GlassCard>
+                <CardContent sx={{ textAlign: "center", p: 3 }}>
+                  <AdminPanelSettings
+                    sx={{ fontSize: 44, color: accentColor, mb: 1 }}
+                  />
+                  <Typography
+                    variant="h5"
+                    sx={{ color: accentColor, fontWeight: 700 }}
+                  >
+                    {users.filter((u) => u.role === "administrator").length}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: accentDark }}>
+                    Administrators
+                  </Typography>
+                </CardContent>
+              </GlassCard>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={2.4}>
+              <GlassCard>
+                <CardContent sx={{ textAlign: "center", p: 3 }}>
+                  <Work sx={{ fontSize: 44, color: accentColor, mb: 1 }} />
+                  <Typography
+                    variant="h5"
+                    sx={{ color: accentColor, fontWeight: 700 }}
+                  >
+                    {users.filter((u) => u.role === "staff").length}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: accentDark }}>
+                    Staff Members
+                  </Typography>
+                </CardContent>
+              </GlassCard>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={2.4}>
+              <GlassCard>
+                <CardContent sx={{ textAlign: "center", p: 3 }}>
+                  <Visibility
+                    sx={{ fontSize: 44, color: accentColor, mb: 1 }}
+                  />
+                  <Typography
+                    variant="h5"
+                    sx={{ color: accentColor, fontWeight: 700 }}
+                  >
+                    {filteredUsers.length}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: accentDark }}>
+                    Filtered Results
+                  </Typography>
+                </CardContent>
+              </GlassCard>
+            </Grid>
+          </Grid>
+        </Fade>
+
+        {/* Controls */}
+        <Fade in timeout={900}>
+          <GlassCard sx={{ mb: 4 }}>
+            <CardHeader
+              title={
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar
+                    sx={{
+                      bgcolor: alpha(primaryColor, 0.8),
+                      color: accentColor,
+                    }}
+                  >
+                    <FilterList />
+                  </Avatar>
+                  <Box>
+                    <Typography
+                      variant="h5"
+                      component="div"
+                      sx={{ fontWeight: 600, color: accentColor }}
+                    >
+                      Search & Filter
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ color: accentDark }}
+                    >
+                      Find and filter users by various criteria
+                    </Typography>
+                  </Box>
+                </Box>
+              }
+              sx={{
+                bgcolor: alpha(primaryColor, 0.5),
+                pb: 2,
+                borderBottom: "1px solid rgba(109,35,35,0.1)",
+              }}
+            />
+            <CardContent sx={{ p: 4 }}>
+              <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid item xs={12} md={8}>
+                  <ModernTextField
+                    fullWidth
+                    label="Search Users"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by name, email, employee number, or role"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon sx={{ color: accentColor }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <ModernTextField
+                    select
+                    fullWidth
+                    label="Filter by Role"
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                  >
+                    <MenuItem value="">All Roles</MenuItem>
+                    <MenuItem value="Superadmin">Superadmin</MenuItem>
+                    <MenuItem value="Administrator">Administrator</MenuItem>
+                    <MenuItem value="Staff">Staff</MenuItem>
+                  </ModernTextField>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </GlassCard>
+        </Fade>
+
+        {/* Loading Backdrop */}
+        <Backdrop
+          sx={{
+            color: primaryColor,
+            zIndex: (theme) => theme.zIndex.drawer + 1,
+          }}
+          open={loading && !refreshing}
+        >
+          <Box sx={{ textAlign: "center" }}>
+            <CircularProgress color="inherit" size={60} thickness={4} />
+            <Typography variant="h6" sx={{ mt: 2, color: primaryColor }}>
+              Loading users...
+            </Typography>
+          </Box>
+        </Backdrop>
+
+        {/* Users Table */}
+        {!loading && (
+          <Fade in timeout={1100}>
+            <GlassCard>
+              <Box
+                sx={{
+                  p: 3,
+                  background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
+                  color: accentColor,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  borderBottom: "1px solid rgba(109,35,35,0.1)",
+                }}
+              >
+                <Box>
+                  <Typography
+                    variant="h5"
+                    sx={{ fontWeight: 600, color: accentColor }}
+                  >
+                    Registered Users
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ opacity: 0.8, color: accentDark }}
+                  >
+                    {searchTerm
+                      ? `Showing ${filteredUsers.length} of ${users.length} users matching "${searchTerm}"`
+                      : `Total: ${users.length} registered users`}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <PremiumTableContainer component={Paper} elevation={0}>
+                <Table sx={{ minWidth: 800 }}>
+                  <TableHead sx={{ bgcolor: alpha(primaryColor, 0.7) }}>
+                    <TableRow>
+                      <PremiumTableCell isHeader sx={{ color: accentColor }}>
+                        <BadgeIcon sx={{ mr: 1, verticalAlign: "middle" }} />
                         Employee #
-                      </TableCell>
-                      <TableCell style={{ color: colors.white, fontWeight: "700", fontFamily: "'Poppins', sans-serif" }}>
-                        <Person style={{ marginRight: "8px" }} />
+                      </PremiumTableCell>
+                      <PremiumTableCell isHeader sx={{ color: accentColor }}>
+                        <Person sx={{ mr: 1, verticalAlign: "middle" }} />
                         Full Name
-                      </TableCell>
-                      <TableCell style={{ color: colors.white, fontWeight: "700", fontFamily: "'Poppins', sans-serif" }}>
-                        <Email style={{ marginRight: "8px" }} />
+                      </PremiumTableCell>
+                      <PremiumTableCell isHeader sx={{ color: accentColor }}>
+                        <Email sx={{ mr: 1, verticalAlign: "middle" }} />
                         Email
-                      </TableCell>
-                      <TableCell style={{ color: colors.white, fontWeight: "700", fontFamily: "'Poppins', sans-serif" }}>
-                        <Business style={{ marginRight: "8px" }} />
+                      </PremiumTableCell>
+                      <PremiumTableCell isHeader sx={{ color: accentColor }}>
+                        <Business sx={{ mr: 1, verticalAlign: "middle" }} />
                         Role
-                      </TableCell>
-                      <TableCell style={{ color: colors.white, fontWeight: "700", textAlign: "center", fontFamily: "'Poppins', sans-serif" }}>
-                        <Security style={{ marginRight: "8px" }} />
-                        User Access
-                      </TableCell>
-                      <TableCell style={{ color: colors.white, fontWeight: "700", textAlign: "center", fontFamily: "'Poppins', sans-serif" }}>
-                        <Settings style={{ marginRight: "8px" }} />
+                      </PremiumTableCell>
+                      <PremiumTableCell
+                        isHeader
+                        sx={{ color: accentColor, textAlign: "center" }}
+                      >
+                        <Security sx={{ mr: 1, verticalAlign: "middle" }} />
+                        Page Access
+                      </PremiumTableCell>
+                      <PremiumTableCell
+                        isHeader
+                        sx={{ color: accentColor, textAlign: "center" }}
+                      >
+                        <Settings sx={{ mr: 1, verticalAlign: "middle" }} />
                         Actions
-                      </TableCell>
+                      </PremiumTableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {paginatedUsers.length > 0 ? (
-                      paginatedUsers.map((user) => (
+                      paginatedUsers.map((user, index) => (
                         <TableRow
                           key={user.employeeNumber}
-                          className="row-hover"
-                          onMouseEnter={() => setHoveredRow(user.employeeNumber)}
-                          onMouseLeave={() => setHoveredRow(null)}
-                          style={{
-                            backgroundColor: paginatedUsers.indexOf(user) % 2 === 0 ? "rgba(255, 248, 231, 0.5)" : "transparent",
+                          sx={{
+                            "&:nth-of-type(even)": {
+                              bgcolor: alpha(primaryColor, 0.3),
+                            },
+                            "&:hover": { bgcolor: alpha(accentColor, 0.05) },
+                            transition: "all 0.2s ease",
                           }}
                         >
-                          <TableCell style={{ fontWeight: 700, color: colors.primary, width: "140px", fontFamily: "'Poppins', sans-serif" }}>
+                          <PremiumTableCell
+                            sx={{ fontWeight: 600, color: accentColor }}
+                          >
                             {user.employeeNumber}
-                          </TableCell>
+                          </PremiumTableCell>
 
-                          <TableCell style={{ minWidth: "240px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                          <PremiumTableCell>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 2,
+                              }}
+                            >
                               <Avatar
                                 src={user.avatar || ""}
-                                alt={user.fullName || user.username}
-                                className="interactive-avatar"
-                                style={{
-                                  width: hoveredRow === user.employeeNumber ? "56px" : "48px",
-                                  height: hoveredRow === user.employeeNumber ? "56px" : "48px",
-                                  backgroundColor: colors.primary,
-                                  color: colors.white,
-                                  fontWeight: "700",
+                                alt={user.fullName}
+                                sx={{
+                                  width: 48,
+                                  height: 48,
+                                  bgcolor: accentColor,
+                                  color: primaryColor,
+                                  fontWeight: 700,
                                   fontSize: "1rem",
-                                  boxShadow: hoveredRow === user.employeeNumber ? "0 10px 25px rgba(128, 0, 32, 0.3)" : "0 6px 18px rgba(128, 0, 32, 0.15)",
-                                  border: "3px solid #fff",
-                                  transition: "all 0.3s ease",
+                                  boxShadow: "0 4px 12px rgba(109,35,35,0.2)",
+                                  border: "2px solid #fff",
                                 }}
                               >
-                                {!user.avatar && getInitials(user.fullName || user.username)}
+                                {!user.avatar && getInitials(user.fullName)}
                               </Avatar>
-
-                              <div>
-                                <Typography variant="body1" style={{ fontWeight: 700, color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                                  {user.fullName || user.username || "N/A"}
+                              <Box>
+                                <Typography
+                                  variant="body1"
+                                  sx={{ fontWeight: 600, color: accentColor }}
+                                >
+                                  {user.fullName}
                                 </Typography>
-                                <Typography variant="caption" style={{ color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                                  {user.nameExtension && `(${user.nameExtension})`}
-                                </Typography>
-                              </div>
-                            </div>
-                          </TableCell>
+                                {user.nameExtension && (
+                                  <Typography
+                                    variant="caption"
+                                    sx={{ color: accentDark }}
+                                  >
+                                    ({user.nameExtension})
+                                  </Typography>
+                                )}
+                              </Box>
+                            </Box>
+                          </PremiumTableCell>
 
-                          <TableCell style={{ color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>{user.email}</TableCell>
-                          <TableCell>
+                          <PremiumTableCell sx={{ color: accentDark }}>
+                            {user.email}
+                          </PremiumTableCell>
+
+                          <PremiumTableCell>
                             <Chip
                               label={(user.role || "").toUpperCase()}
                               size="small"
                               icon={getRoleColor(user.role).icon}
-                              style={{
-                                ...getRoleColor(user.role),
-                                fontWeight: 700,
-                                padding: "6px 14px",
-                                transform: hoveredRow === user.employeeNumber ? "scale(1.05)" : "scale(1)",
-                                transition: "all 0.3s ease",
-                                color: colors.black,
-                                fontFamily: "'Poppins', sans-serif"
+                              sx={{
+                                ...getRoleColor(user.role).sx,
+                                fontWeight: 600,
+                                padding: "4px 8px",
                               }}
                             />
-                          </TableCell>
-                          <TableCell style={{ textAlign: "center" }}>
-                            <Button
+                          </PremiumTableCell>
+
+                          <PremiumTableCell sx={{ textAlign: "center" }}>
+                            <ProfessionalButton
                               onClick={() => handlePageAccessClick(user)}
                               startIcon={<Security />}
-                              className="premium-button"
-                              style={{
-                                color: colors.white,
-                                padding: "8px 18px",
-                                borderRadius: "14px",
-                                textTransform: "none",
-                                minWidth: "120px",
-                                fontWeight: 600,
-                                fontFamily: "'Poppins', sans-serif"
+                              size="small"
+                              variant="contained"
+                              sx={{
+                                bgcolor: accentColor,
+                                color: primaryColor,
+                                "&:hover": {
+                                  bgcolor: accentDark,
+                                },
                               }}
                             >
                               Manage
-                            </Button>
-                          </TableCell>
-                          <TableCell style={{ textAlign: "center" }}>
+                            </ProfessionalButton>
+                          </PremiumTableCell>
+
+                          <PremiumTableCell sx={{ textAlign: "center" }}>
                             <Tooltip title="View Details">
                               <IconButton
                                 onClick={() => openUserDetails(user)}
-                                className="icon-hover"
-                                style={{ 
-                                  color: colors.primary,
-                                  transform: hoveredRow === user.employeeNumber ? "rotate(90deg)" : "rotate(0deg)",
-                                  transition: "all 0.3s ease"
-                                }}
+                                sx={{ color: accentColor }}
                               >
                                 <MoreVert />
                               </IconButton>
                             </Tooltip>
-                          </TableCell>
+                          </PremiumTableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={6} style={{ textAlign: "center", padding: "48px" }}>
-                          <Typography variant="h6" style={{ color: colors.primary, fontWeight: 700, fontFamily: "'Poppins', sans-serif" }}>
-                            {searchTerm ? "No users found matching your search" : "No users registered yet"}
-                          </Typography>
+                        <TableCell
+                          colSpan={6}
+                          sx={{ textAlign: "center", py: 8 }}
+                        >
+                          <Box sx={{ textAlign: "center" }}>
+                            <Info
+                              sx={{
+                                fontSize: 80,
+                                color: alpha(accentColor, 0.3),
+                                mb: 3,
+                              }}
+                            />
+                            <Typography
+                              variant="h5"
+                              color={alpha(accentColor, 0.6)}
+                              gutterBottom
+                              sx={{ fontWeight: 600 }}
+                            >
+                              No Users Found
+                            </Typography>
+                            <Typography
+                              variant="body1"
+                              color={alpha(accentColor, 0.4)}
+                            >
+                              {searchTerm
+                                ? "Try adjusting your search criteria"
+                                : "No users registered yet"}
+                            </Typography>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
                 </Table>
-              </TableContainer>
+              </PremiumTableContainer>
 
               {/* Pagination */}
               {filteredUsers.length > 0 && (
-                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
+                <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
                   <TablePagination
                     component="div"
                     count={filteredUsers.length}
@@ -1452,1013 +1271,659 @@ const UsersList = () => {
                     onRowsPerPageChange={handleChangeRowsPerPage}
                     rowsPerPageOptions={[5, 10, 25, 50, 100]}
                     sx={{
-                      "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
-                        color: colors.primary,
-                        fontWeight: 700,
-                        fontFamily: "'Poppins', sans-serif"
-                      },
-                      "& .MuiTablePagination-select": {
-                        color: colors.primary,
-                        fontFamily: "'Poppins', sans-serif"
-                      },
-                      "& .MuiIconButton-root": {
-                        color: colors.primary,
-                      },
-                      background: "transparent",
+                      "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                        {
+                          color: accentColor,
+                          fontWeight: 600,
+                        },
                     }}
                   />
-                </div>
+                </Box>
               )}
-            </>
-          )}
-
-          {/* Page Access Management Dialog */}
-          <Dialog
-            open={pageAccessDialog}
-            onClose={closePageAccessDialog}
-            maxWidth="md"
-            fullWidth
-            PaperProps={{
-              style: {
-                borderRadius: "16px",
-                overflow: "hidden",
-                boxShadow: "0 20px 50px rgba(128, 0, 32, 0.25)",
-                backgroundColor: colors.cream,
-              },
-            }}
-          >
-            <DialogTitle style={{
-              background: `linear-gradient(90deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-              color: colors.white,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "20px 28px",
-              fontWeight: "bold",
-              fontSize: "1.3rem",
-              letterSpacing: "0.5px",
-              borderBottom: "2px solid rgba(255,255,255,0.2)",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-              fontFamily: "'Poppins', sans-serif"
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <Security className="icon-hover" style={{ fontSize: "30px" }} />
-                Users Page Access Management
-              </div>
-
-              <IconButton
-                onClick={closePageAccessDialog}
-                className="button-hover"
-                style={{ color: colors.white, backgroundColor: "rgba(255,255,255,0.1)" }}
-              >
-                <Close />
-              </IconButton>
-            </DialogTitle>
-
-            <DialogContent style={{ padding: "28px", backgroundColor: colors.cream }}>
-              {selectedUser && (
-                <>
-                  <div style={{
-                    marginBottom: "28px",
-                    padding: "24px",
-                    borderRadius: "12px",
-                    border: `1px solid ${colors.primary}33`,
-                    background: `linear-gradient(135deg, ${colors.cream} 0%, ${colors.creamDark} 100%)`,
-                    boxShadow: "0 6px 16px rgba(128, 0, 32, 0.1)",
-                    transition: "all 0.3s ease"
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
-                      <Avatar
-                        src={selectedUser.avatar || ""}
-                        alt={selectedUser.fullName}
-                        className="interactive-avatar"
-                        style={{
-                          backgroundColor: colors.primary,
-                          width: "64px",
-                          height: "64px",
-                          fontWeight: "bold",
-                          fontSize: "1.2rem",
-                          border: "3px solid #fff",
-                          boxShadow: "0 6px 12px rgba(128, 0, 32, 0.2)",
-                        }}
-                      >
-                        {!selectedUser.avatar &&
-                          (selectedUser.fullName
-                            ? selectedUser.fullName.split(" ").map((n) => n[0]).join("")
-                            : (selectedUser.username?.charAt(0).toUpperCase() || "U"))}
-                      </Avatar>
-
-                      <div>
-                        <Typography variant="subtitle1" style={{ fontWeight: "bold", color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                          {selectedUser.fullName}
-                        </Typography>
-                        <Typography variant="body2" style={{ color: colors.primary, marginTop: "6px", fontFamily: "'Poppins', sans-serif" }}>
-                          Employee Number: <strong>{selectedUser.employeeNumber}</strong> 
-                          | Role: <strong>{selectedUser.role}</strong> 
-                          | Email: <strong>{selectedUser.email}</strong>
-                        </Typography>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* All Pages Switch */}
-                  {!pageAccessLoading && pages.length > 0 && (
-                    <div style={{
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      marginBottom: "20px",
-                      alignItems: "center",
-                      gap: "12px",
-                    }}>
-                      <Typography style={{ fontWeight: "bold", color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                        All Pages:
-                      </Typography>
-                      <Switch
-                        checked={Object.values(pageAccess).every((v) => v === true)}
-                        onChange={(e) => {
-                          const enableAll = e.target.checked;
-                          pages.forEach((page) => {
-                            if (pageAccess[page.id] !== enableAll)
-                              handleTogglePageAccess(page.id, !enableAll);
-                          });
-                        }}
-                        sx={{
-                          '& .MuiSwitch-switchBase.Mui-checked': {
-                            color: colors.primary,
-                          },
-                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                            backgroundColor: colors.primary,
-                          },
-                          '& .MuiSwitch-track': {
-                            backgroundColor: '#ccc',
-                          },
-                        }}
-                      />
-                      <Typography style={{ fontWeight: "bold", color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                        {Object.values(pageAccess).every((v) => v === true) ? "On" : "Off"}
-                      </Typography>
-                    </div>
-                  )}
-
-                  {/* Page List */}
-                  {pageAccessLoading ? (
-                    <div style={{ display: "flex", justifyContent: "center", padding: "40px" }}>
-                      <CircularProgress style={{ color: colors.primary }} />
-                    </div>
-                  ) : pages.length > 0 ? (
-                    <Paper elevation={4} style={{ borderRadius: "12px", border: `1px solid ${colors.primary}33`, backgroundColor: colors.cream, maxHeight: "400px", overflow: "auto" }}>
-                      <List>
-                        {pages.map((page) => (
-                          <ListItem 
-                            key={page.id} 
-                            style={{
-                              padding: "18px",
-                              borderRadius: "10px",
-                              marginBottom: "6px",
-                              transition: "all 0.3s ease",
-                              backgroundColor: colors.white,
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = "rgba(255, 240, 229, 0.5)";
-                              e.currentTarget.style.transform = "scale(1.02)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = colors.white;
-                              e.currentTarget.style.transform = "scale(1)";
-                            }}
-                          >
-                            <ListItemText
-                              primary={
-                                <Typography variant="subtitle1" style={{ fontWeight: "bold", color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                                  {page.page_name}
-                                </Typography>
-                              }
-                              secondary={
-                                <Typography variant="body2" style={{ color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                                  Page ID: {page.id}
-                                </Typography>
-                              }
-                            />
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                              {accessChangeInProgress[page.id] ? (
-                                <CircularProgress size={24} style={{ color: colors.primary }} />
-                              ) : (
-                                <>
-                                  {pageAccess[page.id] ? (
-                                    <LockOpen className="icon-hover" style={{ color: colors.primary }} />
-                                  ) : (
-                                    <Lock className="icon-hover" style={{ color: colors.primary }} />
-                                  )}
-                                  <Switch
-                                    checked={!!pageAccess[page.id]}
-                                    onChange={() => handleTogglePageAccess(page.id, !!pageAccess[page.id])}
-                                    sx={{
-                                      '& .MuiSwitch-switchBase.Mui-checked': {
-                                        color: colors.primary,
-                                      },
-                                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                        backgroundColor: colors.primary,
-                                      },
-                                      '& .MuiSwitch-track': {
-                                        backgroundColor: '#ccc',
-                                      },
-                                    }}
-                                  />
-                                </>
-                              )}
-                            </div>
-                          </ListItem>
-                        ))}
-                      </List>
-                    </Paper>
-                  ) : (
-                    <Typography variant="body1" style={{ textAlign: "center", padding: "30px", color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                      No pages found in the system.
-                    </Typography>
-                  )}
-                </>
-              )}
-            </DialogContent>
-
-            <DialogActions style={{ padding: "28px", backgroundColor: colors.cream }}>
-              <Button
-                onClick={closePageAccessDialog}
-                className="premium-button"
-                style={{
-                  color: colors.white,
-                  textTransform: "none",
-                  borderRadius: "12px",
-                  padding: "10px 28px",
-                  fontWeight: 600,
-                  fontFamily: "'Poppins', sans-serif"
-                }}
-              >
-                Close
-              </Button>
-            </DialogActions>
-          </Dialog>
-
-          {/* Enhanced Premium User Details Drawer */}
-          <Drawer
-            anchor="right"
-            open={detailsDrawerOpen}
-            onClose={closeUserDetails}
-            PaperProps={{
-              style: {
-                width: isMobile ? "100%" : "520px",
-                backgroundColor: colors.cream,
-                borderLeft: `1px solid ${colors.primary}33`,
-                boxShadow: "-10px 0 30px rgba(128, 0, 32, 0.15)",
-              },
-            }}
-          >
-            {selectedUserForDetails && (
-              <div style={{ padding: 0, height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                {/* Premium Header with enhanced animations */}
-                <div className="drawer-header-gradient" style={{
-                  padding: "40px 28px",
-                  color: colors.white,
-                  position: "relative",
-                  overflow: "hidden",
-                  boxShadow: "0 8px 20px rgba(128, 0, 32, 0.25)",
-                }}>
-                  {/* Floating decorative elements */}
-                  <div className="floating-element" style={{ width: "60px", height: "60px", borderRadius: "50%", background: "rgba(255,255,255,0.1)", top: "10%", right: "10%" }} />
-                  <div className="floating-element" style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(255,255,255,0.1)", bottom: "20%", left: "15%" }} />
-                  
-                  <div style={{ position: "relative", zIndex: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-                      <div style={{ position: "relative" }}>
-                        <Avatar
-                          src={selectedUserForDetails.avatar || ""}
-                          alt={selectedUserForDetails.fullName}
-                          className="interactive-avatar animate-glow"
-                          style={{
-                            width: "80px",
-                            height: "80px",
-                            backgroundColor: colors.white,
-                            color: colors.primary,
-                            fontWeight: "bold",
-                            fontSize: "2rem",
-                            border: "4px solid rgba(255,255,255,0.8)",
-                            boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
-                          }}
-                        >
-                          {!selectedUserForDetails.avatar && getInitials(selectedUserForDetails.fullName)}
-                        </Avatar>
-                      </div>
-                      <div>
-                        <Typography variant="h5" style={{ fontWeight: "bold", marginBottom: "6px", textShadow: "0 2px 4px rgba(0,0,0,0.2)", fontFamily: "'Poppins', sans-serif" }}>
-                          {selectedUserForDetails.fullName}
-                        </Typography>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          {getRoleColor(selectedUserForDetails.role).icon}
-                          <Typography variant="body2" style={{ opacity: 0.9, fontFamily: "'Poppins', sans-serif" }}>
-                            {selectedUserForDetails.role}
-                          </Typography>
-                        </div>
-                      </div>
-                    </div>
-                    <IconButton 
-                      onClick={closeUserDetails} 
-                      className="button-hover"
-                      style={{ 
-                        color: colors.white,
-                        backgroundColor: "rgba(255,255,255,0.2)",
-                        transition: "all 0.3s ease"
-                      }}
-                    >
-                      <Close />
-                    </IconButton>
-                  </div>
-                </div>
-
-                {/* Enhanced Tab Navigation */}
-                <div style={{ 
-                  display: "flex", 
-                  backgroundColor: colors.white, 
-                  borderBottom: `1px solid ${colors.primary}20`,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                  position: "relative",
-                  zIndex: 1
-                }}>
-                  <div
-                    onClick={() => setActiveTab("info")}
-                    className={`tab-indicator ${activeTab === "info" ? "active" : ""}`}
-                    style={{
-                      flex: 1,
-                      padding: "20px 16px",
-                      textAlign: "center",
-                      cursor: "pointer",
-                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      color: activeTab === "info" ? colors.primary : colors.primary,
-                      fontWeight: activeTab === "info" ? 600 : 500,
-                      position: "relative",
-                      overflow: "hidden",
-                      fontFamily: "'Poppins', sans-serif"
-                    }}
-                    onMouseEnter={(e) => {
-                      if (activeTab !== "info") {
-                        e.currentTarget.style.backgroundColor = "rgba(128, 0, 32, 0.05)";
-                        e.currentTarget.style.transform = "translateY(-2px)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (activeTab !== "info") {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                        e.currentTarget.style.transform = "translateY(0)";
-                      }
-                    }}
-                  >
-                    <Info style={{ marginRight: "10px", fontSize: "22px" }} />
-                    Information
-                  </div>
-                  <div
-                    onClick={() => setActiveTab("access")}
-                    className={`tab-indicator ${activeTab === "access" ? "active" : ""}`}
-                    style={{
-                      flex: 1,
-                      padding: "20px 16px",
-                      textAlign: "center",
-                      cursor: "pointer",
-                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      color: activeTab === "access" ? colors.primary : colors.primary,
-                      fontWeight: activeTab === "access" ? 600 : 500,
-                      position: "relative",
-                      overflow: "hidden",
-                      fontFamily: "'Poppins', sans-serif"
-                    }}
-                    onMouseEnter={(e) => {
-                      if (activeTab !== "access") {
-                        e.currentTarget.style.backgroundColor = "rgba(128, 0, 32, 0.05)";
-                        e.currentTarget.style.transform = "translateY(-2px)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (activeTab !== "access") {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                        e.currentTarget.style.transform = "translateY(0)";
-                      }
-                    }}
-                  >
-                    <Key style={{ marginRight: "10px", fontSize: "22px" }} />
-                    Page Access
-                  </div>
-                </div>
-
-                {/* Enhanced Content Area */}
-                <div style={{ 
-                  flex: 1, 
-                  overflow: "auto", 
-                  padding: "28px",
-                  background: `linear-gradient(to bottom, ${colors.cream} 0%, ${colors.white} 100%)`
-                }}>
-                  {activeTab === "info" && (
-                    <div className="animate-slide-right">
-                      {/* Premium Personal Information Card */}
-                      <Card elevation={4} className="premium-card" style={{
-                        marginBottom: "28px",
-                        borderRadius: "16px",
-                        border: `1px solid ${colors.primary}20`,
-                        backgroundColor: colors.white,
-                        overflow: "hidden",
-                        boxShadow: "0 8px 24px rgba(128, 0, 32, 0.1)",
-                      }}>
-                        <div style={{
-                          background: `linear-gradient(90deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-                          padding: "18px 22px",
-                          color: colors.white,
-                          fontWeight: "bold",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                          boxShadow: "0 4px 12px rgba(128, 0, 32, 0.25)",
-                          fontFamily: "'Poppins', sans-serif"
-                        }}>
-                          <AssignmentInd style={{ fontSize: "24px" }} />
-                          Personal Information
-                        </div>
-                        <div style={{ padding: "24px" }}>
-                          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                            <div className="info-item" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                              <div style={{
-                                width: "48px",
-                                height: "48px",
-                                borderRadius: "12px",
-                                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                boxShadow: "0 4px 12px rgba(128, 0, 32, 0.2)"
-                              }}>
-                                <Person style={{ color: "white", fontSize: "24px" }} />
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <Typography variant="body2" style={{ color: colors.primary, fontSize: "0.9rem", marginBottom: "6px", fontFamily: "'Poppins', sans-serif" }}>
-                                  Full Name
-                                </Typography>
-                                <Typography variant="body1" style={{ color: colors.primary, fontWeight: "600", fontFamily: "'Poppins', sans-serif" }}>
-                                  {selectedUserForDetails.fullName}
-                                </Typography>
-                              </div>
-                            </div>
-                            
-                            <div className="info-item" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                              <div style={{
-                                width: "48px",
-                                height: "48px",
-                                borderRadius: "12px",
-                                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                boxShadow: "0 4px 12px rgba(128, 0, 32, 0.2)"
-                              }}>
-                                <BadgeIcon style={{ color: "white", fontSize: "24px" }} />
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <Typography variant="body2" style={{ color: colors.primary, fontSize: "0.9rem", marginBottom: "6px", fontFamily: "'Poppins', sans-serif" }}>
-                                  Employee Number
-                                </Typography>
-                                <Typography variant="body1" style={{ color: colors.primary, fontWeight: "600", fontFamily: "'Poppins', sans-serif" }}>
-                                  {selectedUserForDetails.employeeNumber}
-                                </Typography>
-                              </div>
-                            </div>
-                            
-                            <div className="info-item" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                              <div style={{
-                                width: "48px",
-                                height: "48px",
-                                borderRadius: "12px",
-                                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                boxShadow: "0 4px 12px rgba(128, 0, 32, 0.2)"
-                              }}>
-                                <ContactMail style={{ color: "white", fontSize: "24px" }} />
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <Typography variant="body2" style={{ color: colors.primary, fontSize: "0.9rem", marginBottom: "6px", fontFamily: "'Poppins', sans-serif" }}>
-                                  Email Address
-                                </Typography>
-                                <Typography variant="body1" style={{ color: colors.primary, fontWeight: "600", fontFamily: "'Poppins', sans-serif" }}>
-                                  {selectedUserForDetails.email}
-                                </Typography>
-                              </div>
-                            </div>
-                            
-                            <div className="info-item" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                              <div style={{
-                                width: "48px",
-                                height: "48px",
-                                borderRadius: "12px",
-                                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                boxShadow: "0 4px 12px rgba(128, 0, 32, 0.2)"
-                              }}>
-                                <Business style={{ color: "white", fontSize: "24px" }} />
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <Typography variant="body2" style={{ color: colors.primary, fontSize: "0.9rem", marginBottom: "6px", fontFamily: "'Poppins', sans-serif" }}>
-                                  Role
-                                </Typography>
-                                <Chip
-                                  label={selectedUserForDetails.role}
-                                  icon={getRoleColor(selectedUserForDetails.role).icon}
-                                  style={{
-                                    ...getRoleColor(selectedUserForDetails.role),
-                                    fontWeight: 700,
-                                    color: colors.black,
-                                    fontFamily: "'Poppins', sans-serif"
-                                  }}
-                                />
-                              </div>
-                            </div>
-                            
-                            <div className="info-item" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                              <div style={{
-                                width: "48px",
-                                height: "48px",
-                                borderRadius: "12px",
-                                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                boxShadow: "0 4px 12px rgba(128, 0, 32, 0.2)"
-                              }}>
-                                <AccessTime style={{ color: "white", fontSize: "24px" }} />
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <Typography variant="body2" style={{ color: colors.primary, fontSize: "0.9rem", marginBottom: "6px", fontFamily: "'Poppins', sans-serif" }}>
-                                  Last Login
-                                </Typography>
-                                <Typography variant="body1" style={{ color: colors.primary, fontWeight: "600", fontFamily: "'Poppins', sans-serif" }}>
-                                  {formatDate(selectedUserForDetails.lastLogin)}
-                                </Typography>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-
-                      {/* Premium Detailed Information Card */}
-                      <Card elevation={4} className="premium-card" style={{
-                        borderRadius: "16px",
-                        border: `1px solid ${colors.primary}20`,
-                        backgroundColor: colors.white,
-                        overflow: "hidden",
-                        boxShadow: "0 8px 24px rgba(128, 0, 32, 0.1)",
-                      }}>
-                        <div style={{
-                          background: `linear-gradient(90deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-                          padding: "18px 22px",
-                          color: colors.white,
-                          fontWeight: "bold",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                          boxShadow: "0 4px 12px rgba(128, 0, 32, 0.25)",
-                          fontFamily: "'Poppins', sans-serif"
-                        }}>
-                          <VerifiedUser style={{ fontSize: "24px" }} />
-                          Detailed Information
-                        </div>
-                        <div style={{ padding: "24px" }}>
-                          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                            <div className="info-item" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                              <div style={{
-                                width: "48px",
-                                height: "48px",
-                                borderRadius: "12px",
-                                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                boxShadow: "0 4px 12px rgba(128, 0, 32, 0.2)"
-                              }}>
-                                <Person style={{ color: "white", fontSize: "24px" }} />
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <Typography variant="body2" style={{ color: colors.primary, fontSize: "0.9rem", marginBottom: "6px", fontFamily: "'Poppins', sans-serif" }}>
-                                  First Name
-                                </Typography>
-                                <Typography variant="body1" style={{ color: colors.primary, fontWeight: "600", fontFamily: "'Poppins', sans-serif" }}>
-                                  {selectedUserForDetails.personData?.firstName || "N/A"}
-                                </Typography>
-                              </div>
-                            </div>
-                            
-                            <div className="info-item" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                              <div style={{
-                                width: "48px",
-                                height: "48px",
-                                borderRadius: "12px",
-                                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                boxShadow: "0 4px 12px rgba(128, 0, 32, 0.2)"
-                              }}>
-                                <Person style={{ color: "white", fontSize: "24px" }} />
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <Typography variant="body2" style={{ color: colors.primary, fontSize: "0.9rem", marginBottom: "6px", fontFamily: "'Poppins', sans-serif" }}>
-                                  Middle Name
-                                </Typography>
-                                <Typography variant="body1" style={{ color: colors.primary, fontWeight: "600", fontFamily: "'Poppins', sans-serif" }}>
-                                  {selectedUserForDetails.personData?.middleName || "N/A"}
-                                </Typography>
-                              </div>
-                            </div>
-                            
-                            <div className="info-item" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                              <div style={{
-                                width: "48px",
-                                height: "48px",
-                                borderRadius: "12px",
-                                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                boxShadow: "0 4px 12px rgba(128, 0, 32, 0.2)"
-                              }}>
-                                <Person style={{ color: "white", fontSize: "24px" }} />
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <Typography variant="body2" style={{ color: colors.primary, fontSize: "0.9rem", marginBottom: "6px", fontFamily: "'Poppins', sans-serif" }}>
-                                  Last Name
-                                </Typography>
-                                <Typography variant="body1" style={{ color: colors.primary, fontWeight: "600", fontFamily: "'Poppins', sans-serif" }}>
-                                  {selectedUserForDetails.personData?.lastName || "N/A"}
-                                </Typography>
-                              </div>
-                            </div>
-                            
-                            <div className="info-item" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                              <div style={{
-                                width: "48px",
-                                height: "48px",
-                                borderRadius: "12px",
-                                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                boxShadow: "0 4px 12px rgba(128, 0, 32, 0.2)"
-                              }}>
-                                <BadgeIcon style={{ color: "white", fontSize: "24px" }} />
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <Typography variant="body2" style={{ color: colors.primary, fontSize: "0.9rem", marginBottom: "6px", fontFamily: "'Poppins', sans-serif" }}>
-                                  Name Extension
-                                </Typography>
-                                <Typography variant="body1" style={{ color: colors.primary, fontWeight: "600", fontFamily: "'Poppins', sans-serif" }}>
-                                  {selectedUserForDetails.personData?.nameExtension || "N/A"}
-                                </Typography>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    </div>
-                  )}
-
-                  {activeTab === "access" && (
-                    <div className="animate-slide-right">
-                      {/* Premium Page Access Summary Card */}
-                      <Card elevation={4} className="premium-card" style={{
-                        marginBottom: "28px",
-                        borderRadius: "16px",
-                        border: `1px solid ${colors.primary}20`,
-                        backgroundColor: colors.white,
-                        overflow: "hidden",
-                        boxShadow: "0 8px 24px rgba(128, 0, 32, 0.1)",
-                      }}>
-                        <div style={{
-                          background: `linear-gradient(90deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-                          padding: "18px 22px",
-                          color: colors.white,
-                          fontWeight: "bold",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                          boxShadow: "0 4px 12px rgba(128, 0, 32, 0.25)",
-                          fontFamily: "'Poppins', sans-serif"
-                        }}>
-                          <TrendingUp style={{ fontSize: "24px" }} />
-                          Page Access Summary
-                        </div>
-                        <div style={{ padding: "24px" }}>
-                          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginBottom: "24px", flexDirection: "column" }}>
-                            <Typography variant="h2" style={{ color: colors.primary, fontWeight: "bold", marginBottom: "12px", fontFamily: "'Poppins', sans-serif" }}>
-                              {selectedUserForDetails.accessiblePages?.length || 0}
-                            </Typography>
-                            <Typography variant="body2" style={{ color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                              of {selectedUserForDetails.totalPages || 0} pages accessible
-                            </Typography>
-                          </div>
-                          
-                          <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
-                            <div className="premium-progress" style={{
-                              width: "240px",
-                              height: "12px",
-                              backgroundColor: "#e0e0e0",
-                              borderRadius: "6px",
-                              overflow: "hidden",
-                              position: "relative"
-                            }}>
-                              <div style={{
-                                width: `${animatedValue}%`,
-                                height: "100%",
-                                background: `linear-gradient(90deg, ${colors.primary} 0%, ${colors.secondary} 50%, ${colors.primary} 100%)`,
-                                borderRadius: "6px",
-                                boxShadow: "0 0 15px rgba(128, 0, 32, 0.5)",
-                                transition: "width 1s ease-in-out"
-                              }}></div>
-                            </div>
-                          </div>
-
-                          <div style={{ display: "flex", justifyContent: "center", gap: "20px" }}>
-                            <div style={{ textAlign: "center" }}>
-                              <div style={{
-                                width: "60px",
-                                height: "60px",
-                                borderRadius: "50%",
-                                background: selectedUserForDetails.hasAccess ? `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)` : `linear-gradient(135deg, #e0e0e0 0%, #cccccc 100%)`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                margin: "0 auto 8px",
-                                boxShadow: selectedUserForDetails.hasAccess ? "0 6px 16px rgba(128, 0, 32, 0.3)" : "0 6px 16px rgba(0, 0, 0, 0.1)"
-                              }}>
-                                <CheckCircle style={{ color: selectedUserForDetails.hasAccess ? "white" : "#999", fontSize: "30px" }} />
-                              </div>
-                              <Typography variant="body2" style={{ color: selectedUserForDetails.hasAccess ? colors.primary : "#999", fontWeight: "600", fontFamily: "'Poppins', sans-serif" }}>
-                                Active
-                              </Typography>
-                            </div>
-                            <div style={{ textAlign: "center" }}>
-                              <div style={{
-                                width: "60px",
-                                height: "60px",
-                                borderRadius: "50%",
-                                background: !selectedUserForDetails.hasAccess ? `linear-gradient(135deg, ${colors.primaryDark} 0%, ${colors.black} 100%)` : `linear-gradient(135deg, #e0e0e0 0%, #cccccc 100%)`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                margin: "0 auto 8px",
-                                boxShadow: !selectedUserForDetails.hasAccess ? "0 6px 16px rgba(0, 0, 0, 0.3)" : "0 6px 16px rgba(0, 0, 0, 0.1)"
-                              }}>
-                                <LockPerson style={{ color: !selectedUserForDetails.hasAccess ? "white" : "#999", fontSize: "30px" }} />
-                              </div>
-                              <Typography variant="body2" style={{ color: !selectedUserForDetails.hasAccess ? colors.primaryDark : "#999", fontWeight: "600", fontFamily: "'Poppins', sans-serif" }}>
-                                Restricted
-                              </Typography>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-
-                      {/* Premium Accessible Pages Card */}
-                      <Card elevation={4} className="premium-card" style={{
-                        borderRadius: "16px",
-                        border: `1px solid ${colors.primary}20`,
-                        backgroundColor: colors.white,
-                        overflow: "hidden",
-                        boxShadow: "0 8px 24px rgba(128, 0, 32, 0.1)",
-                      }}>
-                        <div style={{
-                          background: `linear-gradient(90deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-                          padding: "18px 22px",
-                          color: colors.white,
-                          fontWeight: "bold",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                          boxShadow: "0 4px 12px rgba(128, 0, 32, 0.25)",
-                          fontFamily: "'Poppins', sans-serif"
-                        }}>
-                          <Shield style={{ fontSize: "24px" }} />
-                          Accessible Pages
-                        </div>
-                        <div style={{ padding: "24px" }}>
-                          {selectedUserForDetails.accessiblePages && selectedUserForDetails.accessiblePages.length > 0 ? (
-                            <div style={{ maxHeight: "350px", overflow: "auto" }}>
-                              {selectedUserForDetails.accessiblePages.map((page, index) => (
-                                <div key={page.id} className="page-access-item" style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "16px",
-                                  padding: "16px",
-                                  marginBottom: "12px",
-                                  backgroundColor: index % 2 === 0 ? "rgba(128, 0, 32, 0.05)" : "rgba(157, 34, 53, 0.05)",
-                                  borderRadius: "12px",
-                                  border: `1px solid ${colors.primary}15`,
-                                  transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-                                  position: "relative",
-                                  overflow: "hidden"
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.backgroundColor = "rgba(128, 0, 32, 0.1)";
-                                  e.currentTarget.style.transform = "translateX(8px) scale(1.02)";
-                                  e.currentTarget.style.boxShadow = "0 8px 20px rgba(128, 0, 32, 0.15)";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.backgroundColor = index % 2 === 0 ? "rgba(128, 0, 32, 0.05)" : "rgba(157, 34, 53, 0.05)";
-                                  e.currentTarget.style.transform = "translateX(0) scale(1)";
-                                  e.currentTarget.style.boxShadow = "none";
-                                }}>
-                                  <div style={{
-                                    width: "44px",
-                                    height: "44px",
-                                    borderRadius: "12px",
-                                    background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    boxShadow: "0 6px 16px rgba(128, 0, 32, 0.3)"
-                                  }}>
-                                    <CheckCircle style={{ color: "white", fontSize: "24px" }} />
-                                  </div>
-                                  <div style={{ flex: 1 }}>
-                                    <Typography variant="body1" style={{ color: colors.primary, fontWeight: "600", fontFamily: "'Poppins', sans-serif" }}>
-                                      {page.page_name}
-                                    </Typography>
-                                    <Typography variant="body2" style={{ color: colors.primary, fontSize: "0.9rem", fontFamily: "'Poppins', sans-serif" }}>
-                                      ID: {page.id}
-                                    </Typography>
-                                  </div>
-                                  <div className="animate-bounce">
-                                    <Star style={{ color: colors.primary, fontSize: "20px" }} />
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div style={{
-                              padding: "40px",
-                              backgroundColor: "rgba(128, 0, 32, 0.05)",
-                              borderRadius: "12px",
-                              border: "1px solid rgba(128, 0, 32, 0.2)",
-                              textAlign: "center",
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              gap: "16px"
-                            }}>
-                              <div style={{
-                                width: "70px",
-                                height: "70px",
-                                borderRadius: "50%",
-                                backgroundColor: "rgba(128, 0, 32, 0.1)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center"
-                              }}>
-                                <Cancel style={{ color: colors.primary, fontSize: "36px" }} />
-                              </div>
-                              <Typography variant="body1" style={{ color: colors.primary, fontWeight: "600", fontFamily: "'Poppins', sans-serif" }}>
-                                No page access granted
-                              </Typography>
-                              <Typography variant="body2" style={{ color: colors.primary, fontFamily: "'Poppins', sans-serif" }}>
-                                This user doesn't have access to any pages yet
-                              </Typography>
-                            </div>
-                          )}
-                        </div>
-                      </Card>
-                    </div>
-                  )}
-                </div>
-
-                {/* Premium Action Buttons */}
-                <div style={{ 
-                  padding: "28px", 
-                  backgroundColor: colors.white, 
-                  borderTop: `1px solid ${colors.primary}20`,
-                  boxShadow: "0 -6px 20px rgba(0,0,0,0.08)"
-                }}>
-                  <Button
-                    variant="contained"
-                    startIcon={<Security />}
-                    onClick={() => {
-                      closeUserDetails();
-                      handlePageAccessClick(selectedUserForDetails);
-                    }}
-                    className="premium-button"
-                    style={{
-                      color: colors.white,
-                      textTransform: "none",
-                      borderRadius: "14px",
-                      width: "100%",
-                      padding: "16px",
-                      fontWeight: "600",
-                      fontSize: "1.1rem",
-                      fontFamily: "'Poppins', sans-serif"
-                    }}
-                  >
-                    Manage Page Access
-                  </Button>
-                </div>
-              </div>
-            )}
-          </Drawer>
-        </Paper>
-
-        {/* Floating Action Button for Mobile */}
-        {isMobile && (
-          <Fab
-            color="primary"
-            aria-label="add"
-            className="fab-hover animate-bounce"
-            style={{
-              position: "fixed",
-              bottom: "20px",
-              right: "20px",
-              backgroundColor: colors.primary,
-            }}
-            onClick={() => setFilterMenuOpen(true)}
-          >
-            <FilterList />
-          </Fab>
+            </GlassCard>
+          </Fade>
         )}
 
-        {/* Mobile Filter Menu */}
-        <Drawer
-          anchor="bottom"
-          open={filterMenuOpen}
-          onClose={() => setFilterMenuOpen(false)}
+        {/* Page Access Management Dialog */}
+        <Dialog
+          open={pageAccessDialog}
+          onClose={closePageAccessDialog}
+          maxWidth="md"
+          fullWidth
           PaperProps={{
-            style: {
-              borderTopLeftRadius: "20px",
-              borderTopRightRadius: "20px",
-              backgroundColor: colors.cream,
-              padding: "20px",
+            sx: {
+              borderRadius: 4,
+              bgcolor: primaryColor,
             },
           }}
         >
-          <div style={{ padding: "20px" }}>
-            <Typography variant="h6" style={{ color: colors.primary, fontWeight: "bold", marginBottom: "20px", fontFamily: "'Poppins', sans-serif" }}>
-              Filter Users
-            </Typography>
-            <TextField
-              label="Search Users"
-              variant="outlined"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              fullWidth
-              style={{ marginBottom: "20px" }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '12px',
-                  fontFamily: "'Poppins', sans-serif"
-                },
-                '& .MuiInputLabel-root': {
-                  fontFamily: "'Poppins', sans-serif"
-                }
-              }}
-            />
-            <TextField
-              select
-              label="Filter by Role"
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              fullWidth
-              style={{ marginBottom: "20px" }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '12px',
-                  fontFamily: "'Poppins', sans-serif"
-                },
-                '& .MuiInputLabel-root': {
-                  fontFamily: "'Poppins', sans-serif"
-                }
-              }}
+          <DialogTitle
+            sx={{
+              background: `linear-gradient(135deg, ${accentColor} 0%, ${accentDark} 100%)`,
+              color: primaryColor,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              p: 3,
+              fontWeight: 700,
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Security sx={{ fontSize: 30 }} />
+              Page Access Management
+            </Box>
+            <IconButton
+              onClick={closePageAccessDialog}
+              sx={{ color: primaryColor }}
             >
-              <MenuItem value="" style={{ fontFamily: "'Poppins', sans-serif" }}>All Roles</MenuItem>
-              <MenuItem value="Superadmin" style={{ fontFamily: "'Poppins', sans-serif" }}>Superadmin</MenuItem>
-              <MenuItem value="Administrator" style={{ fontFamily: "'Poppins', sans-serif" }}>Administrator</MenuItem>
-              <MenuItem value="Staff" style={{ fontFamily: "'Poppins', sans-serif" }}>Staff</MenuItem>
-            </TextField>
-            <Button
+              <Close />
+            </IconButton>
+          </DialogTitle>
+
+          <DialogContent sx={{ p: 4 }}>
+            {selectedUser && (
+              <>
+                <Box
+                  sx={{
+                    mb: 4,
+                    p: 3,
+                    borderRadius: 3,
+                    border: `1px solid ${alpha(accentColor, 0.2)}`,
+                    bgcolor: alpha(primaryColor, 0.5),
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <Avatar
+                      src={selectedUser.avatar || ""}
+                      alt={selectedUser.fullName}
+                      sx={{
+                        bgcolor: accentColor,
+                        width: 64,
+                        height: 64,
+                        fontWeight: 700,
+                        fontSize: "1.2rem",
+                        border: "3px solid #fff",
+                        boxShadow: "0 4px 12px rgba(109,35,35,0.2)",
+                      }}
+                    >
+                      {!selectedUser.avatar &&
+                        getInitials(selectedUser.fullName)}
+                    </Avatar>
+                    <Box>
+                      <Typography
+                        variant="h6"
+                        sx={{ fontWeight: 700, color: accentColor }}
+                      >
+                        {selectedUser.fullName}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: accentDark, mt: 1 }}
+                      >
+                        Employee: <strong>{selectedUser.employeeNumber}</strong>{" "}
+                        | Role: <strong>{selectedUser.role}</strong>
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+
+                {!pageAccessLoading && pages.length > 0 && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      mb: 3,
+                      alignItems: "center",
+                      gap: 2,
+                    }}
+                  >
+                    <Typography sx={{ fontWeight: 600, color: accentColor }}>
+                      Toggle All Pages:
+                    </Typography>
+                    <Switch
+                      checked={Object.values(pageAccess).every(
+                        (v) => v === true
+                      )}
+                      onChange={(e) => {
+                        const enableAll = e.target.checked;
+                        pages.forEach((page) => {
+                          if (pageAccess[page.id] !== enableAll)
+                            handleTogglePageAccess(page.id, !enableAll);
+                        });
+                      }}
+                      sx={{
+                        "& .MuiSwitch-switchBase.Mui-checked": {
+                          color: accentColor,
+                        },
+                        "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                          {
+                            backgroundColor: accentColor,
+                          },
+                      }}
+                    />
+                  </Box>
+                )}
+
+                {pageAccessLoading ? (
+                  <Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
+                    <CircularProgress sx={{ color: accentColor }} />
+                  </Box>
+                ) : pages.length > 0 ? (
+                  <Box sx={{ maxHeight: 400, overflow: "auto" }}>
+                    <List>
+                      {pages.map((page) => (
+                        <ListItem
+                          key={page.id}
+                          sx={{
+                            p: 2,
+                            mb: 1,
+                            borderRadius: 2,
+                            bgcolor: alpha(primaryColor, 0.3),
+                            border: `1px solid ${alpha(accentColor, 0.1)}`,
+                            "&:hover": {
+                              bgcolor: alpha(accentColor, 0.05),
+                            },
+                          }}
+                        >
+                          <ListItemText
+                            primary={
+                              <Typography
+                                variant="subtitle1"
+                                sx={{ fontWeight: 600, color: accentColor }}
+                              >
+                                {page.page_name}
+                              </Typography>
+                            }
+                            secondary={
+                              <Typography
+                                variant="body2"
+                                sx={{ color: accentDark }}
+                              >
+                                Page ID: {page.id}
+                              </Typography>
+                            }
+                          />
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            {accessChangeInProgress[page.id] ? (
+                              <CircularProgress
+                                size={24}
+                                sx={{ color: accentColor }}
+                              />
+                            ) : (
+                              <>
+                                {pageAccess[page.id] ? (
+                                  <LockOpen sx={{ color: accentColor }} />
+                                ) : (
+                                  <Lock sx={{ color: accentDark }} />
+                                )}
+                                <Switch
+                                  checked={!!pageAccess[page.id]}
+                                  onChange={() =>
+                                    handleTogglePageAccess(
+                                      page.id,
+                                      !!pageAccess[page.id]
+                                    )
+                                  }
+                                  sx={{
+                                    "& .MuiSwitch-switchBase.Mui-checked": {
+                                      color: accentColor,
+                                    },
+                                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                                      {
+                                        backgroundColor: accentColor,
+                                      },
+                                  }}
+                                />
+                              </>
+                            )}
+                          </Box>
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
+                ) : (
+                  <Typography
+                    variant="body1"
+                    sx={{ textAlign: "center", p: 4, color: accentDark }}
+                  >
+                    No pages found in the system.
+                  </Typography>
+                )}
+              </>
+            )}
+          </DialogContent>
+
+          <DialogActions sx={{ p: 3 }}>
+            <ProfessionalButton
+              onClick={closePageAccessDialog}
               variant="contained"
-              onClick={() => setFilterMenuOpen(false)}
-              fullWidth
-              className="premium-button"
-              style={{
-                color: colors.white,
-                fontFamily: "'Poppins', sans-serif"
+              sx={{
+                bgcolor: accentColor,
+                color: primaryColor,
+                "&:hover": {
+                  bgcolor: accentDark,
+                },
               }}
             >
-              Apply Filters
-            </Button>
-          </div>
+              Close
+            </ProfessionalButton>
+          </DialogActions>
+        </Dialog>
+
+        {/* User Details Drawer */}
+        <Drawer
+          anchor="right"
+          open={detailsDrawerOpen}
+          onClose={closeUserDetails}
+          PaperProps={{
+            sx: {
+              width: isMobile ? "100%" : "520px",
+              bgcolor: primaryColor,
+            },
+          }}
+        >
+          {selectedUserForDetails && (
+            <Box
+              sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+            >
+              {/* Header */}
+              <Box
+                sx={{
+                  p: 4,
+                  background: `linear-gradient(135deg, ${accentColor} 0%, ${accentDark} 100%)`,
+                  color: primaryColor,
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <Avatar
+                      src={selectedUserForDetails.avatar || ""}
+                      alt={selectedUserForDetails.fullName}
+                      sx={{
+                        width: 80,
+                        height: 80,
+                        bgcolor: primaryColor,
+                        color: accentColor,
+                        fontWeight: 700,
+                        fontSize: "2rem",
+                        border: "4px solid rgba(255,255,255,0.8)",
+                        boxShadow: "0 8px 20px rgba(0,0,0,0.3)",
+                      }}
+                    >
+                      {!selectedUserForDetails.avatar &&
+                        getInitials(selectedUserForDetails.fullName)}
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+                        {selectedUserForDetails.fullName}
+                      </Typography>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        {getRoleColor(selectedUserForDetails.role).icon}
+                        <Typography variant="body2">
+                          {selectedUserForDetails.role}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                  <IconButton
+                    onClick={closeUserDetails}
+                    sx={{ color: primaryColor }}
+                  >
+                    <Close />
+                  </IconButton>
+                </Box>
+              </Box>
+
+              {/* Tab Navigation */}
+              <Box
+                sx={{
+                  display: "flex",
+                  bgcolor: whiteColor,
+                  borderBottom: `2px solid ${alpha(accentColor, 0.1)}`,
+                }}
+              >
+                <Box
+                  onClick={() => setActiveTab("info")}
+                  sx={{
+                    flex: 1,
+                    p: 2,
+                    textAlign: "center",
+                    cursor: "pointer",
+                    borderBottom:
+                      activeTab === "info"
+                        ? `3px solid ${accentColor}`
+                        : "none",
+                    color: activeTab === "info" ? accentColor : accentDark,
+                    fontWeight: activeTab === "info" ? 600 : 500,
+                    "&:hover": {
+                      bgcolor: alpha(accentColor, 0.05),
+                    },
+                  }}
+                >
+                  <Info sx={{ mr: 1, verticalAlign: "middle" }} />
+                  Information
+                </Box>
+                <Box
+                  onClick={() => setActiveTab("access")}
+                  sx={{
+                    flex: 1,
+                    p: 2,
+                    textAlign: "center",
+                    cursor: "pointer",
+                    borderBottom:
+                      activeTab === "access"
+                        ? `3px solid ${accentColor}`
+                        : "none",
+                    color: activeTab === "access" ? accentColor : accentDark,
+                    fontWeight: activeTab === "access" ? 600 : 500,
+                    "&:hover": {
+                      bgcolor: alpha(accentColor, 0.05),
+                    },
+                  }}
+                >
+                  <Key sx={{ mr: 1, verticalAlign: "middle" }} />
+                  Page Access
+                </Box>
+              </Box>
+
+              {/* Content */}
+              <Box sx={{ flex: 1, overflow: "auto", p: 3 }}>
+                {activeTab === "info" && (
+                  <Stack spacing={3}>
+                    {/* Personal Information */}
+                    <GlassCard>
+                      <CardHeader
+                        title={
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            <AssignmentInd sx={{ color: accentColor }} />
+                            <Typography
+                              variant="h6"
+                              sx={{ fontWeight: 600, color: accentColor }}
+                            >
+                              Personal Information
+                            </Typography>
+                          </Box>
+                        }
+                        sx={{ bgcolor: alpha(accentColor, 0.05) }}
+                      />
+                      <CardContent>
+                        <Stack spacing={2}>
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: accentDark }}
+                            >
+                              Full Name
+                            </Typography>
+                            <Typography
+                              variant="body1"
+                              sx={{ fontWeight: 600, color: accentColor }}
+                            >
+                              {selectedUserForDetails.fullName}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: accentDark }}
+                            >
+                              Employee Number
+                            </Typography>
+                            <Typography
+                              variant="body1"
+                              sx={{ fontWeight: 600, color: accentColor }}
+                            >
+                              {selectedUserForDetails.employeeNumber}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: accentDark }}
+                            >
+                              Email Address
+                            </Typography>
+                            <Typography
+                              variant="body1"
+                              sx={{ fontWeight: 600, color: accentColor }}
+                            >
+                              {selectedUserForDetails.email}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: accentDark }}
+                            >
+                              Role
+                            </Typography>
+                            <Box sx={{ mt: 1 }}>
+                              <Chip
+                                label={selectedUserForDetails.role}
+                                icon={
+                                  getRoleColor(selectedUserForDetails.role).icon
+                                }
+                                sx={{
+                                  ...getRoleColor(selectedUserForDetails.role)
+                                    .sx,
+                                  fontWeight: 600,
+                                }}
+                              />
+                            </Box>
+                          </Box>
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: accentDark }}
+                            >
+                              Last Login
+                            </Typography>
+                            <Typography
+                              variant="body1"
+                              sx={{ fontWeight: 600, color: accentColor }}
+                            >
+                              {formatDate(selectedUserForDetails.lastLogin)}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </CardContent>
+                    </GlassCard>
+                  </Stack>
+                )}
+
+                {activeTab === "access" && (
+                  <Stack spacing={3}>
+                    {/* Access Summary */}
+                    <GlassCard>
+                      <CardHeader
+                        title={
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            <TrendingUp sx={{ color: accentColor }} />
+                            <Typography
+                              variant="h6"
+                              sx={{ fontWeight: 600, color: accentColor }}
+                            >
+                              Page Access Summary
+                            </Typography>
+                          </Box>
+                        }
+                        sx={{ bgcolor: alpha(accentColor, 0.05) }}
+                      />
+                      <CardContent>
+                        <Box sx={{ textAlign: "center", mb: 3 }}>
+                          <Typography
+                            variant="h2"
+                            sx={{ color: accentColor, fontWeight: 700 }}
+                          >
+                            {selectedUserForDetails.accessiblePages?.length ||
+                              0}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ color: accentDark }}
+                          >
+                            of {selectedUserForDetails.totalPages || 0} pages
+                            accessible
+                          </Typography>
+                        </Box>
+                        <LinearProgress
+                          variant="determinate"
+                          value={animatedValue}
+                          sx={{
+                            height: 10,
+                            borderRadius: 5,
+                            bgcolor: alpha(accentColor, 0.1),
+                            "& .MuiLinearProgress-bar": {
+                              bgcolor: accentColor,
+                            },
+                          }}
+                        />
+                      </CardContent>
+                    </GlassCard>
+
+                    {/* Accessible Pages List */}
+                    <GlassCard>
+                      <CardHeader
+                        title={
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            <Shield sx={{ color: accentColor }} />
+                            <Typography
+                              variant="h6"
+                              sx={{ fontWeight: 600, color: accentColor }}
+                            >
+                              Accessible Pages
+                            </Typography>
+                          </Box>
+                        }
+                        sx={{ bgcolor: alpha(accentColor, 0.05) }}
+                      />
+                      <CardContent>
+                        {selectedUserForDetails.accessiblePages &&
+                        selectedUserForDetails.accessiblePages.length > 0 ? (
+                          <Stack spacing={1}>
+                            {selectedUserForDetails.accessiblePages.map(
+                              (page) => (
+                                <Box
+                                  key={page.id}
+                                  sx={{
+                                    p: 2,
+                                    borderRadius: 2,
+                                    bgcolor: alpha(accentColor, 0.05),
+                                    border: `1px solid ${alpha(
+                                      accentColor,
+                                      0.1
+                                    )}`,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 2,
+                                  }}
+                                >
+                                  <CheckCircle sx={{ color: accentColor }} />
+                                  <Box sx={{ flex: 1 }}>
+                                    <Typography
+                                      variant="body1"
+                                      sx={{
+                                        fontWeight: 600,
+                                        color: accentColor,
+                                      }}
+                                    >
+                                      {page.page_name}
+                                    </Typography>
+                                    <Typography
+                                      variant="caption"
+                                      sx={{ color: accentDark }}
+                                    >
+                                      ID: {page.id}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                              )
+                            )}
+                          </Stack>
+                        ) : (
+                          <Box sx={{ textAlign: "center", p: 4 }}>
+                            <Cancel
+                              sx={{
+                                fontSize: 60,
+                                color: alpha(accentColor, 0.3),
+                                mb: 2,
+                              }}
+                            />
+                            <Typography
+                              variant="body1"
+                              sx={{ color: accentDark }}
+                            >
+                              No page access granted
+                            </Typography>
+                          </Box>
+                        )}
+                      </CardContent>
+                    </GlassCard>
+                  </Stack>
+                )}
+              </Box>
+
+              {/* Action Button */}
+              <Box
+                sx={{ p: 3, borderTop: `1px solid ${alpha(accentColor, 0.1)}` }}
+              >
+                <ProfessionalButton
+                  variant="contained"
+                  fullWidth
+                  startIcon={<Security />}
+                  onClick={() => {
+                    closeUserDetails();
+                    handlePageAccessClick(selectedUserForDetails);
+                  }}
+                  sx={{
+                    bgcolor: accentColor,
+                    color: primaryColor,
+                    py: 1.5,
+                    "&:hover": {
+                      bgcolor: accentDark,
+                    },
+                  }}
+                >
+                  Manage Page Access
+                </ProfessionalButton>
+              </Box>
+            </Box>
+          )}
         </Drawer>
-      </Container>
-    </>
+      </Box>
+    </Box>
   );
 };
 

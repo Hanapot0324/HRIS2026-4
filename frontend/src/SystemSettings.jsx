@@ -388,7 +388,6 @@ const SystemSetting = () => {
 
   return (
     <Box sx={{ 
-      background: `linear-gradient(135deg, ${settings.primaryColor} 0%, ${settings.secondaryColor} 50%, ${settings.primaryColor} 100%)`,
       py: 4,
       borderRadius: '14px',
       minHeight: '100vh'
@@ -443,7 +442,7 @@ const SystemSetting = () => {
                   <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1, lineHeight: 1.2, color: settings.textPrimaryColor }}>
                     System Settings
                   </Typography>
-                  <Typography variant="body1" sx={{ opacity: 0.8, fontWeight: 400, color: settings.textSecondaryColor }}>
+                  <Typography variant="body1" sx={{ opacity: 0.8, fontWeight: 400, color: settings.textPrimaryColor }}>
                     Customize the appearance and behavior of your HRIS system
                   </Typography>
                 </Box>
@@ -497,7 +496,7 @@ const SystemSetting = () => {
                       <Typography variant="h5" component="div" sx={{ fontWeight: 600, color: settings.textPrimaryColor }}>
                         Color Palette
                       </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ color: settings.textSecondaryColor }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ color: settings.textPrimaryColor }}>
                         Customize the colors used throughout the system
                       </Typography>
                     </Box>
@@ -525,7 +524,7 @@ const SystemSetting = () => {
                   borderBottom: '1px solid rgba(109,35,35,0.1)'
                 }}
               />
-              <CardContent sx={{ p: 4 }}>
+              <CardContent sx={{ p: 4, bgcolor: (settings.accentColor)}}>
                 <Grid container spacing={3}>
                   {[
                     { label: 'Header | Footer Color', field: 'secondaryColor' },
@@ -578,7 +577,7 @@ const SystemSetting = () => {
                       <Typography variant="h5" component="div" sx={{ fontWeight: 600, color: settings.textPrimaryColor }}>
                         Logos
                       </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ color: settings.textSecondaryColor }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ color: settings.textPrimaryColor }}>
                         Upload institution and system logos
                       </Typography>
                     </Box>
@@ -590,7 +589,7 @@ const SystemSetting = () => {
                   borderBottom: '1px solid rgba(109,35,35,0.1)'
                 }}
               />
-              <CardContent sx={{ p: 4 }}>
+              <CardContent sx={{ p: 4, bgcolor: (settings.accentColor) }}>
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
                     <Typography variant="subtitle1" gutterBottom fontWeight="bold" sx={{ color: settings.textPrimaryColor }}>
@@ -681,7 +680,7 @@ const SystemSetting = () => {
                       <Typography variant="h5" component="div" sx={{ fontWeight: 600, color: settings.textPrimaryColor }}>
                         Institution Information
                       </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ color: settings.textSecondaryColor }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ color: settings.textPrimaryColor }}>
                         Configure institution details
                       </Typography>
                     </Box>
@@ -693,7 +692,7 @@ const SystemSetting = () => {
                   borderBottom: '1px solid rgba(109,35,35,0.1)'
                 }}
               />
-              <CardContent sx={{ p: 4 }}>
+              <CardContent sx={{ p: 4, bgcolor: (settings.accentColor) }}>
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
                     <ModernTextField
@@ -771,7 +770,7 @@ const SystemSetting = () => {
                       <Typography variant="h5" component="div" sx={{ fontWeight: 600, color: settings.textPrimaryColor }}>
                         Footer Settings
                       </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ color: settings.textSecondaryColor }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ color: settings.textPrimaryColor }}>
                         Configure footer text and options
                       </Typography>
                     </Box>
@@ -783,7 +782,7 @@ const SystemSetting = () => {
                   borderBottom: '1px solid rgba(109,35,35,0.1)'
                 }}
               />
-              <CardContent sx={{ p: 4 }}>
+              <CardContent sx={{ p: 4, bgcolor: (settings.accentColor) }}>
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
                     <FormControl fullWidth>

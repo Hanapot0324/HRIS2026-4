@@ -1,5 +1,5 @@
 import API_BASE_URL from '../../apiConfig';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
   Container,
@@ -13,7 +13,16 @@ import {
   IconButton,
   CircularProgress,
   Snackbar,
-  Alert
+  Alert,
+  Paper,
+  ToggleButton,
+  ToggleButtonGroup,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Card,
+  CardContent
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -22,18 +31,296 @@ import {
   Save as SaveIcon,
   Cancel as CancelIcon,
   Close,
+  Search as SearchIcon,
+  ViewList as ViewListIcon,
+  ViewModule as ViewModuleIcon,
+  Lightbulb as LightbulbIcon,
+  Person as PersonIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
 } from "@mui/icons-material";
 
-import LightbulbIcon from '@mui/icons-material/Lightbulb';
-import SearchIcon from '@mui/icons-material/Search';
 import ReorderIcon from '@mui/icons-material/Reorder';
 import LoadingOverlay from '../LoadingOverlay';
 import SuccessfullOverlay from '../SuccessfulOverlay';
 import AccessDenied from '../AccessDenied';
 import { useNavigate } from "react-router-dom";
 
+// Auth header helper
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  };
+};
+
+// Employee Autocomplete Component
+const EmployeeAutocomplete = ({
+  value,
+  onChange,
+  placeholder = 'Search employee...',
+  required = false,
+  disabled = false,
+  error = false,
+  helperText = '',
+  selectedEmployee,
+  onEmployeeSelect,
+  dropdownDisabled = false,
+}) => {
+  const [query, setQuery] = useState('');
+  const [employees, setEmployees] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const debounceRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (value && !selectedEmployee) {
+      fetchEmployeeById(value);
+    }
+  }, [value]);
+
+  useEffect(() => {
+    if (selectedEmployee) {
+      setQuery(selectedEmployee.name || '');
+    } else if (!value) {
+      setQuery('');
+    }
+  }, [selectedEmployee, value]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const fetchEmployees = async (searchQuery) => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/Remittance/employees/search?q=${encodeURIComponent(searchQuery)}`,
+        getAuthHeaders()
+      );
+      setEmployees(response.data);
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      setEmployees([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchAllEmployees = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/Remittance/employees/search`,
+        getAuthHeaders()
+      );
+      setEmployees(response.data);
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      setEmployees([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchEmployeeById = async (employeeNumber) => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/Remittance/employees/${employeeNumber}`,
+        getAuthHeaders()
+      );
+      const employee = response.data;
+      onEmployeeSelect(employee);
+      setQuery(employee.name || '');
+    } catch (error) {
+      console.error('Error fetching employee by ID:', error);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const inputValue = e.target.value;
+    setQuery(inputValue);
+    setShowDropdown(true);
+
+    if (selectedEmployee && inputValue !== selectedEmployee.name) {
+      onEmployeeSelect(null);
+      onChange('');
+    }
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      if (inputValue.trim().length >= 2) {
+        fetchEmployees(inputValue);
+      } else if (inputValue.trim().length === 0) {
+        fetchAllEmployees();
+      } else {
+        setEmployees([]);
+      }
+    }, 300);
+  };
+
+  const handleEmployeeSelect = (employee) => {
+    onEmployeeSelect(employee);
+    setQuery(employee.name);
+    setShowDropdown(false);
+    onChange(employee.employeeNumber);
+  };
+
+  const handleInputFocus = () => {
+    setShowDropdown(true);
+    if (employees.length === 0 && !isLoading) {
+      if (query.length >= 2) {
+        fetchEmployees(query);
+      } else {
+        fetchAllEmployees();
+      }
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setShowDropdown(false);
+    }
+  };
+
+  const handleDropdownClick = () => {
+    if (!showDropdown) {
+      setShowDropdown(true);
+      if (employees.length === 0 && !isLoading) {
+        fetchAllEmployees();
+      }
+    } else {
+      setShowDropdown(false);
+    }
+  };
+
+  return (
+    <Box sx={{ position: 'relative', width: '100%' }} ref={dropdownRef}>
+      <TextField
+        ref={inputRef}
+        value={query}
+        onChange={handleInputChange}
+        onFocus={handleInputFocus}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        disabled={disabled}
+        required={required}
+        error={error}
+        helperText={helperText}
+        fullWidth
+        autoComplete="off"
+        size="small"
+        InputProps={{
+          startAdornment: <PersonIcon sx={{ color: '#6D2323', mr: 1 }} />,
+          endAdornment: (
+            <IconButton
+              onClick={dropdownDisabled ? undefined : handleDropdownClick}
+              size="small"
+              disabled={dropdownDisabled}
+              sx={{ color: '#6D2323' }}
+            >
+              {showDropdown ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
+          ),
+        }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            height: '40px',
+            '& fieldset': {
+              borderColor: error ? 'red' : '#6D2323',
+              borderWidth: '1.5px'
+            },
+            '&:hover fieldset': {
+              borderColor: error ? 'red' : '#6D2323',
+            },
+            '&.Mui-focused fieldset': {
+              borderColor: error ? 'red' : '#6D2323',
+            },
+          },
+        }}
+      />
+
+      {showDropdown && (
+        <Paper
+          elevation={3}
+          sx={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+            maxHeight: 300,
+            overflow: 'auto',
+            mt: 1,
+          }}
+        >
+          {isLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+              <CircularProgress size={20} />
+              <Typography variant="body2" sx={{ ml: 1 }}>
+                Loading...
+              </Typography>
+            </Box>
+          ) : employees.length > 0 ? (
+            <List dense>
+              {employees.map((employee) => (
+                <ListItem
+                  key={employee.employeeNumber}
+                  button
+                  onClick={() => handleEmployeeSelect(employee)}
+                  sx={{
+                    '&:hover': {
+                      backgroundColor: '#f5f5f5',
+                    },
+                  }}
+                >
+                  <ListItemText
+                    primary={employee.name}
+                    secondary={`#${employee.employeeNumber}`}
+                    primaryTypographyProps={{ fontWeight: 'bold' }}
+                    secondaryTypographyProps={{ color: '#666' }}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          ) : query.length >= 2 ? (
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="body2" color="textSecondary">
+                No employees found matching "{query}"
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="body2" color="textSecondary">
+                {employees.length === 0
+                  ? 'No employees available'
+                  : 'Type to search or scroll to browse'}
+              </Typography>
+            </Box>
+          )}
+        </Paper>
+      )}
+    </Box>
+  );
+};
+
 const LearningAndDevelopment = () => {
   const [data, setData] = useState([]);
+  const [employeeNames, setEmployeeNames] = useState({});
   const [newLearning, setNewLearning] = useState({
     titleOfProgram: '',
     dateFrom: '',
@@ -44,13 +331,17 @@ const LearningAndDevelopment = () => {
     person_id: '',
   });
   const [editLearning, setEditLearning] = useState(null);
-  const [originalLearning, setOriginalLearning] = useState(null); // Store original data for cancel
-  const [isEditing, setIsEditing] = useState(false); // Track edit mode
+  const [originalLearning, setOriginalLearning] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
   const [successAction, setSuccessAction] = useState("");
   const [errors, setErrors] = useState({});
+  const [viewMode, setViewMode] = useState('grid');
+  
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [selectedEditEmployee, setSelectedEditEmployee] = useState(null);
   
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -62,15 +353,12 @@ const LearningAndDevelopment = () => {
     setSnackbar({ open: true, message, severity });
   };
 
-  //ACCESSING
-  // Page access control states
   const [hasAccess, setHasAccess] = useState(null);
   const navigate = useNavigate();
-  // Page access control - Add this useEffect
+  
   useEffect(() => {
     const userId = localStorage.getItem('employeeNumber');
-    // Change this pageId to match the ID you assign to this page in your page management
-    const pageId = 7; // You'll need to set this to the appropriate page ID for ViewAttendanceRecord
+    const pageId = 7;
     if (!userId) {
       setHasAccess(false);
       return;
@@ -97,8 +385,6 @@ const LearningAndDevelopment = () => {
     };
     checkAccess();
   }, []);
-  // ACCESSING END
-  
 
   useEffect(() => {
     fetchLearning();
@@ -108,6 +394,26 @@ const LearningAndDevelopment = () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/learning_and_development_table`);
       setData(res.data);
+      
+      // Fetch employee names for all records
+      const uniqueEmployeeIds = [...new Set(res.data.map(c => c.person_id).filter(Boolean))];
+      const namesMap = {};
+      
+      await Promise.all(
+        uniqueEmployeeIds.map(async (id) => {
+          try {
+            const response = await axios.get(
+              `${API_BASE_URL}/Remittance/employees/${id}`,
+              getAuthHeaders()
+            );
+            namesMap[id] = response.data.name || 'Unknown';
+          } catch (error) {
+            namesMap[id] = 'Unknown';
+          }
+        })
+      );
+      
+      setEmployeeNames(namesMap);
     } catch (err) {
       console.error('Error fetching data:', err);
       showSnackbar('Failed to fetch learning records. Please try again.', 'error');
@@ -153,7 +459,8 @@ const LearningAndDevelopment = () => {
         conductedSponsored: '',
         person_id: '',
       });
-      setErrors({}); // Clear errors
+      setSelectedEmployee(null);
+      setErrors({});
       setTimeout(() => {     
         setLoading(false);  
         setSuccessAction("adding");
@@ -173,6 +480,7 @@ const LearningAndDevelopment = () => {
       await axios.put(`${API_BASE_URL}/learning_and_development_table/${editLearning.id}`, editLearning);
       setEditLearning(null);
       setOriginalLearning(null);
+      setSelectedEditEmployee(null);
       setIsEditing(false);
       fetchLearning();
       setSuccessAction("edit");
@@ -189,6 +497,7 @@ const LearningAndDevelopment = () => {
       await axios.delete(`${API_BASE_URL}/learning_and_development_table/${id}`);
       setEditLearning(null);
       setOriginalLearning(null);
+      setSelectedEditEmployee(null);
       setIsEditing(false);
       fetchLearning();
       setSuccessAction("delete");
@@ -205,7 +514,6 @@ const LearningAndDevelopment = () => {
       setEditLearning({ ...editLearning, [field]: value });
     } else {
       setNewLearning({ ...newLearning, [field]: value });
-      // Clear error for this field when user starts typing
       if (errors[field]) {
         setErrors(prev => {
           const newErrors = { ...prev };
@@ -216,35 +524,79 @@ const LearningAndDevelopment = () => {
     }
   };
 
-  // Handle opening the modal (view mode initially)
-  const handleOpenModal = (learning) => {
+  const handleEmployeeChange = (employeeNumber) => {
+    setNewLearning({ ...newLearning, person_id: employeeNumber });
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.person_id;
+      return newErrors;
+    });
+  };
+
+  const handleEmployeeSelect = (employee) => {
+    setSelectedEmployee(employee);
+  };
+
+  const handleEditEmployeeChange = (employeeNumber) => {
+    setEditLearning({ ...editLearning, person_id: employeeNumber });
+  };
+
+  const handleEditEmployeeSelect = (employee) => {
+    setSelectedEditEmployee(employee);
+  };
+
+  const handleOpenModal = async (learning) => {
+    const employeeName = employeeNames[learning.person_id] || 'Unknown';
+    
     setEditLearning({ ...learning });
     setOriginalLearning({ ...learning });
+    setSelectedEditEmployee({
+      name: employeeName,
+      employeeNumber: learning.person_id,
+    });
     setIsEditing(false);
   };
 
-  // Handle entering edit mode
   const handleStartEdit = () => {
     setIsEditing(true);
   };
 
-  // Handle canceling edit mode
   const handleCancelEdit = () => {
     setEditLearning({ ...originalLearning });
+    setSelectedEditEmployee({
+      name: employeeNames[originalLearning.person_id] || 'Unknown',
+      employeeNumber: originalLearning.person_id,
+    });
     setIsEditing(false);
   };
 
-  // Handle closing modal
   const handleCloseModal = () => {
     setEditLearning(null);
     setOriginalLearning(null);
+    setSelectedEditEmployee(null);
     setIsEditing(false);
   };
 
-  const inputStyle = { marginRight: 10, marginBottom: 10, width: 300.25 };
+  const handleViewModeChange = (event, newMode) => {
+    if (newMode !== null) {
+      setViewMode(newMode);
+    }
+  };
 
-  // ACCESSING 2
-  // Loading state
+  const hasChanges = () => {
+    if (!editLearning || !originalLearning) return false;
+    
+    return (
+      editLearning.titleOfProgram !== originalLearning.titleOfProgram ||
+      editLearning.dateFrom !== originalLearning.dateFrom ||
+      editLearning.dateTo !== originalLearning.dateTo ||
+      editLearning.numberOfHours !== originalLearning.numberOfHours ||
+      editLearning.typeOfLearningDevelopment !== originalLearning.typeOfLearningDevelopment ||
+      editLearning.conductedSponsored !== originalLearning.conductedSponsored ||
+      editLearning.person_id !== originalLearning.person_id
+    );
+  };
+
   if (hasAccess === null) {
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
@@ -257,7 +609,7 @@ const LearningAndDevelopment = () => {
       </Container>
     );
   }
-  // Access denied state - Now using the reusable component
+  
   if (!hasAccess) {
     return (
       <AccessDenied 
@@ -268,771 +620,1073 @@ const LearningAndDevelopment = () => {
       />
     );
   }
-  //ACCESSING END2
+
+  const filteredData = data.filter((learning) => {
+    const programTitle = learning.titleOfProgram?.toLowerCase() || "";
+    const personId = learning.person_id?.toString() || "";
+    const employeeName = employeeNames[learning.person_id]?.toLowerCase() || "";
+    const search = searchTerm.toLowerCase();
+    return personId.includes(search) || programTitle.includes(search) || employeeName.includes(search);
+  });
 
   return (
-    <Container sx={{ mt: 0, }}>
-
-      {/* Loading Overlay */}
-      <LoadingOverlay open={loading} message="Adding learning record..."  />
-      
-      {/* Success Overlay */}
+    <Box sx={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      flexDirection: 'column',
+      pt: 2,
+      mt: -5
+    }}>
+      <LoadingOverlay open={loading} message="Adding learning record..." />
       <SuccessfullOverlay open={successOpen} action={successAction} />
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          mb: 4,
-        }}
-      >
-        {/* Outer wrapper for header + content */}
-        <Box sx={{ width: "75%", maxWidth: "100%" }}>
-          {/* Header */}
-          <Box
-            sx={{
-              backgroundColor: "#6D2323",
-              color: "#ffffff",
-              p: 2,
-              borderRadius: "8px 8px 0 0",
-              display: "flex",
-              alignItems: "center",
-              pb: '15px'
-            }}
-          >
-            <LightbulbIcon
-              sx={{ fontSize: "3rem", mr: 2, mt: "5px", ml: "5px" }}
-            />
-            <Box>
-              <Typography variant="h5" sx={{ mb: 0.5 }}>
-                Learning and Development Information
-              </Typography>
-              <Typography variant="body2">
-                Insert Your Learning and Development Information
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* Content/Form */}
-          <Container
-            sx={{
-              backgroundColor: "#fff",
-              p: 3,
-              borderBottomLeftRadius: 2,
-              borderBottomRightRadius: 2,
-              boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.1)",
-              border: "1px solid #6d2323",
-              width: "100%",
-            }}
-          >
-            <Grid container spacing={3}>
-              {/* Title of Program */}
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Title of Program <span style={{ color: 'red' }}>*</span>
-                </Typography>
-                <TextField
-                  value={newLearning.titleOfProgram}
-                  onChange={(e) => handleChange("titleOfProgram", e.target.value)}
-                  fullWidth
-                  style={inputStyle}
-                  error={!!errors.titleOfProgram}
-                  helperText={errors.titleOfProgram || ''}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '& fieldset': {
-                        borderColor: errors.titleOfProgram ? 'red' : '#6D2323',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: errors.titleOfProgram ? 'red' : '#6D2323',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: errors.titleOfProgram ? 'red' : '#6D2323',
-                      },
-                    },
-                  }}
-                />
-              </Grid>
-
-              {/* Date From */}
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Date From <span style={{ color: 'red' }}>*</span>
-                </Typography>
-                <TextField
-                  type="date"
-                  value={newLearning.dateFrom}
-                  onChange={(e) => handleChange("dateFrom", e.target.value)}
-                  fullWidth
-                  style={inputStyle}
-                  InputLabelProps={{ shrink: true }}
-                  error={!!errors.dateFrom}
-                  helperText={errors.dateFrom || ''}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '& fieldset': {
-                        borderColor: errors.dateFrom ? 'red' : '#6D2323',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: errors.dateFrom ? 'red' : '#6D2323',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: errors.dateFrom ? 'red' : '#6D2323',
-                      },
-                    },
-                  }}
-                />
-              </Grid>
-
-              {/* Date To */}
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Date To <span style={{ color: 'red' }}>*</span>
-                </Typography>
-                <TextField
-                  type="date"
-                  value={newLearning.dateTo}
-                  onChange={(e) => handleChange("dateTo", e.target.value)}
-                  fullWidth
-                  style={inputStyle}
-                  InputLabelProps={{ shrink: true }}
-                  error={!!errors.dateTo}
-                  helperText={errors.dateTo || ''}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '& fieldset': {
-                        borderColor: errors.dateTo ? 'red' : '#6D2323',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: errors.dateTo ? 'red' : '#6D2323',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: errors.dateTo ? 'red' : '#6D2323',
-                      },
-                    },
-                  }}
-                />
-              </Grid>
-
-              {/* Number of Hours */}
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Number of Hours
-                </Typography>
-                <TextField
-                  value={newLearning.numberOfHours}
-                  onChange={(e) => handleChange("numberOfHours", e.target.value)}
-                  fullWidth
-                  style={inputStyle}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '& fieldset': {
-                        borderColor: '#6D2323',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: '#6D2323',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#6D2323',
-                      },
-                    },
-                  }}
-                />
-              </Grid>
-
-              {/* Type of Learning Development */}
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Type of Learning Development
-                </Typography>
-                <TextField
-                  value={newLearning.typeOfLearningDevelopment}
-                  onChange={(e) => handleChange("typeOfLearningDevelopment", e.target.value)}
-                  fullWidth
-                  style={inputStyle}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '& fieldset': {
-                        borderColor: '#6D2323',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: '#6D2323',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#6D2323',
-                      },
-                    },
-                  }}
-                />
-              </Grid>
-
-              {/* Conducted/Sponsored */}
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Conducted/Sponsored
-                </Typography>
-                <TextField
-                  value={newLearning.conductedSponsored}
-                  onChange={(e) => handleChange("conductedSponsored", e.target.value)}
-                  fullWidth
-                  style={inputStyle}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '& fieldset': {
-                        borderColor: '#6D2323',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: '#6D2323',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#6D2323',
-                      },
-                    },
-                  }}
-                />
-              </Grid>
-
-              {/* Employee Number */}
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Employee Number <span style={{ color: 'red' }}>*</span>
-                </Typography>
-                <TextField
-                  value={newLearning.person_id}
-                  onChange={(e) => handleChange("person_id", e.target.value)}
-                  fullWidth
-                  style={inputStyle}
-                  error={!!errors.person_id}
-                  helperText={errors.person_id || ''}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '& fieldset': {
-                        borderColor: errors.person_id ? 'red' : '#6D2323',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: errors.person_id ? 'red' : '#6D2323',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: errors.person_id ? 'red' : '#6D2323',
-                      },
-                    },
-                  }}
-                />
-              </Grid>
-            </Grid>
-
-            {/* Add Button */}
-            <Button
-              onClick={handleAdd}
-              variant="contained"
-              startIcon={<AddIcon />}
-              sx={{
-                mt: 3,
-                width: "100%",
-                backgroundColor: "#6D2323",
-                color: "#FEF9E1",
-                "&:hover": { backgroundColor: "#5a1d1d" },
-              }}
-            >
-              Add
-            </Button>
-          </Container>
-        </Box>
+      
+      <Box sx={{ textAlign: 'center', mb: 3, px: 2 }}>
+        <Typography variant="h4" sx={{ color: "#6D2323", fontWeight: 'bold', mb: 0.5 }}>
+          Learning and Development Management
+        </Typography>
+        <Typography variant="body2" sx={{ color: "#666" }}>
+          Add and manage learning and development records for employees
+        </Typography>
       </Box>
 
-      {/* Outer wrapper for header + content */}
-      <Box sx={{ width: "75%", maxWidth: "100%", margin: "20px auto" }}>
-        {/* Header */}
-        <Box
-          sx={{
-            backgroundColor: "#ffffff",
-            color: "#6d2323",
-            p: 2,
-            borderRadius: "8px 8px 0 0",
-            display: "flex",
-            alignItems: "center",
-            pb: "15px",
-            border: '1px solid #6d2323',
-            borderBottom: 'none'
-          }}
-        >
-          <ReorderIcon sx={{ fontSize: "3rem", mr: 2, mt: "5px", ml: "5px" }} />
-          <Box>
-            <Typography variant="h5" sx={{ mb: 0.5 }}>
-              Program Records
-            </Typography>
-            <Typography variant="body2">
-              View and manage learning and development programs
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Content */}
-        <Container
-          sx={{
-            backgroundColor: "#fff",
-            p: 3,
-            borderBottomLeftRadius: 2,
-            borderBottomRightRadius: 2,
-            boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.1)",
-            border: "1px solid #6d2323",
-            width: "100%",
-          }}
-        >
-          {/* Search Section */}
-          <Box sx={{ mb: 3, width: "100%" }}>
-            {/* Subtitle */}
-            <Typography
-              variant="subtitle2"
-              sx={{ color: "#6D2323", mb: 1 }}
+      <Container maxWidth="xl" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+        <Grid container spacing={3} sx={{ flexGrow: 1 }}>
+          <Grid item xs={12} lg={6} sx={{ display: 'flex', flexDirection: 'column' }}>
+            <Paper 
+              elevation={4}
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                borderRadius: 2,
+                overflow: 'hidden',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                border: '1px solid rgba(109, 35, 35, 0.1)',
+                height: { xs: 'auto', lg: 'calc(100vh - 200px)' },
+                maxHeight: { xs: 'none', lg: 'calc(100vh - 200px)' }
+              }}
             >
-              Search Records using Employee Number
-            </Typography>
-
-            {/* Search Box */}
-            <Box display="flex" justifyContent="flex-start" alignItems="center" width="100%">
-              <TextField
-                size="small"
-                variant="outlined"
-                placeholder="Search by Person ID or Program Title"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+              <Box
                 sx={{
-                  backgroundColor: "white",
-                  borderRadius: 1,
-                  width: "100%",
-                  maxWidth: "800px",
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: "#6D2323",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "#6D2323",
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderColor: "#6D2323",
-                    },
-                  },
+                  backgroundColor: "#6D2323",
+                  color: "#ffffff",
+                  p: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
                 }}
-                InputProps={{
-                  startAdornment: (
-                    <SearchIcon sx={{ color: "#6D2323", marginRight: 1 }} />
-                  ),
-                }}
-              />
-            </Box>
-          </Box>
-
-          {/* Records as Boxes */}
-          <Grid container spacing={2}>
-            {data
-              .filter((learning) => {
-                const programTitle = learning.titleOfProgram?.toLowerCase() || "";
-                const personId = learning.person_id?.toString() || "";
-                const search = searchTerm.toLowerCase();
-                return personId.includes(search) || programTitle.includes(search);
-              })
-              .map((learning) => (
-                <Grid item xs={12} sm={6} md={4} key={learning.id}>
-                  <Box
-                    onClick={() => handleOpenModal(learning)}
-                    sx={{
-                      border: "1px solid #6d2323",
-                      borderRadius: 2,
-                      p: 2,
-                      cursor: "pointer",
-                      transition: "0.2s",
-                      "&:hover": { boxShadow: "0px 4px 10px rgba(0,0,0,0.2)" },
-                      height: "80%",
-                    }}
-                  >
-                    {/* Employee Number */}
-                    <Typography
-                      variant="body2"
-                      sx={{ fontWeight: "bold", color: "black", mb: 1 }}
-                    >
-                      Employee Number:
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ fontWeight: "bold", color: "#6d2323", mb: 1 }}
-                    >
-                      {learning.person_id}
-                    </Typography>
-
-                    {/* Program Title Pill */}
-                    <Chip
-                      label={learning.titleOfProgram}
-                      sx={{
-                        backgroundColor: "#6d2323",
-                        color: "#fff",
-                        borderRadius: "50px",
-                        px: 2,
-                        fontWeight: "bold",
-                        maxWidth: "100%",
-                      }}
-                    />
-                  </Box>
-                </Grid>
-              ))}
-            {data.filter((learning) => {
-              const programTitle = learning.titleOfProgram?.toLowerCase() || "";
-              const personId = learning.person_id?.toString() || "";
-              const search = searchTerm.toLowerCase();
-              return personId.includes(search) || programTitle.includes(search);
-            }).length === 0 && (
-              <Grid item xs={12}>
-                <Typography
-                  variant="body1"
-                  sx={{ textAlign: "center", color: "#6D2323", fontWeight: "bold", mt: 2 }}
-                >
-                  No Records Found
-                </Typography>
-              </Grid>
-            )}
-          </Grid>
-        </Container>
-
-        <Modal
-          open={!!editLearning}
-          onClose={handleCloseModal}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Box
-            sx={{
-              backgroundColor: "#fff",
-              border: "1px solid #6d2323",
-              borderRadius: 2,
-              width: "75%",
-              maxWidth: "900px",
-              maxHeight: "85vh",
-              overflowY: "auto",
-              position: "relative",
-            }}
-          >
-            {editLearning && (
-              <>
-                {/* Modal Header */}
-                <Box
-                  sx={{
-                    backgroundColor: "#6D2323",
-                    color: "#ffffff",
-                    p: 2,
-                    borderRadius: "8px 8px 0 0",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <Typography variant="h6">
-                    {isEditing ? "Edit Learning & Development Information" : "Learning & Development Information"}
+              >
+                <LightbulbIcon sx={{ fontSize: "1.8rem", mr: 2 }} />
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                    Add New Learning Program
                   </Typography>
-                  <IconButton onClick={handleCloseModal} sx={{ color: "#fff" }}>
-                    <Close />
-                  </IconButton>
+                  <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                    Fill in the learning program information
+                  </Typography>
                 </Box>
+              </Box>
 
-                {/* Modal Content (Form Style) */}
-                <Box sx={{ p: 3 }}>
-                  <Grid container spacing={3}>
-                    {/* Title of Program */}
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                        Title of Program
-                      </Typography>
-                      <TextField
-                        value={editLearning.titleOfProgram}
-                        onChange={(e) =>
-                          setEditLearning({ ...editLearning, titleOfProgram: e.target.value })
-                        }
-                        fullWidth
-                        disabled={!isEditing}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '& fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                            '&:hover fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                          },
-                          "& .MuiInputBase-input.Mui-disabled": {
-                            WebkitTextFillColor: "#000000",
-                            color: "#000000"
-                          }
-                        }}
-                      />
-                    </Grid>
+              <Box sx={{ 
+                p: 3, 
+                flexGrow: 1, 
+                display: 'flex', 
+                flexDirection: 'column',
+                overflowY: 'auto'
+              }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1.5, color: "#6D2323" }}>
+                      Employee Information <span style={{ color: 'red' }}>*</span>
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                          Search Employee
+                        </Typography>
+                        <EmployeeAutocomplete
+                          value={newLearning.person_id}
+                          onChange={handleEmployeeChange}
+                          selectedEmployee={selectedEmployee}
+                          onEmployeeSelect={handleEmployeeSelect}
+                          placeholder="Search and select employee..."
+                          required
+                          error={!!errors.person_id}
+                          helperText={errors.person_id || ''}
+                        />
+                      </Grid>
 
-                    {/* Date From */}
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                        Date From
-                      </Typography>
-                      <TextField
-                        type="date"
-                        value={editLearning.dateFrom}
-                        onChange={(e) =>
-                          setEditLearning({ ...editLearning, dateFrom: e.target.value })
-                        }
-                        fullWidth
-                        disabled={!isEditing}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '& fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                            '&:hover fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                          },
-                          "& .MuiInputBase-input.Mui-disabled": {
-                            WebkitTextFillColor: "#000000",
-                            color: "#000000"
-                          }
-                        }}
-                        InputLabelProps={{ shrink: true }}
-                      />
-                    </Grid>
-
-                    {/* Date To */}
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                        Date To
-                      </Typography>
-                      <TextField
-                        type="date"
-                        value={editLearning.dateTo}
-                        onChange={(e) =>
-                          setEditLearning({ ...editLearning, dateTo: e.target.value })
-                        }
-                        fullWidth
-                        disabled={!isEditing}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '& fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                            '&:hover fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                          },
-                          "& .MuiInputBase-input.Mui-disabled": {
-                            WebkitTextFillColor: "#000000",
-                            color: "#000000"
-                          }
-                        }}
-                        InputLabelProps={{ shrink: true }}
-                      />
-                    </Grid>
-
-                    {/* Number of Hours */}
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                        Number of Hours
-                      </Typography>
-                      <TextField
-                        value={editLearning.numberOfHours}
-                        onChange={(e) =>
-                          setEditLearning({ ...editLearning, numberOfHours: e.target.value })
-                        }
-                        fullWidth
-                        disabled={!isEditing}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '& fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                            '&:hover fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                          },
-                          "& .MuiInputBase-input.Mui-disabled": {
-                            WebkitTextFillColor: "#000000",
-                            color: "#000000"
-                          }
-                        }}
-                      />
-                    </Grid>
-
-                    {/* Type of Learning Development */}
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                        Type of Learning Development
-                      </Typography>
-                      <TextField
-                        value={editLearning.typeOfLearningDevelopment}
-                        onChange={(e) =>
-                          setEditLearning({ ...editLearning, typeOfLearningDevelopment: e.target.value })
-                        }
-                        fullWidth
-                        disabled={!isEditing}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '& fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                            '&:hover fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                          },
-                          "& .MuiInputBase-input.Mui-disabled": {
-                            WebkitTextFillColor: "#000000",
-                            color: "#000000"
-                          }
-                        }}
-                      />
-                    </Grid>
-
-                    {/* Conducted/Sponsored */}
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                        Conducted/Sponsored
-                      </Typography>
-                      <TextField
-                        value={editLearning.conductedSponsored}
-                        onChange={(e) =>
-                          setEditLearning({ ...editLearning, conductedSponsored: e.target.value })
-                        }
-                        fullWidth
-                        disabled={!isEditing}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '& fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                            '&:hover fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                          },
-                          "& .MuiInputBase-input.Mui-disabled": {
-                            WebkitTextFillColor: "#000000",
-                            color: "#000000"
-                          }
-                        }}
-                      />
-                    </Grid>
-
-                    {/* Employee Number */}
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                        Employee Number
-                      </Typography>
-                      <TextField
-                        value={editLearning.person_id}
-                        onChange={(e) =>
-                          setEditLearning({ ...editLearning, person_id: e.target.value })
-                        }
-                        fullWidth
-                        disabled={!isEditing}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '& fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                            '&:hover fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: "#6D2323",
-                            },
-                          },
-                          "& .MuiInputBase-input.Mui-disabled": {
-                            WebkitTextFillColor: "#000000",
-                            color: "#000000"
-                          }
-                        }}
-                      />
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                          Selected Employee
+                        </Typography>
+                        {selectedEmployee ? (
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              backgroundColor: '#f8f9fa',
+                              border: '1px solid #6D2323',
+                              borderRadius: '4px',
+                              padding: '8px 12px',
+                              gap: 1.5,
+                              height: '21px'
+                            }}
+                          >
+                            <PersonIcon sx={{ color: '#6D2323', fontSize: '20px' }} />
+                            <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 'bold',
+                                  color: '#6D2323',
+                                  fontSize: '13px',
+                                  lineHeight: 1.2,
+                                }}
+                              >
+                                {selectedEmployee.name}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: '#666',
+                                  fontSize: '11px',
+                                  lineHeight: 1.2,
+                                }}
+                              >
+                                ID: {selectedEmployee.employeeNumber}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        ) : (
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: '#f5f5f5',
+                              border: '2px dashed #ccc',
+                              borderRadius: '8px',
+                              padding: '8px 12px',
+                              height: '21px',
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: '#999',
+                                fontStyle: 'italic',
+                                fontSize: '13px',
+                              }}
+                            >
+                              No employee selected
+                            </Typography>
+                          </Box>
+                        )}
+                      </Grid>
                     </Grid>
                   </Grid>
 
-                  {/* Action Buttons */}
-                  <Box
+                  <Grid item xs={12}>
+                    <Box sx={{ 
+                      borderBottom: '2px solid #e0e0e0', 
+                      my: 2,
+                      '&::before': {
+                        content: '"Program Details"',
+                        position: 'absolute',
+                        left: 20,
+                        top: -10,
+                        backgroundColor: '#fff',
+                        px: 1,
+                        color: '#6D2323',
+                        fontWeight: 'bold',
+                        fontSize: '0.875rem'
+                      },
+                      position: 'relative'
+                    }} />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                      Title of Program <span style={{ color: 'red' }}>*</span>
+                    </Typography>
+                    <TextField
+                      value={newLearning.titleOfProgram}
+                      onChange={(e) => handleChange("titleOfProgram", e.target.value)}
+                      fullWidth
+                      size="small"
+                      error={!!errors.titleOfProgram}
+                      helperText={errors.titleOfProgram || ''}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                              '& fieldset': {
+                                borderColor: errors.titleOfProgram ? 'red' : '#6D2323',
+                                borderWidth: '1.5px'
+                              },
+                              '&:hover fieldset': {
+                                borderColor: errors.titleOfProgram ? 'red' : '#6D2323',
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: errors.titleOfProgram ? 'red' : '#6D2323',
+                              },
+                            },
+                      }}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                      Date From <span style={{ color: 'red' }}>*</span>
+                    </Typography>
+                    <TextField
+                      type="date"
+                      value={newLearning.dateFrom}
+                      onChange={(e) => handleChange("dateFrom", e.target.value)}
+                      fullWidth
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      error={!!errors.dateFrom}
+                      helperText={errors.dateFrom || ''}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                              '& fieldset': {
+                                borderColor: errors.dateFrom ? 'red' : '#6D2323',
+                                borderWidth: '1.5px'
+                              },
+                              '&:hover fieldset': {
+                                borderColor: errors.dateFrom ? 'red' : '#6D2323',
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: errors.dateFrom ? 'red' : '#6D2323',
+                              },
+                            },
+                      }}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                      Date To <span style={{ color: 'red' }}>*</span>
+                    </Typography>
+                    <TextField
+                      type="date"
+                      value={newLearning.dateTo}
+                      onChange={(e) => handleChange("dateTo", e.target.value)}
+                      fullWidth
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      error={!!errors.dateTo}
+                      helperText={errors.dateTo || ''}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                              '& fieldset': {
+                                borderColor: errors.dateTo ? 'red' : '#6D2323',
+                                borderWidth: '1.5px'
+                              },
+                              '&:hover fieldset': {
+                                borderColor: errors.dateTo ? 'red' : '#6D2323',
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: errors.dateTo ? 'red' : '#6D2323',
+                              },
+                            },
+                      }}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                      Number of Hours
+                    </Typography>
+                    <TextField
+                      value={newLearning.numberOfHours}
+                      onChange={(e) => handleChange("numberOfHours", e.target.value)}
+                      fullWidth
+                      size="small"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                              '& fieldset': {
+                                borderColor: '#6D2323',
+                                borderWidth: '1.5px'
+                              },
+                              '&:hover fieldset': {
+                                borderColor: '#6D2323',
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: '#6D2323',
+                              },
+                            },
+                      }}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                      Type of Learning Development
+                    </Typography>
+                    <TextField
+                      value={newLearning.typeOfLearningDevelopment}
+                      onChange={(e) => handleChange("typeOfLearningDevelopment", e.target.value)}
+                      fullWidth
+                      size="small"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                              '& fieldset': {
+                                borderColor: '#6D2323',
+                                borderWidth: '1.5px'
+                              },
+                              '&:hover fieldset': {
+                                borderColor: '#6D2323',
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: '#6D2323',
+                              },
+                            },
+                      }}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                      Conducted/Sponsored
+                    </Typography>
+                    <TextField
+                      value={newLearning.conductedSponsored}
+                      onChange={(e) => handleChange("conductedSponsored", e.target.value)}
+                      fullWidth
+                      size="small"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                              '& fieldset': {
+                                borderColor: '#6D2323',
+                                borderWidth: '1.5px'
+                              },
+                              '&:hover fieldset': {
+                                borderColor: '#6D2323',
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: '#6D2323',
+                              },
+                            },
+                      }}
+                    />
+                  </Grid>
+                </Grid>
+
+                <Box sx={{ mt: 'auto', pt: 2 }}>
+                  <Button
+                    onClick={handleAdd}
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    fullWidth
                     sx={{
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      mt: 3,
-                      gap: 2,
+                      backgroundColor: "#6D2323",
+                      color: "#FEF9E1",
+                      py: 1.2,
+                      fontWeight: 'bold',
+                      "&:hover": { 
+                        backgroundColor: "#5a1d1d",
+                      },
                     }}
                   >
-                    {!isEditing ? (
-                      // View mode buttons
-                      <>
-                        <Button
-                          onClick={() => handleDelete(editLearning.id)}
-                          variant="outlined"
-                          startIcon={<DeleteIcon />}
-                          sx={{
-                            color: "#ffffff",
-                            backgroundColor: 'black'
-                          }}
-                        >
-                          Delete
-                        </Button>
-                        <Button
-                          onClick={handleStartEdit}
-                          variant="contained"
-                          startIcon={<EditIcon />}
-                          sx={{ backgroundColor: "#6D2323", color: "#FEF9E1" }}
-                        >
-                          Edit
-                        </Button>
-                      </>
-                    ) : (
-                      // Edit mode buttons
-                      <>
-                        <Button
-                          onClick={handleCancelEdit}
-                          variant="outlined"
-                          startIcon={<CancelIcon />}
-                          sx={{
-                            color: "#ffffff",
-                            backgroundColor: 'black'
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={handleUpdate}
-                          variant="contained"
-                          startIcon={<SaveIcon />}
-                          sx={{ backgroundColor: "#6D2323", color: "#FEF9E1" }}
-                        >
-                          Save
-                        </Button>
-                      </>
-                    )}
+                    Add Learning Program
+                  </Button>
+                </Box>
+              </Box>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} lg={6} sx={{ display: 'flex', flexDirection: 'column' }}>
+            <Paper 
+              elevation={4}
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                borderRadius: 2,
+                overflow: 'hidden',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                border: '1px solid rgba(109, 35, 35, 0.1)',
+                height: { xs: 'auto', lg: 'calc(100vh - 200px)' },
+                maxHeight: { xs: 'none', lg: 'calc(100vh - 200px)' }
+              }}
+            >
+              <Box
+                sx={{
+                  backgroundColor: "#6D2323",
+                  color: "#ffffff",
+                  p: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <ReorderIcon sx={{ fontSize: "1.8rem", mr: 2 }} />
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                      Learning Programs
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                      View and manage existing programs
+                    </Typography>
                   </Box>
                 </Box>
-              </>
-            )}
-          </Box>
-        </Modal>
-      </Box>
+                
+                <ToggleButtonGroup
+                  value={viewMode}
+                  exclusive
+                  onChange={handleViewModeChange}
+                  aria-label="view mode"
+                  size="small"
+                  sx={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    '& .MuiToggleButton-root': {
+                      color: 'white',
+                      borderColor: 'rgba(255, 255, 255, 0.5)',
+                      padding: '4px 8px',
+                      '&.Mui-selected': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                        color: 'white'
+                      },
+                    }
+                  }}
+                >
+                  <ToggleButton value="grid" aria-label="grid view">
+                    <ViewModuleIcon fontSize="small" />
+                  </ToggleButton>
+                  <ToggleButton value="list" aria-label="list view">
+                    <ViewListIcon fontSize="small" />
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
 
-      {/* Snackbar */}
+              <Box sx={{ 
+                p: 3, 
+                flexGrow: 1, 
+                display: 'flex', 
+                flexDirection: 'column',
+                overflow: 'hidden'
+              }}>
+                <Box sx={{ mb: 2 }}>
+                  <TextField
+                    size="small"
+                    variant="outlined"
+                    placeholder="Search by Employee ID, Name, or Program"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    fullWidth
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        "& fieldset": {
+                          borderColor: "#6D2323",
+                          borderWidth: '1.5px'
+                        },
+                        "&:hover fieldset": {
+                          borderColor: "#6D2323",
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "#6D2323",
+                        },
+                      },
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <SearchIcon sx={{ color: "#6D2323", mr: 1 }} />
+                      ),
+                    }}
+                  />
+                </Box>
+
+                <Box 
+                  sx={{ 
+                    flexGrow: 1, 
+                    overflowY: 'auto',
+                    pr: 1,
+                    '&::-webkit-scrollbar': {
+                      width: '6px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      background: '#f1f1f1',
+                      borderRadius: '3px',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      background: '#6D2323',
+                      borderRadius: '3px',
+                    },
+                  }}
+                >
+                  {viewMode === 'grid' ? (
+                    <Grid container spacing={1.5}>
+                      {filteredData.map((learning) => (
+                        <Grid item xs={12} sm={6} md={4} key={learning.id}>
+                          <Card
+                            onClick={() => handleOpenModal(learning)}
+                            sx={{
+                              cursor: "pointer",
+                              border: "1px solid #ddd",
+                              height: "100%",
+                              display: 'flex',
+                              flexDirection: 'column',
+                              "&:hover": { 
+                                borderColor: "#6d2323",
+                                transform: 'translateY(-2px)',
+                                transition: 'all 0.2s ease',
+                                boxShadow: '0 4px 8px rgba(0,0,0,0.15)'
+                              },
+                            }}
+                          >
+                            <CardContent sx={{ p: 1.5, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                <LightbulbIcon sx={{ fontSize: 18, color: '#6d2323', mr: 0.5 }} />
+                                <Typography variant="caption" sx={{ 
+                                  color: '#6d2323', 
+                                  px: 0.5, 
+                                  py: 0.2, 
+                                  borderRadius: 0.5,
+                                  fontSize: '0.7rem',
+                                  fontWeight: 'bold'
+                                }}>
+                                  {learning.person_id}
+                                </Typography>
+                              </Box>
+                              
+                              <Typography variant="body2" fontWeight="bold" color="#333" mb={0.5} noWrap>
+                                {employeeNames[learning.person_id] || 'Loading...'}
+                              </Typography>
+                              
+                              <Typography variant="body2" fontWeight="bold" color="#333" mb={1} noWrap sx={{ flexGrow: 1 }}>
+                                {learning.titleOfProgram || 'No Program'}
+                              </Typography>
+                              
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <Typography variant="caption" color="#666" fontSize="0.7rem">
+                                    {learning.dateFrom || '----'}
+                                  </Typography>
+                                </Box>
+                                <Typography variant="caption" color="#666" fontSize="0.7rem">
+                                  to
+                                </Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <Typography variant="caption" color="#666" fontSize="0.7rem">
+                                    {learning.dateTo || '----'}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  ) : (
+                    filteredData.map((learning) => (
+                      <Card
+                        key={learning.id}
+                        onClick={() => handleOpenModal(learning)}
+                        sx={{
+                          cursor: "pointer",
+                          border: "1px solid #ddd",
+                          mb: 1,
+                          "&:hover": { 
+                            borderColor: "#6d2323",
+                            backgroundColor: '#fafafa'
+                          },
+                        }}
+                      >
+                        <Box sx={{ p: 1.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                            <Box sx={{ mr: 1.5, mt: 0.2 }}>
+                              <LightbulbIcon sx={{ fontSize: 20, color: '#6d2323' }} />
+                            </Box>
+                            
+                            <Box sx={{ flexGrow: 1 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                <Typography variant="caption" sx={{ 
+                                  backgroundColor: '#6d2323', 
+                                  color: 'white', 
+                                  px: 0.5, 
+                                  py: 0.2, 
+                                  borderRadius: 0.5,
+                                  fontSize: '0.7rem',
+                                  fontWeight: 'bold',
+                                  mr: 1
+                                }}>
+                                  {learning.person_id}
+                                </Typography>
+                                <Typography variant="body2" fontWeight="bold" color="#333">
+                                  {employeeNames[learning.person_id] || 'Loading...'}
+                                </Typography>
+                              </Box>
+                              
+                              <Typography variant="body2" color="#666" sx={{ mb: 0.5 }}>
+                                {learning.titleOfProgram || 'No Program'}
+                              </Typography>
+                              
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <Typography variant="caption" color="#666" fontSize="0.7rem">
+                                  {learning.dateFrom || '----'}
+                                </Typography>
+                                <Typography variant="caption" color="#666" fontSize="0.7rem" sx={{ mx: 0.5 }}>
+                                  to
+                                </Typography>
+                                <Typography variant="caption" color="#666" fontSize="0.7rem">
+                                  {learning.dateTo || '----'}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Box>
+                        </Box>
+                      </Card>
+                    ))
+                  )}
+                  
+                  {filteredData.length === 0 && (
+                    <Box textAlign="center" py={4}>
+                      <Typography variant="body1" color="#555" fontWeight="bold">
+                        No Records Found
+                      </Typography>
+                      <Typography variant="body2" color="#666" sx={{ mt: 0.5 }}>
+                        Try adjusting your search criteria
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Container>
+
+      <Modal
+        open={!!editLearning}
+        onClose={handleCloseModal}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Paper
+          sx={{
+            width: "90%",
+            maxWidth: "600px",
+            maxHeight: "90vh",
+            overflowY: 'auto',
+            borderRadius: 2,
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+          }}
+        >
+          {editLearning && (
+            <>
+              <Box
+                sx={{
+                  backgroundColor: "#6D2323",
+                  color: "#ffffff",
+                  p: 2,
+                  borderRadius: "8px 8px 0 0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  {isEditing ? "Edit Learning Program" : "Learning Program Details"}
+                </Typography>
+                <IconButton onClick={handleCloseModal} sx={{ color: "#fff" }}>
+                  <Close />
+                </IconButton>
+              </Box>
+
+              <Box sx={{ p: 3 }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1.5, color: "#6D2323" }}>
+                      Employee Information
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                          Search Employee
+                        </Typography>
+                        <EmployeeAutocomplete
+                          value={editLearning?.person_id || ''}
+                          onChange={isEditing ? handleEditEmployeeChange : () => {}}
+                          selectedEmployee={selectedEditEmployee}
+                          onEmployeeSelect={isEditing ? handleEditEmployeeSelect : () => {}}
+                          placeholder="Search and select employee..."
+                          required
+                          disabled={!isEditing}
+                          dropdownDisabled={!isEditing}
+                        />
+                        {!isEditing && (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: '#666',
+                              fontStyle: 'italic',
+                              display: 'block',
+                              mt: 0.5,
+                            }}
+                          >
+                            Contact administrator for assistance.
+                          </Typography>
+                        )}
+                      </Grid>
+
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                          Selected Employee
+                        </Typography>
+                        {selectedEditEmployee ? (
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              backgroundColor: '#f8f9fa',
+                              border: '2px solid #6D2323',
+                              borderRadius: '8px',
+                              padding: '8px 12px',
+                              gap: 1.5,
+                              height: '21px',
+                            }}
+                          >
+                            <PersonIcon sx={{ color: '#6D2323', fontSize: '20px' }} />
+                            <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 'bold',
+                                  color: '#6D2323',
+                                  fontSize: '13px',
+                                  lineHeight: 1.2,
+                                }}
+                              >
+                                {selectedEditEmployee.name}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: '#666',
+                                  fontSize: '11px',
+                                  lineHeight: 1.2,
+                                }}
+                              >
+                                ID: {selectedEditEmployee.employeeNumber}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        ) : (
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: '#f5f5f5',
+                              border: '2px dashed #ccc',
+                              borderRadius: '8px',
+                              padding: '8px 12px',
+                              height: '21px',
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: '#999',
+                                fontStyle: 'italic',
+                                fontSize: '13px',
+                              }}
+                            >
+                              No employee selected
+                            </Typography>
+                          </Box>
+                        )}
+                      </Grid>
+                    </Grid>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Box sx={{ 
+                      borderBottom: '2px solid #e0e0e0', 
+                      my: 2,
+                      '&::before': {
+                        content: '"Program Details"',
+                        position: 'absolute',
+                        left: 20,
+                        top: -10,
+                        backgroundColor: '#fff',
+                        px: 1,
+                        color: '#6D2323',
+                        fontWeight: 'bold',
+                        fontSize: '0.875rem'
+                      },
+                      position: 'relative'
+                    }} />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                      Title of Program
+                    </Typography>
+                    {isEditing ? (
+                      <TextField
+                        value={editLearning.titleOfProgram}
+                        onChange={(e) => handleChange("titleOfProgram", e.target.value, true)}
+                        fullWidth
+                        size="small"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '& fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                            '&:hover fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                          },
+                        }}
+                      />
+                    ) : (
+                      <Typography variant="body2" sx={{ p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                        {editLearning.titleOfProgram}
+                      </Typography>
+                    )}
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                      Date From
+                    </Typography>
+                    {isEditing ? (
+                      <TextField
+                        type="date"
+                        value={editLearning.dateFrom?.split('T')[0] || ''}
+                        onChange={(e) => handleChange("dateFrom", e.target.value, true)}
+                        fullWidth
+                        size="small"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '& fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                            '&:hover fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                          },
+                        }}
+                      />
+                    ) : (
+                      <Typography variant="body2" sx={{ p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                        {editLearning.dateFrom?.split('T')[0] || 'N/A'}
+                      </Typography>
+                    )}
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                      Date To
+                    </Typography>
+                    {isEditing ? (
+                      <TextField
+                        type="date"
+                        value={editLearning.dateTo?.split('T')[0] || ''}
+                        onChange={(e) => handleChange("dateTo", e.target.value, true)}
+                        fullWidth
+                        size="small"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '& fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                            '&:hover fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                          },
+                        }}
+                      />
+                    ) : (
+                      <Typography variant="body2" sx={{ p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                        {editLearning.dateTo?.split('T')[0] || 'N/A'}
+                      </Typography>
+                    )}
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                      Number of Hours
+                    </Typography>
+                    {isEditing ? (
+                      <TextField
+                        value={editLearning.numberOfHours}
+                        onChange={(e) => handleChange("numberOfHours", e.target.value, true)}
+                        fullWidth
+                        size="small"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '& fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                            '&:hover fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                          },
+                        }}
+                      />
+                    ) : (
+                      <Typography variant="body2" sx={{ p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                        {editLearning.numberOfHours || 'N/A'}
+                      </Typography>
+                    )}
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                      Type of Learning Development
+                    </Typography>
+                    {isEditing ? (
+                      <TextField
+                        value={editLearning.typeOfLearningDevelopment}
+                        onChange={(e) => handleChange("typeOfLearningDevelopment", e.target.value, true)}
+                        fullWidth
+                        size="small"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '& fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                            '&:hover fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                          },
+                        }}
+                      />
+                    ) : (
+                      <Typography variant="body2" sx={{ p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                        {editLearning.typeOfLearningDevelopment || 'N/A'}
+                      </Typography>
+                    )}
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Typography variant="caption" sx={{ fontWeight: "bold", mb: 0.5, color: "#333", display: 'block' }}>
+                      Conducted/Sponsored
+                    </Typography>
+                    {isEditing ? (
+                      <TextField
+                        value={editLearning.conductedSponsored}
+                        onChange={(e) => handleChange("conductedSponsored", e.target.value, true)}
+                        fullWidth
+                        size="small"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '& fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                            '&:hover fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: "#6D2323",
+                            },
+                          },
+                        }}
+                      />
+                    ) : (
+                      <Typography variant="body2" sx={{ p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                        {editLearning.conductedSponsored || 'N/A'}
+                      </Typography>
+                    )}
+                  </Grid>
+                </Grid>
+
+                <Box sx={{ display: 'flex', gap: 2, mt: 3, justifyContent: 'flex-end' }}>
+                  {!isEditing ? (
+                    <>
+                      <Button
+                        onClick={() => handleDelete(editLearning.id)}
+                        variant="outlined"
+                        startIcon={<DeleteIcon />}
+                        sx={{
+                          color: "#d32f2f",
+                          borderColor: "#d32f2f",
+                          "&:hover": {
+                            backgroundColor: "#d32f2f",
+                            color: "#fff"
+                          }
+                        }}
+                      >
+                        Delete
+                      </Button>
+                      <Button
+                        onClick={handleStartEdit}
+                        variant="contained"
+                        startIcon={<EditIcon />}
+                        sx={{ 
+                          backgroundColor: "#6D2323", 
+                          color: "#FEF9E1",
+                          "&:hover": { backgroundColor: "#5a1d1d" }
+                        }}
+                      >
+                        Edit
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={handleCancelEdit}
+                        variant="outlined"
+                        startIcon={<CancelIcon />}
+                        sx={{
+                          color: "#666",
+                          borderColor: "#666",
+                          "&:hover": {
+                            backgroundColor: "#f5f5f5"
+                          }
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleUpdate}
+                        variant="contained"
+                        startIcon={<SaveIcon />}
+                        disabled={!hasChanges()}
+                        sx={{ 
+                          backgroundColor: hasChanges() ? "#6D2323" : "#ccc", 
+                          color: "#FEF9E1",
+                          "&:hover": { 
+                            backgroundColor: hasChanges() ? "#5a1d1d" : "#ccc"
+                          },
+                          "&:disabled": {
+                            backgroundColor: "#ccc",
+                            color: "#999"
+                          }
+                        }}
+                      >
+                        Save
+                      </Button>
+                    </>
+                  )}
+                </Box>
+              </Box>
+            </>
+          )}
+        </Paper>
+      </Modal>
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
@@ -1047,7 +1701,7 @@ const LearningAndDevelopment = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Container>
+    </Box>
   );
 };
 

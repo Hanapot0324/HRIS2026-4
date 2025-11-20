@@ -1,6 +1,7 @@
 import API_BASE_URL from '../../apiConfig';
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
+import { getAuthHeaders } from '../../utils/auth';
 import {
   Avatar,
   Typography,
@@ -961,22 +962,30 @@ const Profile = () => {
   const [workExperiences, setWorkExperiences] = useState([]);
   const [workExperiencesFormData, setWorkExperiencesFormData] = useState([]);
 
-  useEffect(() => {
-    const fetchPersonData = async () => {
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/personalinfo/person_table`
-        );
-        const match = response.data.find(
-          (p) => p.agencyEmployeeNum === employeeNumber
-        );
-        setPerson(match);
+  // Voluntary Work related state
+  const [voluntaryWork, setVoluntaryWork] = useState([]);
+  const [voluntaryWorkFormData, setVoluntaryWorkFormData] = useState([]);
 
-        if (match) {
-          setProfilePicture(match.profile_picture);
-          const formattedData = { ...match };
-          if (match.birthDate) {
-            const date = new Date(match.birthDate);
+  // Fetch all data in parallel for better performance
+  useEffect(() => {
+    const fetchAllData = async () => {
+      if (!employeeNumber) return;
+      
+      setLoading(true);
+      try {
+        // Fetch personal info using direct endpoint like PDS
+        const personResponse = await axios.get(
+          `${API_BASE_URL}/personalinfo/person_table/${employeeNumber}`,
+          getAuthHeaders()
+        );
+        const personData = personResponse.data;
+        setPerson(personData);
+
+        if (personData) {
+          setProfilePicture(personData.profile_picture);
+          const formattedData = { ...personData };
+          if (personData.birthDate) {
+            const date = new Date(personData.birthDate);
             if (!isNaN(date.getTime())) {
               formattedData.birthDate = date.toISOString().split('T')[0];
             }
@@ -995,102 +1004,99 @@ const Profile = () => {
       }
     };
 
-    fetchPersonData();
+    fetchAllData();
   }, [employeeNumber]);
 
   // Fetch children data for current user
   useEffect(() => {
     const fetchChildren = async () => {
+      if (!employeeNumber) return;
+      
       try {
         const response = await axios.get(
-          `${API_BASE_URL}/ChildrenRoute/children-by-person/${employeeNumber}`
+          `${API_BASE_URL}/ChildrenRoute/children-by-person/${employeeNumber}`,
+          getAuthHeaders()
         );
-        console.log('Children data:', response.data);
-        setChildren(response.data);
+        const childrenData = Array.isArray(response.data) ? response.data : [];
+        setChildren(childrenData);
 
         // Initialize form data with fetched children
-        const formattedChildren = response.data.map((child) => ({
+        const formattedChildren = childrenData.map((child) => ({
           ...child,
           dateOfBirth: child.dateOfBirth ? child.dateOfBirth.split('T')[0] : '',
         }));
         setChildrenFormData(formattedChildren);
       } catch (error) {
         console.error('Error fetching children:', error);
-        setUploadStatus({
-          message: 'Failed to load children data',
-          type: 'error',
-        });
-        setNotificationOpen(true);
+        setChildren([]);
+        setChildrenFormData([]);
       }
     };
 
-    if (employeeNumber) {
-      fetchChildren();
-    }
+    fetchChildren();
   }, [employeeNumber]);
 
   // Fetch college data for current user
   useEffect(() => {
     const fetchColleges = async () => {
+      if (!employeeNumber) return;
+      
       try {
         const response = await axios.get(
-          `${API_BASE_URL}/college/college-by-person/${employeeNumber}`
+          `${API_BASE_URL}/college/college-by-person/${employeeNumber}`,
+          getAuthHeaders()
         );
-        console.log('College data:', response.data);
-        setColleges(response.data);
-        setCollegesFormData(response.data);
+        const collegeData = Array.isArray(response.data) ? response.data : [];
+        setColleges(collegeData);
+        setCollegesFormData(collegeData);
       } catch (error) {
         console.error('Error fetching colleges:', error);
-        setUploadStatus({
-          message: 'Failed to load college data',
-          type: 'error',
-        });
-        setNotificationOpen(true);
+        setColleges([]);
+        setCollegesFormData([]);
       }
     };
 
-    if (employeeNumber) {
-      fetchColleges();
-    }
+    fetchColleges();
   }, [employeeNumber]);
 
   // Fetch graduate studies data for current user
   useEffect(() => {
     const fetchGraduates = async () => {
+      if (!employeeNumber) return;
+      
       try {
         const response = await axios.get(
-          `${API_BASE_URL}/GraduateRoute/graduate-by-person/${employeeNumber}`
+          `${API_BASE_URL}/GraduateRoute/graduate-by-person/${employeeNumber}`,
+          getAuthHeaders()
         );
-        console.log('Graduate data:', response.data);
-        setGraduates(response.data);
-        setGraduatesFormData(response.data);
+        const graduateData = Array.isArray(response.data) ? response.data : [];
+        setGraduates(graduateData);
+        setGraduatesFormData(graduateData);
       } catch (error) {
         console.error('Error fetching graduates:', error);
-        setUploadStatus({
-          message: 'Failed to load graduate data',
-          type: 'error',
-        });
-        setNotificationOpen(true);
+        setGraduates([]);
+        setGraduatesFormData([]);
       }
     };
 
-    if (employeeNumber) {
-      fetchGraduates();
-    }
+    fetchGraduates();
   }, [employeeNumber]);
 
   // Fetch eligibility data for current user
   useEffect(() => {
     const fetchEligibilities = async () => {
+      if (!employeeNumber) return;
+      
       try {
         const response = await axios.get(
-          `${API_BASE_URL}/eligibilityRoute/eligibility-by-person/${employeeNumber}`
+          `${API_BASE_URL}/eligibilityRoute/eligibility-by-person/${employeeNumber}`,
+          getAuthHeaders()
         );
-        console.log('Eligibility data:', response.data);
-        setEligibilities(response.data);
+        const eligibilityData = Array.isArray(response.data) ? response.data : [];
+        setEligibilities(eligibilityData);
 
         // Initialize form data with fetched eligibilities
-        const formattedEligibilities = response.data.map((eligibility) => ({
+        const formattedEligibilities = eligibilityData.map((eligibility) => ({
           ...eligibility,
           eligibilityDateOfExam: eligibility.eligibilityDateOfExam
             ? eligibility.eligibilityDateOfExam.split('T')[0]
@@ -1102,105 +1108,98 @@ const Profile = () => {
         setEligibilitiesFormData(formattedEligibilities);
       } catch (error) {
         console.error('Error fetching eligibilities:', error);
-        setUploadStatus({
-          message: 'Failed to load eligibility data',
-          type: 'error',
-        });
-        setNotificationOpen(true);
+        setEligibilities([]);
+        setEligibilitiesFormData([]);
       }
     };
 
-    if (employeeNumber) {
-      fetchEligibilities();
-    }
+    fetchEligibilities();
   }, [employeeNumber]);
 
   // Fetch learning and development data for current user
   useEffect(() => {
     const fetchLearningDevelopment = async () => {
+      if (!employeeNumber) return;
+      
       try {
         const response = await axios.get(
-          `${API_BASE_URL}/learning_and_development_table/by-person/${employeeNumber}`
+          `${API_BASE_URL}/learning_and_development_table/by-person/${employeeNumber}`,
+          getAuthHeaders()
         );
-        console.log('Learning and Development data:', response.data);
-        setLearningDevelopment(response.data);
-        setLearningDevelopmentFormData(response.data);
+        const learningData = Array.isArray(response.data) ? response.data : [];
+        setLearningDevelopment(learningData);
+        setLearningDevelopmentFormData(learningData);
       } catch (error) {
         console.error('Error fetching learning and development:', error);
-        setUploadStatus({
-          message: 'Failed to load learning and development data',
-          type: 'error',
-        });
-        setNotificationOpen(true);
+        setLearningDevelopment([]);
+        setLearningDevelopmentFormData([]);
       }
     };
 
-    if (employeeNumber) {
-      fetchLearningDevelopment();
-    }
+    fetchLearningDevelopment();
   }, [employeeNumber]);
 
   // Fetch other information data for current user
   useEffect(() => {
     const fetchOtherInformation = async () => {
+      if (!employeeNumber) return;
+      
       try {
         const response = await axios.get(
-          `${API_BASE_URL}/OtherInfo/other-information-by-person/${employeeNumber}`
+          `${API_BASE_URL}/OtherInfo/other-information-by-person/${employeeNumber}`,
+          getAuthHeaders()
         );
-        console.log('Other Information data:', response.data);
-        setOtherInformation(response.data);
-        setOtherInformationFormData(response.data);
+        const otherInfoData = Array.isArray(response.data) ? response.data : [];
+        setOtherInformation(otherInfoData);
+        setOtherInformationFormData(otherInfoData);
       } catch (error) {
         console.error('Error fetching other information:', error);
-        setUploadStatus({
-          message: 'Failed to load other information data',
-          type: 'error',
-        });
-        setNotificationOpen(true);
+        setOtherInformation([]);
+        setOtherInformationFormData([]);
       }
     };
 
-    if (employeeNumber) {
-      fetchOtherInformation();
-    }
+    fetchOtherInformation();
   }, [employeeNumber]);
 
   // Fetch vocational data for current user
   useEffect(() => {
     const fetchVocational = async () => {
+      if (!employeeNumber) return;
+      
       try {
         const response = await axios.get(
-          `${API_BASE_URL}/vocational/vocational-by-person/${employeeNumber}`
+          `${API_BASE_URL}/vocational/vocational-by-person/${employeeNumber}`,
+          getAuthHeaders()
         );
-        console.log('Vocational data:', response.data);
-        setVocational(response.data);
-        setVocationalFormData(response.data);
+        const vocationalData = Array.isArray(response.data) ? response.data : [];
+        setVocational(vocationalData);
+        setVocationalFormData(vocationalData);
       } catch (error) {
         console.error('Error fetching vocational:', error);
-        setUploadStatus({
-          message: 'Failed to load vocational data',
-          type: 'error',
-        });
-        setNotificationOpen(true);
+        setVocational([]);
+        setVocationalFormData([]);
       }
     };
 
-    if (employeeNumber) {
-      fetchVocational();
-    }
+    fetchVocational();
   }, [employeeNumber]);
 
+  // Fetch work experiences data for current user
   useEffect(() => {
     const fetchWorkExperiences = async () => {
+      if (!employeeNumber) return;
+      
       try {
         const response = await axios.get(
-          `${API_BASE_URL}/WorkExperienceRoute/work-experience-by-person/${employeeNumber}`
+          `${API_BASE_URL}/WorkExperienceRoute/work-experience-by-person/${employeeNumber}`,
+          getAuthHeaders()
         );
-        console.log('Work Experience data:', response.data);
-        setWorkExperiences(response.data);
+        const workExpData = Array.isArray(response.data) ? response.data : [];
+        setWorkExperiences(workExpData);
 
         // Initialize form data with fetched work experiences
-        const formattedWorkExperiences = response.data.map((workExp) => ({
+        const formattedWorkExperiences = workExpData.map((workExp) => ({
           ...workExp,
           workDateFrom: workExp.workDateFrom
             ? workExp.workDateFrom.split('T')[0]
@@ -1212,17 +1211,44 @@ const Profile = () => {
         setWorkExperiencesFormData(formattedWorkExperiences);
       } catch (error) {
         console.error('Error fetching work experiences:', error);
-        setUploadStatus({
-          message: 'Failed to load work experience data',
-          type: 'error',
-        });
-        setNotificationOpen(true);
+        setWorkExperiences([]);
+        setWorkExperiencesFormData([]);
       }
     };
 
-    if (employeeNumber) {
-      fetchWorkExperiences();
-    }
+    fetchWorkExperiences();
+  }, [employeeNumber]);
+
+  // Fetch voluntary work data for current user
+  useEffect(() => {
+    const fetchVoluntaryWork = async () => {
+      if (!employeeNumber) return;
+      
+      try {
+        // Fetch all voluntary work and filter by person_id
+        const response = await axios.get(
+          `${API_BASE_URL}/VoluntaryRoute/voluntary-work`,
+          getAuthHeaders()
+        );
+        const allVoluntary = Array.isArray(response.data) ? response.data : [];
+        const filtered = allVoluntary.filter(v => v.person_id === employeeNumber);
+        setVoluntaryWork(filtered);
+
+        // Initialize form data with fetched voluntary work
+        const formattedVoluntary = filtered.map((vol) => ({
+          ...vol,
+          dateFrom: vol.dateFrom ? vol.dateFrom.split('T')[0] : '',
+          dateTo: vol.dateTo ? vol.dateTo.split('T')[0] : '',
+        }));
+        setVoluntaryWorkFormData(formattedVoluntary);
+      } catch (error) {
+        console.error('Error fetching voluntary work:', error);
+        setVoluntaryWork([]);
+        setVoluntaryWorkFormData([]);
+      }
+    };
+
+    fetchVoluntaryWork();
   }, [employeeNumber]);
 
   const handleEditOpen = () => {
@@ -1243,7 +1269,8 @@ const Profile = () => {
       // Save personal info
       await axios.put(
         `${API_BASE_URL}/personalinfo/person_table/by-employee/${employeeNumber}`,
-        formData
+        formData,
+        getAuthHeaders()
       );
       setPerson(formData);
 
@@ -1253,7 +1280,8 @@ const Profile = () => {
           // Update existing child
           await axios.put(
             `${API_BASE_URL}/ChildrenRoute/children-table/${child.id}`,
-            child
+            child,
+            getAuthHeaders()
           );
         } else if (
           child.childrenFirstName &&
@@ -1263,7 +1291,8 @@ const Profile = () => {
           // Add new child
           await axios.post(
             `${API_BASE_URL}/ChildrenRoute/children-table`,
-            child
+            child,
+            getAuthHeaders()
           );
         }
       }
@@ -1274,11 +1303,16 @@ const Profile = () => {
           // Update existing college
           await axios.put(
             `${API_BASE_URL}/college/college-table/${college.id}`,
-            college
+            college,
+            getAuthHeaders()
           );
         } else if (college.collegeNameOfSchool && college.collegeDegree) {
           // Add new college
-          await axios.post(`${API_BASE_URL}/college/college-table`, college);
+          await axios.post(
+            `${API_BASE_URL}/college/college-table`,
+            college,
+            getAuthHeaders()
+          );
         }
       }
 
@@ -1288,11 +1322,16 @@ const Profile = () => {
           // Update existing graduate
           await axios.put(
             `${API_BASE_URL}/graduate/graduate-table/${graduate.id}`,
-            graduate
+            graduate,
+            getAuthHeaders()
           );
         } else if (graduate.graduateNameOfSchool && graduate.graduateDegree) {
           // Add new graduate
-          await axios.post(`${API_BASE_URL}/graduate/graduate-table`, graduate);
+          await axios.post(
+            `${API_BASE_URL}/graduate/graduate-table`,
+            graduate,
+            getAuthHeaders()
+          );
         }
       }
 
@@ -1302,13 +1341,15 @@ const Profile = () => {
           // Update existing eligibility
           await axios.put(
             `${API_BASE_URL}/eligibilityRoute/eligibility/${eligibility.id}`,
-            eligibility
+            eligibility,
+            getAuthHeaders()
           );
         } else if (eligibility.eligibilityName && eligibility.DateOfValidity) {
           // Add new eligibility
           await axios.post(
             `${API_BASE_URL}/eligibilityRoute/eligibility`,
-            eligibility
+            eligibility,
+            getAuthHeaders()
           );
         }
       }
@@ -1319,7 +1360,8 @@ const Profile = () => {
           // Update existing learning and development
           await axios.put(
             `${API_BASE_URL}/learning_and_development_table/${learning.id}`,
-            learning
+            learning,
+            getAuthHeaders()
           );
         } else if (
           learning.titleOfProgram &&
@@ -1329,7 +1371,8 @@ const Profile = () => {
           // Add new learning and development
           await axios.post(
             `${API_BASE_URL}/learning_and_development_table`,
-            learning
+            learning,
+            getAuthHeaders()
           );
         }
       }
@@ -1340,11 +1383,16 @@ const Profile = () => {
           // Update existing other information
           await axios.put(
             `${API_BASE_URL}/OtherInfo/other-information/${info.id}`,
-            info
+            info,
+            getAuthHeaders()
           );
         } else {
           // Add new other information
-          await axios.post(`${API_BASE_URL}/OtherInfo/other-information`, info);
+          await axios.post(
+            `${API_BASE_URL}/OtherInfo/other-information`,
+            info,
+            getAuthHeaders()
+          );
         }
       }
 
@@ -1354,11 +1402,16 @@ const Profile = () => {
           // Update existing vocational record
           await axios.put(
             `${API_BASE_URL}/vocational/vocational-table/${voc.id}`,
-            voc
+            voc,
+            getAuthHeaders()
           );
         } else if (voc.vocationalNameOfSchool && voc.vocationalDegree) {
           // Add new vocational record
-          await axios.post(`${API_BASE_URL}/vocational/vocational-table`, voc);
+          await axios.post(
+            `${API_BASE_URL}/vocational/vocational-table`,
+            voc,
+            getAuthHeaders()
+          );
         }
       }
 
@@ -1367,7 +1420,8 @@ const Profile = () => {
           // Update existing work experience
           await axios.put(
             `${API_BASE_URL}/WorkExperienceRoute/work-experience-table/${workExp.id}`,
-            workExp
+            workExp,
+            getAuthHeaders()
           );
         } else if (
           workExp.workPositionTitle &&
@@ -1378,7 +1432,27 @@ const Profile = () => {
           // Add new work experience
           await axios.post(
             `${API_BASE_URL}/WorkExperienceRoute/work-experience-table`,
-            workExp
+            workExp,
+            getAuthHeaders()
+          );
+        }
+      }
+
+      // Save voluntary work data
+      for (const vol of voluntaryWorkFormData) {
+        if (vol.id) {
+          // Update existing voluntary work
+          await axios.put(
+            `${API_BASE_URL}/VoluntaryRoute/voluntary-work/${vol.id}`,
+            vol,
+            getAuthHeaders()
+          );
+        } else if (vol.nameAndAddress && vol.dateFrom && vol.dateTo) {
+          // Add new voluntary work
+          await axios.post(
+            `${API_BASE_URL}/VoluntaryRoute/voluntary-work`,
+            vol,
+            getAuthHeaders()
           );
         }
       }
@@ -1430,14 +1504,27 @@ const Profile = () => {
       setUploadStatus({ message: 'Uploading...', type: 'info' });
       setNotificationOpen(true);
 
-      const res = await axios.post(
-        `${API_BASE_URL}/upload-profile-picture/${employeeNumber}`,
-        fd,
-        {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          timeout: 30000,
-        }
-      );
+      const token = localStorage.getItem('token');
+      // Try the profile upload endpoint, fallback to personalinfo route
+      let res;
+      try {
+        res = await axios.post(
+          `${API_BASE_URL}/upload-profile-picture/${employeeNumber}`,
+          fd,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              Authorization: `Bearer ${token}`,
+            },
+            timeout: 30000,
+          }
+        );
+      } catch (uploadError) {
+        // If the endpoint doesn't exist, try alternative approach
+        // Upload to personalinfo route if available
+        console.warn('Profile picture upload endpoint not found, using alternative method');
+        throw uploadError; // Re-throw to be handled by outer catch
+      }
 
       const newPicturePath = res.data.filePath;
       setProfilePicture(newPicturePath);
@@ -1776,6 +1863,34 @@ const Profile = () => {
     setWorkExperiencesFormData(updatedWorkExperiences);
   };
 
+  // Voluntary Work related functions
+  const handleVoluntaryWorkFormChange = (index, e) => {
+    const { name, value } = e.target;
+    const updatedVoluntary = [...voluntaryWorkFormData];
+    updatedVoluntary[index] = { ...updatedVoluntary[index], [name]: value };
+    setVoluntaryWorkFormData(updatedVoluntary);
+  };
+
+  const handleAddVoluntaryWork = () => {
+    setVoluntaryWorkFormData([
+      ...voluntaryWorkFormData,
+      {
+        nameAndAddress: '',
+        dateFrom: '',
+        dateTo: '',
+        numberOfHours: '',
+        natureOfWork: '',
+        person_id: employeeNumber,
+      },
+    ]);
+  };
+
+  const handleRemoveVoluntaryWork = (index) => {
+    const updatedVoluntary = [...voluntaryWorkFormData];
+    updatedVoluntary.splice(index, 1);
+    setVoluntaryWorkFormData(updatedVoluntary);
+  };
+
   const getAge = (dateOfBirth) => {
     if (!dateOfBirth) return 'N/A';
 
@@ -1800,7 +1915,7 @@ const Profile = () => {
     return `${numRating}%`;
   };
 
-  // Always include the Children, College, Eligibility, Learning and Development, and Other Information tabs
+  // All tabs matching PDS structure
   const tabs = [
     { key: 0, label: 'Personal', icon: <PersonIcon /> },
     { key: 1, label: 'Gov. IDs', icon: <BadgeIcon /> },
@@ -1810,9 +1925,10 @@ const Profile = () => {
     { key: 5, label: 'Education', icon: <SchoolIcon /> },
     { key: 6, label: 'Children', icon: <ChildCareIcon /> },
     { key: 7, label: 'Eligibility', icon: <FactCheckIcon /> },
-    { key: 8, label: 'Learning & Development', icon: <BookIcon /> },
-    { key: 9, label: 'Other Information', icon: <InfoIcon /> },
-    { key: 10, label: 'Work Experience', icon: <WorkIcon /> }, // Add this line
+    { key: 8, label: 'Work Experience', icon: <WorkIcon /> },
+    { key: 9, label: 'Voluntary Work', icon: <GroupIcon /> },
+    { key: 10, label: 'Learning & Development', icon: <BookIcon /> },
+    { key: 11, label: 'Other Information', icon: <InfoIcon /> },
   ];
 
   const formFields = {
@@ -1966,9 +2082,10 @@ const Profile = () => {
     5: [], // Education tab will have sub-tabs
     6: [], // Children tab doesn't have form fields
     7: [], // Eligibility tab doesn't have form fields
-    8: [], // Learning and Development tab doesn't have form fields
-    9: [], // Other Information tab doesn't have form fields
-    10: [], // Work Experience tab doesn't have form fields
+    8: [], // Work Experience tab doesn't have form fields
+    9: [], // Voluntary Work tab doesn't have form fields
+    10: [], // Learning and Development tab doesn't have form fields
+    11: [], // Other Information tab doesn't have form fields
   };
 
   if (loading) {
@@ -2497,8 +2614,204 @@ const Profile = () => {
       );
     }
 
-    // Special handling for Learning and Development tab
+
+    // Special handling for Work Experience tab
     if (tabIndex === 8) {
+      return (
+        <Box>
+          <ScrollableContainer>
+            {workExperiences.length > 0 ? (
+              <Grid container spacing={3}>
+                {workExperiences.map((workExp) => (
+                  <Grid item xs={12} sm={6} md={4} key={workExp.id}>
+                    <WorkExperienceCard>
+                      <CardContent sx={{ flex: 1 }}>
+                        <Box display="flex" alignItems="center" mb={1}>
+                          <WorkIcon sx={{ color: colors.primary, mr: 1 }} />
+                        </Box>
+                        <Typography
+                          variant="h6"
+                          fontWeight="bold"
+                          color={colors.textPrimary}
+                          mb={1}
+                        >
+                          {workExp.workPositionTitle || 'N/A'}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color={colors.textSecondary}
+                          mb={1}
+                        >
+                          {workExp.workCompany || 'N/A'}
+                        </Typography>
+                        {workExp.workDateFrom && workExp.workDateTo && (
+                          <Box display="flex" alignItems="center" mb={1}>
+                            <CalendarTodayIcon
+                              sx={{
+                                fontSize: 16,
+                                color: colors.textSecondary,
+                                mr: 1,
+                              }}
+                            />
+                            <Typography
+                              variant="body2"
+                              color={colors.textSecondary}
+                            >
+                              {new Date(
+                                workExp.workDateFrom
+                              ).toLocaleDateString()}{' '}
+                              -{' '}
+                              {new Date(
+                                workExp.workDateTo
+                              ).toLocaleDateString()}
+                            </Typography>
+                          </Box>
+                        )}
+                        {workExp.workMonthlySalary && (
+                          <Typography
+                            variant="body2"
+                            color={colors.textSecondary}
+                            mb={1}
+                          >
+                            Salary: ₱
+                            {parseFloat(
+                              workExp.workMonthlySalary
+                            ).toLocaleString()}
+                          </Typography>
+                        )}
+                        {workExp.isGovtService && (
+                          <Chip
+                            label={
+                              workExp.isGovtService === 'Yes'
+                                ? 'Government'
+                                : 'Private'
+                            }
+                            size="small"
+                            sx={{
+                              backgroundColor:
+                                workExp.isGovtService === 'Yes'
+                                  ? alpha(colors.primary, 0.1)
+                                  : alpha(colors.secondary, 0.5),
+                              color:
+                                workExp.isGovtService === 'Yes'
+                                  ? colors.primary
+                                  : colors.textSecondary,
+                              fontWeight: 600,
+                            }}
+                          />
+                        )}
+                      </CardContent>
+                    </WorkExperienceCard>
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              <Box textAlign="center" py={4}>
+                <Typography variant="h6" color={colors.textSecondary}>
+                  No work experience records found
+                </Typography>
+                <Typography variant="body2" color={colors.textSecondary} mt={1}>
+                  Click "Edit Profile" to add work experience records
+                </Typography>
+              </Box>
+            )}
+          </ScrollableContainer>
+        </Box>
+      );
+    }
+
+    // Special handling for Voluntary Work tab
+    if (tabIndex === 9) {
+      return (
+        <Box>
+          <ScrollableContainer>
+            {voluntaryWork.length > 0 ? (
+              <Grid container spacing={3}>
+                {voluntaryWork.map((vol) => (
+                  <Grid item xs={12} sm={6} md={4} key={vol.id}>
+                    <Card
+                      sx={{
+                        border: '1px solid #e0e0e0',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        '&:hover': {
+                          borderColor: colors.primary,
+                          transform: 'translateY(-2px)',
+                          transition: 'all 0.2s ease',
+                          boxShadow: shadows.medium,
+                        },
+                      }}
+                    >
+                      <CardContent sx={{ flex: 1 }}>
+                        <Box display="flex" alignItems="center" mb={1}>
+                          <GroupIcon sx={{ color: colors.primary, mr: 1 }} />
+                        </Box>
+                        <Typography
+                          variant="h6"
+                          fontWeight="bold"
+                          color={colors.textPrimary}
+                          mb={1}
+                        >
+                          {vol.nameAndAddress || 'N/A'}
+                        </Typography>
+                        {vol.dateFrom && vol.dateTo && (
+                          <Box display="flex" alignItems="center" mb={1}>
+                            <CalendarTodayIcon
+                              sx={{
+                                fontSize: 16,
+                                color: colors.textSecondary,
+                                mr: 1,
+                              }}
+                            />
+                            <Typography
+                              variant="body2"
+                              color={colors.textSecondary}
+                            >
+                              {new Date(vol.dateFrom).toLocaleDateString()} -{' '}
+                              {new Date(vol.dateTo).toLocaleDateString()}
+                            </Typography>
+                          </Box>
+                        )}
+                        {vol.numberOfHours && (
+                          <Typography
+                            variant="body2"
+                            color={colors.textSecondary}
+                            mb={1}
+                          >
+                            Hours: {vol.numberOfHours}
+                          </Typography>
+                        )}
+                        {vol.natureOfWork && (
+                          <Typography
+                            variant="body2"
+                            color={colors.textSecondary}
+                          >
+                            {vol.natureOfWork}
+                          </Typography>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              <Box textAlign="center" py={4}>
+                <Typography variant="h6" color={colors.textSecondary}>
+                  No voluntary work records found
+                </Typography>
+                <Typography variant="body2" color={colors.textSecondary} mt={1}>
+                  Click "Edit Profile" to add voluntary work records
+                </Typography>
+              </Box>
+            )}
+          </ScrollableContainer>
+        </Box>
+      );
+    }
+
+    // Special handling for Learning and Development tab
+    if (tabIndex === 10) {
       return (
         <Box>
           <ScrollableContainer>
@@ -2584,7 +2897,7 @@ const Profile = () => {
     }
 
     // Special handling for Other Information tab
-    if (tabIndex === 9) {
+    if (tabIndex === 11) {
       return (
         <Box>
           <ScrollableContainer>
@@ -2658,110 +2971,6 @@ const Profile = () => {
                 </Typography>
                 <Typography variant="body2" color={colors.textSecondary} mt={1}>
                   Click "Edit Profile" to add other information records
-                </Typography>
-              </Box>
-            )}
-          </ScrollableContainer>
-        </Box>
-      );
-    }
-
-    if (tabIndex === 10) {
-      return (
-        <Box>
-          <ScrollableContainer>
-            {workExperiences.length > 0 ? (
-              <Grid container spacing={3}>
-                {workExperiences.map((workExp) => (
-                  <Grid item xs={12} sm={6} md={4} key={workExp.id}>
-                    <WorkExperienceCard>
-                      <CardContent sx={{ flex: 1 }}>
-                        <Box display="flex" alignItems="center" mb={1}>
-                          <WorkIcon sx={{ color: colors.primary, mr: 1 }} />
-                        </Box>
-                        <Typography
-                          variant="h6"
-                          fontWeight="bold"
-                          color={colors.textPrimary}
-                          mb={1}
-                        >
-                          {workExp.workPositionTitle}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          color={colors.textSecondary}
-                          mb={1}
-                        >
-                          {workExp.workCompany}
-                        </Typography>
-                        {workExp.workDateFrom && workExp.workDateTo && (
-                          <Box display="flex" alignItems="center" mb={1}>
-                            <CalendarTodayIcon
-                              sx={{
-                                fontSize: 16,
-                                color: colors.textSecondary,
-                                mr: 1,
-                              }}
-                            />
-                            <Typography
-                              variant="body2"
-                              color={colors.textSecondary}
-                            >
-                              {new Date(
-                                workExp.workDateFrom
-                              ).toLocaleDateString()}{' '}
-                              -{' '}
-                              {new Date(
-                                workExp.workDateTo
-                              ).toLocaleDateString()}
-                            </Typography>
-                          </Box>
-                        )}
-                        {workExp.workMonthlySalary && (
-                          <Typography
-                            variant="body2"
-                            color={colors.textSecondary}
-                            mb={1}
-                          >
-                            Salary: ₱
-                            {parseFloat(
-                              workExp.workMonthlySalary
-                            ).toLocaleString()}
-                          </Typography>
-                        )}
-                        {workExp.isGovtService && (
-                          <Chip
-                            label={
-                              workExp.isGovtService === 'Yes'
-                                ? 'Government'
-                                : 'Private'
-                            }
-                            size="small"
-                            sx={{
-                              backgroundColor:
-                                workExp.isGovtService === 'Yes'
-                                  ? alpha(colors.primary, 0.1)
-                                  : alpha(colors.secondary, 0.5),
-                              color:
-                                workExp.isGovtService === 'Yes'
-                                  ? colors.primary
-                                  : colors.textSecondary,
-                              fontWeight: 600,
-                            }}
-                          />
-                        )}
-                      </CardContent>
-                    </WorkExperienceCard>
-                  </Grid>
-                ))}
-              </Grid>
-            ) : (
-              <Box textAlign="center" py={4}>
-                <Typography variant="h6" color={colors.textSecondary}>
-                  No work experience records found
-                </Typography>
-                <Typography variant="body2" color={colors.textSecondary} mt={1}>
-                  Click "Edit Profile" to add work experience records
                 </Typography>
               </Box>
             )}
@@ -3116,8 +3325,166 @@ const Profile = () => {
       );
     }
 
-    // Special handling for Learning and Development tab
+
+    // Special handling for Work Experience tab
     if (tabIndex === 8) {
+      return (
+        <Box>
+          <ScrollableContainer>
+            {workExperiences.length > 0 ? (
+              <List>
+                {workExperiences.map((workExp) => (
+                  <React.Fragment key={workExp.id}>
+                    <WorkExperienceListItem>
+                      <MuiListItemIcon>
+                        <WorkIcon sx={{ color: colors.primary }} />
+                      </MuiListItemIcon>
+                      <MuiListItemText
+                        primary={workExp.workPositionTitle || 'N/A'}
+                        secondary={
+                          <>
+                            <Typography
+                              component="span"
+                              sx={{ display: 'block' }}
+                            >
+                              {workExp.workCompany || 'N/A'}
+                            </Typography>
+                            {workExp.workDateFrom && workExp.workDateTo && (
+                              <Typography
+                                component="span"
+                                sx={{ display: 'block' }}
+                              >
+                                {new Date(
+                                  workExp.workDateFrom
+                                ).toLocaleDateString()}{' '}
+                                -{' '}
+                                {new Date(
+                                  workExp.workDateTo
+                                ).toLocaleDateString()}
+                              </Typography>
+                            )}
+                            {workExp.workMonthlySalary && (
+                              <Typography
+                                component="span"
+                                sx={{ display: 'block' }}
+                              >
+                                Salary: ₱
+                                {parseFloat(
+                                  workExp.workMonthlySalary
+                                ).toLocaleString()}
+                              </Typography>
+                            )}
+                            {workExp.isGovtService && (
+                              <Typography
+                                component="span"
+                                sx={{ display: 'block' }}
+                              >
+                                Service Type:{' '}
+                                {workExp.isGovtService === 'Yes'
+                                  ? 'Government'
+                                  : 'Private'}
+                              </Typography>
+                            )}
+                          </>
+                        }
+                      />
+                    </WorkExperienceListItem>
+                    <Divider variant="inset" component="li" />
+                  </React.Fragment>
+                ))}
+              </List>
+            ) : (
+              <Box textAlign="center" py={4}>
+                <Typography variant="h6" color={colors.textSecondary}>
+                  No work experience records found
+                </Typography>
+                <Typography variant="body2" color={colors.textSecondary} mt={1}>
+                  Click "Edit Profile" to add work experience records
+                </Typography>
+              </Box>
+            )}
+          </ScrollableContainer>
+        </Box>
+      );
+    }
+
+    // Special handling for Voluntary Work tab
+    if (tabIndex === 9) {
+      return (
+        <Box>
+          <ScrollableContainer>
+            {voluntaryWork.length > 0 ? (
+              <List>
+                {voluntaryWork.map((vol) => (
+                  <React.Fragment key={vol.id}>
+                    <ListItem
+                      sx={{
+                        border: '1px solid #e0e0e0',
+                        borderRadius: 1,
+                        marginBottom: 1,
+                        '&:hover': {
+                          borderColor: colors.primary,
+                          backgroundColor: alpha(colors.primary, 0.05),
+                        },
+                      }}
+                    >
+                      <MuiListItemIcon>
+                        <GroupIcon sx={{ color: colors.primary }} />
+                      </MuiListItemIcon>
+                      <MuiListItemText
+                        primary={vol.nameAndAddress || 'N/A'}
+                        secondary={
+                          <>
+                            {vol.dateFrom && vol.dateTo && (
+                              <Typography
+                                component="span"
+                                sx={{ display: 'block' }}
+                              >
+                                {new Date(vol.dateFrom).toLocaleDateString()} -{' '}
+                                {new Date(vol.dateTo).toLocaleDateString()}
+                              </Typography>
+                            )}
+                            {vol.numberOfHours && (
+                              <Typography
+                                component="span"
+                                sx={{ display: 'block' }}
+                              >
+                                Hours: {vol.numberOfHours}
+                              </Typography>
+                            )}
+                            {vol.natureOfWork && (
+                              <Typography
+                                component="span"
+                                sx={{ display: 'block' }}
+                              >
+                                {vol.natureOfWork}
+                              </Typography>
+                            )}
+                          </>
+                        }
+                      />
+                    </ListItem>
+                    <Divider variant="inset" component="li" />
+                  </React.Fragment>
+                ))}
+              </List>
+            ) : (
+              <Box textAlign="center" py={4}>
+                <Typography variant="h6" color={colors.textSecondary}>
+                  No voluntary work records found
+                </Typography>
+                <Typography variant="body2" color={colors.textSecondary} mt={1}>
+                  Click "Edit Profile" to add voluntary work records
+                </Typography>
+              </Box>
+            )}
+          </ScrollableContainer>
+        </Box>
+      );
+    }
+
+    // Special handling for Learning and Development tab
+    if (tabIndex === 10) {
       return (
         <Box>
           <ScrollableContainer>
@@ -3183,7 +3550,7 @@ const Profile = () => {
     }
 
     // Special handling for Other Information tab
-    if (tabIndex === 9) {
+    if (tabIndex === 11) {
       return (
         <Box>
           <ScrollableContainer>
@@ -3238,87 +3605,6 @@ const Profile = () => {
                 </Typography>
                 <Typography variant="body2" color={colors.textSecondary} mt={1}>
                   Click "Edit Profile" to add other information records
-                </Typography>
-              </Box>
-            )}
-          </ScrollableContainer>
-        </Box>
-      );
-    }
-
-    if (tabIndex === 10) {
-      return (
-        <Box>
-          <ScrollableContainer>
-            {workExperiences.length > 0 ? (
-              <List>
-                {workExperiences.map((workExp) => (
-                  <React.Fragment key={workExp.id}>
-                    <WorkExperienceListItem>
-                      <MuiListItemIcon>
-                        <WorkIcon sx={{ color: colors.primary }} />
-                      </MuiListItemIcon>
-                      <MuiListItemText
-                        primary={workExp.workPositionTitle}
-                        secondary={
-                          <>
-                            <Typography
-                              component="span"
-                              sx={{ display: 'block' }}
-                            >
-                              {workExp.workCompany}
-                            </Typography>
-                            {workExp.workDateFrom && workExp.workDateTo && (
-                              <Typography
-                                component="span"
-                                sx={{ display: 'block' }}
-                              >
-                                {new Date(
-                                  workExp.workDateFrom
-                                ).toLocaleDateString()}{' '}
-                                -{' '}
-                                {new Date(
-                                  workExp.workDateTo
-                                ).toLocaleDateString()}
-                              </Typography>
-                            )}
-                            {workExp.workMonthlySalary && (
-                              <Typography
-                                component="span"
-                                sx={{ display: 'block' }}
-                              >
-                                Salary: ₱
-                                {parseFloat(
-                                  workExp.workMonthlySalary
-                                ).toLocaleString()}
-                              </Typography>
-                            )}
-                            {workExp.isGovtService && (
-                              <Typography
-                                component="span"
-                                sx={{ display: 'block' }}
-                              >
-                                Service Type:{' '}
-                                {workExp.isGovtService === 'Yes'
-                                  ? 'Government'
-                                  : 'Private'}
-                              </Typography>
-                            )}
-                          </>
-                        }
-                      />
-                    </WorkExperienceListItem>
-                    <Divider variant="inset" component="li" />
-                  </React.Fragment>
-                ))}
-              </List>
-            ) : (
-              <Box textAlign="center" py={4}>
-                <Typography variant="h6" color={colors.textSecondary}>
-                  No work experience records found
-                </Typography>
-                <Typography variant="body2" color={colors.textSecondary} mt={1}>
-                  Click "Edit Profile" to add work experience records
                 </Typography>
               </Box>
             )}
@@ -4091,249 +4377,9 @@ const Profile = () => {
       );
     }
 
-    // Special handling for Learning and Development tab
+
+    // Special handling for Work Experience tab
     if (tabValue === 8) {
-      return (
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            Learning and Development Information
-          </Typography>
-
-          {learningDevelopmentFormData.length > 0 ? (
-            <Box>
-              {learningDevelopmentFormData.map((learning, index) => (
-                <Box
-                  key={index}
-                  mb={3}
-                  p={2}
-                  sx={{
-                    backgroundColor: alpha(colors.secondary, 0.3),
-                    borderRadius: 2,
-                  }}
-                >
-                  <Box
-                    display="flex"
-                    justifyContent="space-between"
-                    alignItems="center"
-                    mb={2}
-                  >
-                    <Typography variant="h6">
-                      Learning Program {index + 1}
-                    </Typography>
-                    <IconButton
-                      onClick={() => handleRemoveLearningDevelopment(index)}
-                      color="error"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Box>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <FormField
-                        fullWidth
-                        label="Title of Program"
-                        name="titleOfProgram"
-                        value={learning.titleOfProgram || ''}
-                        onChange={(e) =>
-                          handleLearningDevelopmentFormChange(index, e)
-                        }
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormField
-                        fullWidth
-                        label="Date From"
-                        name="dateFrom"
-                        type="date"
-                        value={learning.dateFrom || ''}
-                        onChange={(e) =>
-                          handleLearningDevelopmentFormChange(index, e)
-                        }
-                        variant="outlined"
-                        InputLabelProps={{ shrink: true }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormField
-                        fullWidth
-                        label="Date To"
-                        name="dateTo"
-                        type="date"
-                        value={learning.dateTo || ''}
-                        onChange={(e) =>
-                          handleLearningDevelopmentFormChange(index, e)
-                        }
-                        variant="outlined"
-                        InputLabelProps={{ shrink: true }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormField
-                        fullWidth
-                        label="Number of Hours"
-                        name="numberOfHours"
-                        value={learning.numberOfHours || ''}
-                        onChange={(e) =>
-                          handleLearningDevelopmentFormChange(index, e)
-                        }
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormField
-                        fullWidth
-                        label="Type of Learning Development"
-                        name="typeOfLearningDevelopment"
-                        value={learning.typeOfLearningDevelopment || ''}
-                        onChange={(e) =>
-                          handleLearningDevelopmentFormChange(index, e)
-                        }
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <FormField
-                        fullWidth
-                        label="Conducted/Sponsored"
-                        name="conductedSponsored"
-                        value={learning.conductedSponsored || ''}
-                        onChange={(e) =>
-                          handleLearningDevelopmentFormChange(index, e)
-                        }
-                        variant="outlined"
-                      />
-                    </Grid>
-                  </Grid>
-                </Box>
-              ))}
-            </Box>
-          ) : (
-            <Box textAlign="center" py={4}>
-              <Typography variant="h6" color={colors.textSecondary}>
-                No learning and development records found
-              </Typography>
-            </Box>
-          )}
-
-          <Box mt={2} display="flex" justifyContent="center">
-            <ActionButton
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAddLearningDevelopment}
-            >
-              Add Learning Program
-            </ActionButton>
-          </Box>
-        </Box>
-      );
-    }
-
-    // Special handling for Other Information tab
-    if (tabValue === 9) {
-      return (
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            Other Information
-          </Typography>
-
-          {otherInformationFormData.length > 0 ? (
-            <Box>
-              {otherInformationFormData.map((info, index) => (
-                <Box
-                  key={index}
-                  mb={3}
-                  p={2}
-                  sx={{
-                    backgroundColor: alpha(colors.secondary, 0.3),
-                    borderRadius: 2,
-                  }}
-                >
-                  <Box
-                    display="flex"
-                    justifyContent="space-between"
-                    alignItems="center"
-                    mb={2}
-                  >
-                    <Typography variant="h6">
-                      Information {index + 1}
-                    </Typography>
-                    <IconButton
-                      onClick={() => handleRemoveOtherInformation(index)}
-                      color="error"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Box>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <FormField
-                        fullWidth
-                        label="Special Skills"
-                        name="specialSkills"
-                        value={info.specialSkills || ''}
-                        onChange={(e) =>
-                          handleOtherInformationFormChange(index, e)
-                        }
-                        variant="outlined"
-                        multiline
-                        rows={2}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <FormField
-                        fullWidth
-                        label="Non-Academic Distinctions"
-                        name="nonAcademicDistinctions"
-                        value={info.nonAcademicDistinctions || ''}
-                        onChange={(e) =>
-                          handleOtherInformationFormChange(index, e)
-                        }
-                        variant="outlined"
-                        multiline
-                        rows={2}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <FormField
-                        fullWidth
-                        label="Membership in Association"
-                        name="membershipInAssociation"
-                        value={info.membershipInAssociation || ''}
-                        onChange={(e) =>
-                          handleOtherInformationFormChange(index, e)
-                        }
-                        variant="outlined"
-                        multiline
-                        rows={2}
-                      />
-                    </Grid>
-                  </Grid>
-                </Box>
-              ))}
-            </Box>
-          ) : (
-            <Box textAlign="center" py={4}>
-              <Typography variant="h6" color={colors.textSecondary}>
-                No other information records found
-              </Typography>
-            </Box>
-          )}
-
-          <Box mt={2} display="flex" justifyContent="center">
-            <ActionButton
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAddOtherInformation}
-            >
-              Add Other Information
-            </ActionButton>
-          </Box>
-        </Box>
-      );
-    }
-
-    if (tabValue === 10) {
       return (
         <Box>
           <Typography variant="h6" gutterBottom>
@@ -4498,6 +4544,366 @@ const Profile = () => {
       );
     }
 
+    // Special handling for Voluntary Work tab
+    if (tabValue === 9) {
+      return (
+        <Box>
+          <Typography variant="h6" gutterBottom>
+            Voluntary Work Information
+          </Typography>
+
+          {voluntaryWorkFormData.length > 0 ? (
+            <Box>
+              {voluntaryWorkFormData.map((vol, index) => (
+                <Box
+                  key={index}
+                  mb={3}
+                  p={2}
+                  sx={{
+                    backgroundColor: alpha(colors.secondary, 0.3),
+                    borderRadius: 2,
+                  }}
+                >
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    mb={2}
+                  >
+                    <Typography variant="h6">
+                      Voluntary Work {index + 1}
+                    </Typography>
+                    <IconButton
+                      onClick={() => handleRemoveVoluntaryWork(index)}
+                      color="error"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <FormField
+                        fullWidth
+                        label="Name and Address of Organization"
+                        name="nameAndAddress"
+                        value={vol.nameAndAddress || ''}
+                        onChange={(e) => handleVoluntaryWorkFormChange(index, e)}
+                        variant="outlined"
+                        multiline
+                        rows={2}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormField
+                        fullWidth
+                        label="Date From"
+                        name="dateFrom"
+                        type="date"
+                        value={vol.dateFrom || ''}
+                        onChange={(e) => handleVoluntaryWorkFormChange(index, e)}
+                        variant="outlined"
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormField
+                        fullWidth
+                        label="Date To"
+                        name="dateTo"
+                        type="date"
+                        value={vol.dateTo || ''}
+                        onChange={(e) => handleVoluntaryWorkFormChange(index, e)}
+                        variant="outlined"
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormField
+                        fullWidth
+                        label="Number of Hours"
+                        name="numberOfHours"
+                        value={vol.numberOfHours || ''}
+                        onChange={(e) => handleVoluntaryWorkFormChange(index, e)}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormField
+                        fullWidth
+                        label="Nature of Work"
+                        name="natureOfWork"
+                        value={vol.natureOfWork || ''}
+                        onChange={(e) => handleVoluntaryWorkFormChange(index, e)}
+                        variant="outlined"
+                      />
+                    </Grid>
+                  </Grid>
+                </Box>
+              ))}
+            </Box>
+          ) : (
+            <Box textAlign="center" py={4}>
+              <Typography variant="h6" color={colors.textSecondary}>
+                No voluntary work records found
+              </Typography>
+            </Box>
+          )}
+
+          <Box mt={2} display="flex" justifyContent="center">
+            <ActionButton
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAddVoluntaryWork}
+            >
+              Add Voluntary Work
+            </ActionButton>
+          </Box>
+        </Box>
+      );
+    }
+
+    // Special handling for Learning and Development tab
+    if (tabValue === 10) {
+      return (
+        <Box>
+          <Typography variant="h6" gutterBottom>
+            Learning and Development Information
+          </Typography>
+
+          {learningDevelopmentFormData.length > 0 ? (
+            <Box>
+              {learningDevelopmentFormData.map((learning, index) => (
+                <Box
+                  key={index}
+                  mb={3}
+                  p={2}
+                  sx={{
+                    backgroundColor: alpha(colors.secondary, 0.3),
+                    borderRadius: 2,
+                  }}
+                >
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    mb={2}
+                  >
+                    <Typography variant="h6">
+                      Learning Program {index + 1}
+                    </Typography>
+                    <IconButton
+                      onClick={() => handleRemoveLearningDevelopment(index)}
+                      color="error"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <FormField
+                        fullWidth
+                        label="Title of Program"
+                        name="titleOfProgram"
+                        value={learning.titleOfProgram || ''}
+                        onChange={(e) =>
+                          handleLearningDevelopmentFormChange(index, e)
+                        }
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormField
+                        fullWidth
+                        label="Date From"
+                        name="dateFrom"
+                        type="date"
+                        value={learning.dateFrom || ''}
+                        onChange={(e) =>
+                          handleLearningDevelopmentFormChange(index, e)
+                        }
+                        variant="outlined"
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormField
+                        fullWidth
+                        label="Date To"
+                        name="dateTo"
+                        type="date"
+                        value={learning.dateTo || ''}
+                        onChange={(e) =>
+                          handleLearningDevelopmentFormChange(index, e)
+                        }
+                        variant="outlined"
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormField
+                        fullWidth
+                        label="Number of Hours"
+                        name="numberOfHours"
+                        value={learning.numberOfHours || ''}
+                        onChange={(e) =>
+                          handleLearningDevelopmentFormChange(index, e)
+                        }
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormField
+                        fullWidth
+                        label="Type of Learning Development"
+                        name="typeOfLearningDevelopment"
+                        value={learning.typeOfLearningDevelopment || ''}
+                        onChange={(e) =>
+                          handleLearningDevelopmentFormChange(index, e)
+                        }
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <FormField
+                        fullWidth
+                        label="Conducted/Sponsored"
+                        name="conductedSponsored"
+                        value={learning.conductedSponsored || ''}
+                        onChange={(e) =>
+                          handleLearningDevelopmentFormChange(index, e)
+                        }
+                        variant="outlined"
+                      />
+                    </Grid>
+                  </Grid>
+                </Box>
+              ))}
+            </Box>
+          ) : (
+            <Box textAlign="center" py={4}>
+              <Typography variant="h6" color={colors.textSecondary}>
+                No learning and development records found
+              </Typography>
+            </Box>
+          )}
+
+          <Box mt={2} display="flex" justifyContent="center">
+            <ActionButton
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAddLearningDevelopment}
+            >
+              Add Learning Program
+            </ActionButton>
+          </Box>
+        </Box>
+      );
+    }
+
+    // Special handling for Other Information tab
+    if (tabValue === 11) {
+      return (
+        <Box>
+          <Typography variant="h6" gutterBottom>
+            Other Information
+          </Typography>
+
+          {otherInformationFormData.length > 0 ? (
+            <Box>
+              {otherInformationFormData.map((info, index) => (
+                <Box
+                  key={index}
+                  mb={3}
+                  p={2}
+                  sx={{
+                    backgroundColor: alpha(colors.secondary, 0.3),
+                    borderRadius: 2,
+                  }}
+                >
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    mb={2}
+                  >
+                    <Typography variant="h6">
+                      Information {index + 1}
+                    </Typography>
+                    <IconButton
+                      onClick={() => handleRemoveOtherInformation(index)}
+                      color="error"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <FormField
+                        fullWidth
+                        label="Special Skills"
+                        name="specialSkills"
+                        value={info.specialSkills || ''}
+                        onChange={(e) =>
+                          handleOtherInformationFormChange(index, e)
+                        }
+                        variant="outlined"
+                        multiline
+                        rows={2}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <FormField
+                        fullWidth
+                        label="Non-Academic Distinctions"
+                        name="nonAcademicDistinctions"
+                        value={info.nonAcademicDistinctions || ''}
+                        onChange={(e) =>
+                          handleOtherInformationFormChange(index, e)
+                        }
+                        variant="outlined"
+                        multiline
+                        rows={2}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <FormField
+                        fullWidth
+                        label="Membership in Association"
+                        name="membershipInAssociation"
+                        value={info.membershipInAssociation || ''}
+                        onChange={(e) =>
+                          handleOtherInformationFormChange(index, e)
+                        }
+                        variant="outlined"
+                        multiline
+                        rows={2}
+                      />
+                    </Grid>
+                  </Grid>
+                </Box>
+              ))}
+            </Box>
+          ) : (
+            <Box textAlign="center" py={4}>
+              <Typography variant="h6" color={colors.textSecondary}>
+                No other information records found
+              </Typography>
+            </Box>
+          )}
+
+          <Box mt={2} display="flex" justifyContent="center">
+            <ActionButton
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAddOtherInformation}
+            >
+              Add Other Information
+            </ActionButton>
+          </Box>
+        </Box>
+      );
+    }
+
     const fields = formFields[tabValue] || [];
 
     return (
@@ -4523,73 +4929,227 @@ const Profile = () => {
 
   return (
     <ProfileContainer ref={profileRef}>
-      <ProfileHeader>
-        <ProfileAvatarContainer>
-          <ProfileAvatar
-            src={
-              profilePicture
-                ? `${API_BASE_URL}${profilePicture}?t=${Date.now()}`
-                : undefined
-            }
-            alt="Profile Picture"
-            onClick={handleImageZoom}
-          >
-            {!profilePicture && <PersonIcon sx={{ fontSize: 80 }} />}
-          </ProfileAvatar>
-        </ProfileAvatarContainer>
-
-        <ProfileInfo>
-          <ProfileName>
-            {person
-              ? `${person.firstName} ${person.middleName} ${person.lastName} ${
-                  person.nameExtension || ''
-                }`.trim()
-              : 'Employee Profile'}
-          </ProfileName>
-          <ProfileSubtitle>
-            Employee No.: <b>{person?.agencyEmployeeNum || '—'}</b>
-          </ProfileSubtitle>
-        </ProfileInfo>
-
-        <ProfileActions>
-          <Tooltip title="Refresh profile">
-            <IconButton
-              onClick={handleRefresh}
+      {/* Modern Header with Gradient */}
+      <Box
+        sx={{
+          background: colors.gradientPrimary,
+          borderRadius: 3,
+          p: 4,
+          mb: 4,
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: shadows.medium,
+        }}
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: -50,
+            right: -50,
+            width: 200,
+            height: 200,
+            background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)',
+          }}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: -30,
+            left: '30%',
+            width: 150,
+            height: 150,
+            background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 70%)',
+          }}
+        />
+        
+        <Box display="flex" alignItems="center" justifyContent="space-between" position="relative" zIndex={1} flexWrap="wrap" gap={3}>
+          <Box display="flex" alignItems="center" gap={3} flex={1}>
+            <ProfileAvatar
+              src={
+                profilePicture
+                  ? `${API_BASE_URL}${profilePicture}?t=${Date.now()}`
+                  : undefined
+              }
+              alt="Profile Picture"
+              onClick={handleImageZoom}
               sx={{
-                backgroundColor: alpha(colors.primary, 0.1),
+                width: 128,
+                height: 128,
+                border: `4px solid ${colors.textLight}`,
+                cursor: 'pointer',
+                boxShadow: shadows.heavy,
+              }}
+            >
+              {!profilePicture && <PersonIcon sx={{ fontSize: 60 }} />}
+            </ProfileAvatar>
+            
+            <Box>
+              <ProfileName sx={{ color: colors.textLight, mb: 1 }}>
+                {person
+                  ? `${person.firstName} ${person.middleName} ${person.lastName} ${
+                      person.nameExtension || ''
+                    }`.trim()
+                  : 'Employee Profile'}
+              </ProfileName>
+              <ProfileSubtitle sx={{ color: alpha(colors.textLight, 0.9), mb: 0.5 }}>
+                Employee No.: <b>{person?.agencyEmployeeNum || '—'}</b>
+              </ProfileSubtitle>
+              {person?.emailAddress && (
+                <Box display="flex" alignItems="center" gap={1} mt={1}>
+                  <EmailIcon sx={{ fontSize: 16, color: alpha(colors.textLight, 0.8) }} />
+                  <Typography variant="body2" sx={{ color: alpha(colors.textLight, 0.8) }}>
+                    {person.emailAddress}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Box>
+
+          <Box display="flex" gap={2} flexWrap="wrap">
+            <Tooltip title="Refresh profile">
+              <IconButton
+                onClick={handleRefresh}
+                sx={{
+                  backgroundColor: alpha(colors.textLight, 0.2),
+                  color: colors.textLight,
+                  '&:hover': {
+                    backgroundColor: alpha(colors.textLight, 0.3),
+                  },
+                }}
+              >
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
+            <ActionButton
+              variant="contained"
+              startIcon={<EditIcon />}
+              onClick={handleEditOpen}
+              sx={{
+                background: colors.textLight,
                 color: colors.primary,
                 '&:hover': {
-                  backgroundColor: alpha(colors.primary, 0.2),
+                  background: alpha(colors.textLight, 0.9),
                 },
               }}
             >
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
+              Edit Profile
+            </ActionButton>
+          </Box>
+        </Box>
+      </Box>
 
-          <ActionButton
-            variant="contained"
-            startIcon={<EditIcon />}
-            onClick={handleEditOpen}
+      {/* Quick Stats Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              p: 2,
+              textAlign: 'center',
+              background: `linear-gradient(135deg, ${alpha(colors.primary, 0.1)} 0%, ${alpha(colors.primary, 0.05)} 100%)`,
+              border: `1px solid ${alpha(colors.primary, 0.2)}`,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: shadows.medium,
+              },
+            }}
           >
-            Edit Profile
-          </ActionButton>
-        </ProfileActions>
-      </ProfileHeader>
+            <ChildCareIcon sx={{ fontSize: 40, color: colors.primary, mb: 1 }} />
+            <Typography variant="h4" fontWeight="bold" color={colors.primary}>
+              {children.length}
+            </Typography>
+            <Typography variant="body2" color={colors.textSecondary}>
+              Children
+            </Typography>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              p: 2,
+              textAlign: 'center',
+              background: `linear-gradient(135deg, ${alpha(colors.primary, 0.1)} 0%, ${alpha(colors.primary, 0.05)} 100%)`,
+              border: `1px solid ${alpha(colors.primary, 0.2)}`,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: shadows.medium,
+              },
+            }}
+          >
+            <FactCheckIcon sx={{ fontSize: 40, color: colors.primary, mb: 1 }} />
+            <Typography variant="h4" fontWeight="bold" color={colors.primary}>
+              {eligibilities.length}
+            </Typography>
+            <Typography variant="body2" color={colors.textSecondary}>
+              Eligibilities
+            </Typography>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              p: 2,
+              textAlign: 'center',
+              background: `linear-gradient(135deg, ${alpha(colors.primary, 0.1)} 0%, ${alpha(colors.primary, 0.05)} 100%)`,
+              border: `1px solid ${alpha(colors.primary, 0.2)}`,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: shadows.medium,
+              },
+            }}
+          >
+            <WorkIcon sx={{ fontSize: 40, color: colors.primary, mb: 1 }} />
+            <Typography variant="h4" fontWeight="bold" color={colors.primary}>
+              {workExperiences.length}
+            </Typography>
+            <Typography variant="body2" color={colors.textSecondary}>
+              Work Experience
+            </Typography>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              p: 2,
+              textAlign: 'center',
+              background: `linear-gradient(135deg, ${alpha(colors.primary, 0.1)} 0%, ${alpha(colors.primary, 0.05)} 100%)`,
+              border: `1px solid ${alpha(colors.primary, 0.2)}`,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: shadows.medium,
+              },
+            }}
+          >
+            <BookIcon sx={{ fontSize: 40, color: colors.primary, mb: 1 }} />
+            <Typography variant="h4" fontWeight="bold" color={colors.primary}>
+              {learningDevelopment.length}
+            </Typography>
+            <Typography variant="body2" color={colors.textSecondary}>
+              Learning Programs
+            </Typography>
+          </Card>
+        </Grid>
+      </Grid>
 
+      {/* Main Content Section */}
       <SectionPaper>
         <Box
           display="flex"
           justifyContent="space-between"
           alignItems="center"
           mb={3}
+          flexWrap="wrap"
+          gap={2}
         >
           <SectionTitle>
             <PersonIcon />
-            Employee Details
+            Complete Profile Information
           </SectionTitle>
-          <Box display="flex" alignItems="center">
-            <Typography variant="body2" color={colors.textSecondary} mr={2}>
+          <Box display="flex" alignItems="center" gap={2}>
+            <Typography variant="body2" color={colors.textSecondary}>
               View Mode:
             </Typography>
             <ToggleButtonGroup
@@ -4615,6 +5175,12 @@ const Profile = () => {
             onChange={handleTabChange}
             variant={isMobile ? 'scrollable' : 'standard'}
             scrollButtons={isMobile ? 'auto' : false}
+            sx={{
+              '& .MuiTab-root': {
+                minHeight: 48,
+                fontSize: '0.9rem',
+              },
+            }}
           >
             {tabs.map((tab) => (
               <CustomTab

@@ -1,6 +1,7 @@
 import API_BASE_URL from '../../apiConfig';
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { getAuthHeaders } from '../../utils/auth';
 import {
   Container,
   Typography,
@@ -29,6 +30,7 @@ import {
   Avatar,
   Tooltip,
   InputAdornment,
+  alpha,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -52,73 +54,17 @@ import LoadingOverlay from '../LoadingOverlay';
 import SuccessfullOverlay from '../SuccessfulOverlay';
 import AccessDenied from '../AccessDenied';
 import { useNavigate } from 'react-router-dom';
-
-// Professional styled components
-const GlassCard = styled(Card)(({ theme }) => ({
-  borderRadius: 20,
-  background: 'rgba(254, 249, 225, 0.95)',
-  backdropFilter: 'blur(10px)',
-  boxShadow: '0 8px 40px rgba(109, 35, 35, 0.08)',
-  border: '1px solid rgba(109, 35, 35, 0.1)',
-  overflow: 'hidden',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  '&:hover': {
-    boxShadow: '0 12px 48px rgba(109, 35, 35, 0.15)',
-    transform: 'translateY(-4px)',
-  },
-}));
-
-const ProfessionalButton = styled(Button)(({ theme, variant, color = 'primary' }) => ({
-  borderRadius: 12,
-  fontWeight: 600,
-  padding: '12px 24px',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  textTransform: 'none',
-  fontSize: '0.95rem',
-  letterSpacing: '0.025em',
-  boxShadow: variant === 'contained' ? '0 4px 14px rgba(254, 249, 225, 0.25)' : 'none',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: variant === 'contained' ? '0 6px 20px rgba(254, 249, 225, 0.35)' : 'none',
-  },
-  '&:active': {
-    transform: 'translateY(0)',
-  },
-}));
-
-const ModernTextField = styled(TextField)(({ theme }) => ({
-  '& .MuiOutlinedInput-root': {
-    borderRadius: 12,
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    '&:hover': {
-      transform: 'translateY(-1px)',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    },
-    '&.Mui-focused': {
-      transform: 'translateY(-1px)',
-      boxShadow: '0 4px 20px rgba(254, 249, 225, 0.25)',
-      backgroundColor: 'rgba(255, 255, 255, 1)',
-    },
-  },
-  '& .MuiInputLabel-root': {
-    fontWeight: 500,
-  },
-}));
-
-// Auth header helper
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  };
-};
+import { useSystemSettings } from '../../hooks/useSystemSettings';
+import {
+  createThemedCard,
+  createThemedButton,
+  createThemedTextField,
+  createGradient,
+  createShadow,
+} from '../../utils/theme';
 
 // Percentage Input Component
-const PercentageInput = ({ value, onChange, label, disabled = false, error = false, helperText = '' }) => {
+const PercentageInput = ({ value, onChange, label, disabled = false, error = false, helperText = '', settings = {} }) => {
   const [inputValue, setInputValue] = useState(value || '');
 
   useEffect(() => {
@@ -152,9 +98,12 @@ const PercentageInput = ({ value, onChange, label, disabled = false, error = fal
     onChange(newValue);
   };
 
+  // Create themed styled component inside PercentageInput
+  const ModernTextField = styled(TextField)(() => createThemedTextField(settings));
+
   return (
     <Box>
-      <Typography variant="body2" sx={{ fontWeight: 500, mb: 1, color: '#6D2323' }}>
+      <Typography variant="body2" sx={{ fontWeight: 500, mb: 1, color: settings.textPrimaryColor || settings.primaryColor || '#6D2323' }}>
         {label}
       </Typography>
       <ModernTextField
@@ -169,7 +118,7 @@ const PercentageInput = ({ value, onChange, label, disabled = false, error = fal
         InputProps={{
           endAdornment: (
             <InputAdornment position="end">
-              <PercentIcon sx={{ color: '#6D2323' }} />
+              <PercentIcon sx={{ color: settings.textPrimaryColor || settings.primaryColor || '#6D2323' }} />
             </InputAdornment>
           ),
         }}
@@ -190,6 +139,7 @@ const EmployeeAutocomplete = ({
   selectedEmployee,
   onEmployeeSelect,
   dropdownDisabled = false,
+  settings = {},
 }) => {
   const [query, setQuery] = useState('');
   const [employees, setEmployees] = useState([]);
@@ -329,6 +279,9 @@ const EmployeeAutocomplete = ({
     }
   };
 
+  // Create themed styled component inside EmployeeAutocomplete
+  const ModernTextField = styled(TextField)(() => createThemedTextField(settings));
+
   return (
     <Box sx={{ position: 'relative', width: '100%' }} ref={dropdownRef}>
       <ModernTextField
@@ -463,12 +416,24 @@ const Eligibility = () => {
   const [hasAccess, setHasAccess] = useState(null);
   const navigate = useNavigate();
   
-  // Color scheme
-  const primaryColor = '#FEF9E1';
-  const secondaryColor = '#FFF8E7';
-  const accentColor = '#6d2323';
-  const accentDark = '#8B3333';
-  const grayColor = '#6c757d';
+  // Get settings from context
+  const { settings } = useSystemSettings();
+  
+  // Create themed styled components using system settings
+  const GlassCard = styled(Card)(() => createThemedCard(settings));
+  
+  const ProfessionalButton = styled(Button)(({ variant = 'contained' }) => 
+    createThemedButton(settings, variant)
+  );
+
+  const ModernTextField = styled(TextField)(() => createThemedTextField(settings));
+  
+  // Color scheme from settings (for compatibility)
+  const primaryColor = settings.accentColor || '#FEF9E1';
+  const secondaryColor = settings.backgroundColor || '#FFF8E7';
+  const accentColor = settings.primaryColor || '#6d2323';
+  const accentDark = settings.secondaryColor || settings.hoverColor || '#8B3333';
+  const grayColor = settings.textSecondaryColor || '#6c757d';
 
   useEffect(() => {
     const userId = localStorage.getItem('employeeNumber');
@@ -479,9 +444,10 @@ const Eligibility = () => {
     }
     const checkAccess = async () => {
       try {
+        const authHeaders = getAuthHeaders();
         const response = await fetch(`${API_BASE_URL}/page_access/${userId}`, {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
+          ...authHeaders,
         });
         if (response.ok) {
           const accessData = await response.json();
@@ -507,7 +473,7 @@ const Eligibility = () => {
 
   const fetchEligibility = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/eligibilityRoute/eligibility`);
+      const res = await axios.get(`${API_BASE_URL}/eligibilityRoute/eligibility`, getAuthHeaders());
       setData(res.data);
 
       // Fetch employee names for all records
@@ -586,7 +552,7 @@ const Eligibility = () => {
 
     setLoading(true);
     try {
-      await axios.post(`${API_BASE_URL}/eligibilityRoute/eligibility`, newEligibility);
+      await axios.post(`${API_BASE_URL}/eligibilityRoute/eligibility`, newEligibility, getAuthHeaders());
       setNewEligibility({
         eligibilityName: '',
         eligibilityRating: '',
@@ -619,7 +585,8 @@ const Eligibility = () => {
     try {
       await axios.put(
         `${API_BASE_URL}/eligibilityRoute/eligibility/${editEligibility.id}`,
-        editEligibility
+        editEligibility,
+        getAuthHeaders()
       );
       setEditEligibility(null);
       setOriginalEligibility(null);
@@ -640,7 +607,7 @@ const Eligibility = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API_BASE_URL}/eligibilityRoute/eligibility/${id}`);
+      await axios.delete(`${API_BASE_URL}/eligibilityRoute/eligibility/${id}`, getAuthHeaders());
       setEditEligibility(null);
       setOriginalEligibility(null);
       setSelectedEditEmployee(null);
@@ -955,6 +922,7 @@ const Eligibility = () => {
                           required
                           error={!!errors.person_id}
                           helperText={errors.person_id || ''}
+                          settings={settings}
                         />
                       </Grid>
 
@@ -1056,6 +1024,7 @@ const Eligibility = () => {
                         label="Rating"
                         error={!!errors.eligibilityRating}
                         helperText={errors.eligibilityRating || ''}
+                        settings={settings}
                       />
                     </Grid>
 
@@ -1468,6 +1437,7 @@ const Eligibility = () => {
                           required
                           disabled={!isEditing}
                           dropdownDisabled={!isEditing}
+                          settings={settings}
                         />
                         {!isEditing && (
                           <Typography
@@ -1596,6 +1566,7 @@ const Eligibility = () => {
                           value={editEligibility.eligibilityRating}
                           onChange={(value) => handleChange('eligibilityRating', value, true)}
                           label=""
+                          settings={settings}
                         />
                       ) : (
                         <Box sx={{ 

@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 import ProtectedRoute from './components/ProtectedRoute';
+import { SystemSettingsProvider, useSystemSettings } from './contexts/SystemSettingsContext';
 import '@fontsource/poppins';
 import earistLogo from './assets/earistLogo.jpg';
 import hrisLogo from './assets/hrisLogo.png';
@@ -132,68 +133,8 @@ function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   
-
-  const [systemSettings, setSystemSettings] = useState({
-    primaryColor: '#894444',
-    secondaryColor: '#6d2323',
-    accentColor: '#FEF9E1',
-    textColor: '#FFFFFF',
-    hoverColor: '#6D2323',
-    backgroundColor: '#FFFFFF', 
-    institutionLogo: '',
-    hrisLogo: '',
-    institutionName: 'Eulogio "Amang" Rodriguez Institute of Science and Technology',
-    systemName: 'Human Resources Information System',
-    institutionAbbreviation: 'EARIST',
-    footerText: '© 2025 EARIST Manila - Human Resources Information System. All rights Reserved.',
-    enableWatermark: true,
-  });
-
-  
-  useEffect(() => {
-    if (systemSettings?.backgroundColor) {
-      document.documentElement.style.setProperty(
-        '--background-color', 
-        systemSettings.backgroundColor
-      );
-    }
-  }, [systemSettings?.backgroundColor]);
-
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        
-        const localSettings = localStorage.getItem('systemSettings');
-        if (localSettings) {
-          const parsed = JSON.parse(localSettings);
-          setSystemSettings(parsed);
-          
-          document.documentElement.style.setProperty(
-            '--background-color', 
-            parsed.backgroundColor || '#FFFFFF'
-          );
-        }
-
-        
-        const url = API_BASE_URL.includes('/api') 
-          ? `${API_BASE_URL}/system-settings`
-          : `${API_BASE_URL}/api/system-settings`;
-        
-        const response = await axios.get(url);
-        setSystemSettings(response.data);
-        localStorage.setItem('systemSettings', JSON.stringify(response.data));
-        
-        document.documentElement.style.setProperty(
-          '--background-color', 
-          response.data.backgroundColor || '#FFFFFF'
-        );
-      } catch (error) {
-        console.error('Error loading system settings:', error);
-      }
-    };
-
-    loadSettings();
-  }, []);
+  // Use the system settings from context
+  const { settings: systemSettings } = useSystemSettings();
 
   const handleClick = () => setOpen(!open);
   const handleClickAttendance = () => setOpen2(!open2);
@@ -1103,8 +1044,10 @@ function App() {
 
 export default function WrappedApp() {
   return (
-    <Router>
-      <App />
-    </Router>
+    <SystemSettingsProvider>
+      <Router>
+        <App />
+      </Router>
+    </SystemSettingsProvider>
   );
 }

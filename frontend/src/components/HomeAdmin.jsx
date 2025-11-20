@@ -77,6 +77,7 @@ import {
   Edit,
   Build,
   PersonAdd,
+  Save,
 } from "@mui/icons-material";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
@@ -1977,6 +1978,388 @@ const TaskList = ({ settings }) => {
   );
 };
 
+const EventsList = ({ settings, employeeNumber }) => {
+  const [events, setEvents] = useState([]);
+  const [addEventOpen, setAddEventOpen] = useState(false);
+  const [newEvent, setNewEvent] = useState({ 
+    date: new Date().toISOString().split('T')[0], 
+    title: "", 
+    description: "" 
+  });
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!employeeNumber) return;
+    
+    const fetchEvents = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/events/${employeeNumber}`);
+        setEvents(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error("Error fetching events:", err);
+        setEvents([]);
+      }
+    };
+    
+    fetchEvents();
+  }, [employeeNumber]);
+
+  const handleAddEvent = async () => {
+    if (!newEvent.title.trim() || !newEvent.date) return;
+    try {
+      const eventData = {
+        employee_number: employeeNumber,
+        date: newEvent.date,
+        title: newEvent.title,
+        description: newEvent.description || ""
+      };
+      
+      const res = await axios.post(`${API_BASE_URL}/api/events`, eventData);
+      setEvents([res.data, ...events]);
+      setNewEvent({ 
+        date: new Date().toISOString().split('T')[0], 
+        title: "", 
+        description: "" 
+      });
+      setAddEventOpen(false);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+    } catch (err) {
+      console.error("Error adding event:", err);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/api/events/${id}`);
+      setEvents(events.filter((event) => event.id !== id));
+    } catch (err) {
+      console.error("Error deleting event:", err);
+    }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
+  };
+
+  const isUpcoming = (dateStr) => {
+    if (!dateStr) return false;
+    const eventDate = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    eventDate.setHours(0, 0, 0, 0);
+    return eventDate >= today;
+  };
+
+  const getEventStatus = (dateStr) => {
+    if (!dateStr) return "past";
+    const eventDate = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    eventDate.setHours(0, 0, 0, 0);
+    
+    if (eventDate.getTime() === today.getTime()) return "today";
+    if (eventDate > today) return "upcoming";
+    return "past";
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case "upcoming":
+        return "Upcoming";
+      case "today":
+        return "Today";
+      case "past":
+        return "Past";
+      default:
+        return status;
+    }
+  };
+
+  return (
+    <>
+      <Card
+        sx={{
+          background: settings.accentColor,
+          backdropFilter: "blur(15px)",
+          border: `1px solid ${settings.primaryColor}26`,
+          borderRadius: 4,
+          mb: 2,
+          boxShadow: `0 15px 40px ${settings.primaryColor}33`,
+          height: 270,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {showSuccess && (
+          <SuccessfulOverlay message="Event added successfully!" />
+        )}
+        <CardContent
+          sx={{
+            p: 2,
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                color: settings.textPrimaryColor,
+                fontSize: "0.95rem",
+              }}
+            >
+              Events
+            </Typography>
+            <IconButton
+              size="small"
+              onClick={() => setAddEventOpen(true)}
+              sx={{
+                bgcolor: settings.textPrimaryColor,
+                color: "#ffffff",
+                "&:hover": { bgcolor: settings.hoverColor },
+                width: 28,
+                height: 28,
+              }}
+            >
+              <Add fontSize="small" />
+            </IconButton>
+          </Box>
+
+          <Box
+            sx={{
+              flex: 1,
+              overflowY: "auto",
+              overflowX: "hidden",
+              pr: 1,
+              "&::-webkit-scrollbar": {
+                width: "6px",
+              },
+              "&::-webkit-scrollbar-track": {
+                background: `${settings.primaryColor}1A`,
+                borderRadius: "3px",
+              },
+              "&::-webkit-scrollbar-thumb": {
+                background: `${settings.primaryColor}4D`,
+                borderRadius: "3px",
+                "&:hover": {
+                  background: `${settings.primaryColor}80`,
+                },
+              },
+            }}
+          >
+            <List dense sx={{ p: 0 }}>
+              {Array.isArray(events) && events.length > 0 ? (
+                events.map((event) => {
+                  const status = getEventStatus(event.date);
+                  return (
+                    <ListItem
+                      key={event.id}
+                      sx={{ p: 0, mb: 1, display: "flex", alignItems: "center" }}
+                    >
+                      <Event
+                        sx={{
+                          fontSize: 18,
+                          color: status === "upcoming" ? "#4caf50" : status === "today" ? "#ff9800" : settings.textSecondaryColor,
+                          mr: 1,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <ListItemText
+                        primary={event.title}
+                        secondary={formatDate(event.date)}
+                        primaryTypographyProps={{
+                          sx: {
+                            fontSize: "0.85rem",
+                            color: settings.textPrimaryColor,
+                          },
+                        }}
+                        secondaryTypographyProps={{
+                          sx: {
+                            fontSize: "0.7rem",
+                            color: settings.textSecondaryColor,
+                          },
+                        }}
+                      />
+                      <Chip
+                        label={getStatusLabel(status)}
+                        size="small"
+                        sx={{
+                          fontSize: "0.65rem",
+                          height: 20,
+                          bgcolor:
+                            status === "upcoming"
+                              ? "#4caf5010"
+                              : status === "today"
+                              ? "#ff980010"
+                              : "#f4433610",
+                          color:
+                            status === "upcoming"
+                              ? "#4caf50"
+                              : status === "today"
+                              ? "#ff9800"
+                              : "#f44336",
+                          mr: 1,
+                        }}
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDelete(event.id)}
+                        sx={{ color: settings.textPrimaryColor }}
+                      >
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </ListItem>
+                  );
+                })
+              ) : (
+                <Typography
+                  sx={{
+                    fontSize: "0.85rem",
+                    color: settings.textSecondaryColor,
+                    textAlign: "center",
+                    py: 2,
+                  }}
+                >
+                  No events yet
+                </Typography>
+              )}
+            </List>
+          </Box>
+        </CardContent>
+      </Card>
+
+      <Dialog
+        open={addEventOpen}
+        onClose={() => setAddEventOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 2,
+            bgcolor: settings.accentColor,
+            backdropFilter: "blur(12px)",
+            border: `1px solid ${settings.primaryColor}26`,
+            boxShadow: `0 15px 40px ${settings.primaryColor}33`,
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            pb: 1,
+            fontSize: "1rem",
+            fontWeight: 600,
+            color: settings.textPrimaryColor,
+          }}
+        >
+          Add New Event
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Event Title"
+            fullWidth
+            variant="outlined"
+            value={newEvent.title}
+            onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+            sx={{
+              mb: 2,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+              },
+            }}
+          />
+          <TextField
+            margin="dense"
+            label="Event Date"
+            type="date"
+            fullWidth
+            variant="outlined"
+            value={newEvent.date}
+            onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+            InputLabelProps={{
+              shrink: true,
+            }}
+            sx={{
+              mb: 2,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+              },
+            }}
+          />
+          <TextField
+            margin="dense"
+            label="Description (Optional)"
+            fullWidth
+            multiline
+            rows={3}
+            variant="outlined"
+            value={newEvent.description}
+            onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+            sx={{
+              mb: 2,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+              },
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setAddEventOpen(false)}
+            variant="contained"
+            sx={{
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: 500,
+              color: "#FFFFFF",
+              bgcolor: settings.primaryColor,
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleAddEvent}
+            variant="contained"
+            startIcon={<Save />}
+            disabled={!newEvent.title.trim() || !newEvent.date}
+            sx={{
+              borderRadius: 2,
+              fontWeight: 600,
+              bgcolor: settings.primaryColor,
+              textTransform: "none",
+              "&:hover": { bgcolor: settings.hoverColor },
+              "&:disabled": {
+                bgcolor: `${settings.primaryColor}66`,
+                color: "#ffffff",
+              },
+            }}
+          >
+            Save Event
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
 const QuickActions = ({ settings }) => (
   <Card
     sx={{
@@ -2586,7 +2969,14 @@ const AdminHome = () => {
                 <QuickActions settings={settings} />
               </Grid>
             </Grid>
-            <TaskList settings={settings} />
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <TaskList settings={settings} />
+              </Grid>
+              <Grid item xs={6}>
+                <EventsList settings={settings} employeeNumber={employeeNumber} />
+              </Grid>
+            </Grid>
           </Grid>
         </Grid>
 

@@ -54,18 +54,21 @@ import LoadingOverlay from '../LoadingOverlay';
 import SuccessfullOverlay from '../SuccessfulOverlay';
 import AccessDenied from '../AccessDenied';
 import { useNavigate } from "react-router-dom";
+import { useSystemSettings } from '../../hooks/useSystemSettings';
 
-// Professional styled components matching PayslipOverall
+// Helper function to convert hex to rgb
+const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '109, 35, 35';
+};
+
+// Professional styled components - colors will be applied via sx prop
 const GlassCard = styled(Card)(({ theme }) => ({
   borderRadius: 20,
-  background: 'rgba(254, 249, 225, 0.95)',
   backdropFilter: 'blur(10px)',
-  boxShadow: '0 8px 40px rgba(109, 35, 35, 0.08)',
-  border: '1px solid rgba(109, 35, 35, 0.1)',
   overflow: 'hidden',
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   '&:hover': {
-    boxShadow: '0 12px 48px rgba(109, 35, 35, 0.15)',
     transform: 'translateY(-4px)',
   },
 }));
@@ -401,14 +404,18 @@ const ItemTable = () => {
     setSnackbar({ open: true, message, severity });
   };
 
+  const { settings } = useSystemSettings();
   const [hasAccess, setHasAccess] = useState(null);
   const navigate = useNavigate();
   
-  // Color scheme matching PayslipOverall
-  const primaryColor = '#FEF9E1'; // Cream is primary
-  const secondaryColor = '#FFF8E7'; // Light cream
-  const accentColor = '#6d2323'; // Burgundy is accent
-  const accentDark = '#8B3333'; // Darker burgundy
+  // Get colors from system settings
+  const primaryColor = settings.accentColor || '#FEF9E1'; // Cards color
+  const secondaryColor = settings.backgroundColor || '#FFF8E7'; // Background
+  const accentColor = settings.primaryColor || '#6d2323'; // Primary accent
+  const accentDark = settings.secondaryColor || '#8B3333'; // Darker accent
+  const textPrimaryColor = settings.textPrimaryColor || '#6d2323';
+  const textSecondaryColor = settings.textSecondaryColor || '#FEF9E1';
+  const hoverColor = settings.hoverColor || '#6D2323';
   const blackColor = '#1a1a1a';
   const whiteColor = '#FFFFFF';
   const grayColor = '#6c757d';
@@ -702,8 +709,8 @@ const ItemTable = () => {
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <CircularProgress sx={{ color: accentColor, mb: 2 }} />
-          <Typography variant="h6" sx={{ color: accentColor }}>
+          <CircularProgress sx={{ color: textPrimaryColor, mb: 2 }} />
+          <Typography variant="h6" sx={{ color: textPrimaryColor }}>
             Loading access information...
           </Typography>
         </Box>
@@ -743,12 +750,19 @@ const ItemTable = () => {
         {/* Header */}
         <Fade in timeout={500}>
           <Box sx={{ mb: 4 }}>
-            <GlassCard>
+            <GlassCard sx={{
+              background: `rgba(${hexToRgb(primaryColor)}, 0.95)`,
+              boxShadow: `0 8px 40px ${alpha(accentColor, 0.08)}`,
+              border: `1px solid ${alpha(accentColor, 0.1)}`,
+              '&:hover': {
+                boxShadow: `0 12px 48px ${alpha(accentColor, 0.15)}`,
+              },
+            }}>
               <Box
                 sx={{
                   p: 5,
                   background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-                  color: accentColor,
+                  color: textPrimaryColor,
                   position: 'relative',
                   overflow: 'hidden',
                 }}
@@ -761,7 +775,7 @@ const ItemTable = () => {
                     right: -50,
                     width: 200,
                     height: 200,
-                    background: 'radial-gradient(circle, rgba(109,35,35,0.1) 0%, rgba(109,35,35,0) 70%)',
+                    background: `radial-gradient(circle, ${alpha(accentColor, 0.1)} 0%, ${alpha(accentColor, 0)} 70%)`,
                   }}
                 />
                 <Box
@@ -771,7 +785,7 @@ const ItemTable = () => {
                     left: '30%',
                     width: 150,
                     height: 150,
-                    background: 'radial-gradient(circle, rgba(109,35,35,0.08) 0%, rgba(109,35,35,0) 70%)',
+                    background: `radial-gradient(circle, ${alpha(accentColor, 0.08)} 0%, ${alpha(accentColor, 0)} 70%)`,
                   }}
                 />
                 
@@ -779,17 +793,17 @@ const ItemTable = () => {
                   <Box display="flex" alignItems="center">
                     <Avatar 
                       sx={{ 
-                        bgcolor: 'rgba(109,35,35,0.15)', 
+                        bgcolor: alpha(accentColor, 0.15), 
                         mr: 4, 
                         width: 64,
                         height: 64,
-                        boxShadow: '0 8px 24px rgba(109,35,35,0.15)'
+                        boxShadow: `0 8px 24px ${alpha(accentColor, 0.15)}`
                       }}
                     >
-                      <FactCheckIcon sx={{color: accentColor, fontSize: 32 }} />
+                      <FactCheckIcon sx={{color: textPrimaryColor, fontSize: 32 }} />
                     </Avatar>
                     <Box>
-                      <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1, lineHeight: 1.2, color: accentColor }}>
+                      <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1, lineHeight: 1.2, color: textPrimaryColor }}>
                         Item Information Management
                       </Typography>
                       <Typography variant="body1" sx={{ opacity: 0.8, fontWeight: 400, color: accentDark }}>

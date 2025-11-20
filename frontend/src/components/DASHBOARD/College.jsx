@@ -1,6 +1,7 @@
 import API_BASE_URL from '../../apiConfig';
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { getAuthHeaders } from '../../utils/auth';
 import {
   Container,
   Typography,
@@ -31,6 +32,7 @@ import {
   Menu,
   MenuItem,
   InputAdornment,
+  alpha,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -56,73 +58,15 @@ import LoadingOverlay from '../LoadingOverlay';
 import SuccessfullOverlay from '../SuccessfulOverlay';
 import AccessDenied from '../AccessDenied';
 import { useNavigate } from "react-router-dom";
-
-// Professional styled components
-const GlassCard = styled(Card)(({ theme }) => ({
-  borderRadius: 20,
-  background: 'rgba(254, 249, 225, 0.95)',
-  backdropFilter: 'blur(10px)',
-  boxShadow: '0 8px 40px rgba(109, 35, 35, 0.08)',
-  border: '1px solid rgba(109, 35, 35, 0.1)',
-  overflow: 'hidden',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  '&:hover': {
-    boxShadow: '0 12px 48px rgba(109, 35, 35, 0.15)',
-    transform: 'translateY(-4px)',
-  },
-}));
-
-const ProfessionalButton = styled(Button)(({ theme, variant, color = 'primary' }) => ({
-  borderRadius: 12,
-  fontWeight: 600,
-  padding: '12px 24px',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  textTransform: 'none',
-  fontSize: '0.95rem',
-  letterSpacing: '0.025em',
-  boxShadow: variant === 'contained' ? '0 4px 14px rgba(254, 249, 225, 0.25)' : 'none',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: variant === 'contained' ? '0 6px 20px rgba(254, 249, 225, 0.35)' : 'none',
-  },
-  '&:active': {
-    transform: 'translateY(0)',
-  },
-}));
-
-const ModernTextField = styled(TextField)(({ theme }) => ({
-  '& .MuiOutlinedInput-root': {
-    borderRadius: 12,
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    '&:hover': {
-      transform: 'translateY(-1px)',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    },
-    '&.Mui-focused': {
-      transform: 'translateY(-1px)',
-      boxShadow: '0 4px 20px rgba(254, 249, 225, 0.25)',
-      backgroundColor: 'rgba(255, 255, 255, 1)',
-    },
-  },
-  '& .MuiInputLabel-root': {
-    fontWeight: 500,
-  },
-}));
-
-// Auth header helper
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  };
-};
+import { useSystemSettings } from '../../hooks/useSystemSettings';
+import {
+  createThemedCard,
+  createThemedButton,
+  createThemedTextField,
+} from '../../utils/theme';
 
 // Flexible Year Input Component with Dropdown
-const FlexibleYearInput = ({ value, onChange, label, disabled = false, error = false, helperText = '' }) => {
+const FlexibleYearInput = ({ value, onChange, label, disabled = false, error = false, helperText = '', settings = {} }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [inputValue, setInputValue] = useState(value || '');
   const currentYear = new Date().getFullYear();
@@ -166,9 +110,12 @@ const FlexibleYearInput = ({ value, onChange, label, disabled = false, error = f
     }
   };
 
+  // Create themed styled component inside FlexibleYearInput
+  const ModernTextField = styled(TextField)(() => createThemedTextField(settings));
+
   return (
     <Box>
-      <Typography variant="body2" sx={{ fontWeight: 500, mb: 1, color: '#6d2323' }}>
+      <Typography variant="body2" sx={{ fontWeight: 500, mb: 1, color: settings.textPrimaryColor || settings.primaryColor || '#6d2323' }}>
         {label}
       </Typography>
       <ModernTextField
@@ -189,7 +136,7 @@ const FlexibleYearInput = ({ value, onChange, label, disabled = false, error = f
                 onClick={handleMenuOpen}
                 size="small"
                 disabled={disabled}
-                sx={{ color: '#6D2323' }}
+                sx={{ color: settings.textPrimaryColor || settings.primaryColor || '#6D2323' }}
               >
                 <ArrowDropDownIcon />
               </IconButton>
@@ -225,9 +172,9 @@ const FlexibleYearInput = ({ value, onChange, label, disabled = false, error = f
                 backgroundColor: '#f5f5f5',
               },
               '&.Mui-selected': {
-                backgroundColor: 'rgba(109, 35, 35, 0.1)',
+                backgroundColor: alpha(settings.primaryColor || '#6d2323', 0.1),
                 '&:hover': {
-                  backgroundColor: 'rgba(109, 35, 35, 0.2)',
+                  backgroundColor: alpha(settings.primaryColor || '#6d2323', 0.2),
                 },
               },
             }}
@@ -252,6 +199,7 @@ const EmployeeAutocomplete = ({
   selectedEmployee,
   onEmployeeSelect,
   dropdownDisabled = false,
+  settings = {},
 }) => {
   const [query, setQuery] = useState('');
   const [employees, setEmployees] = useState([]);
@@ -391,6 +339,9 @@ const EmployeeAutocomplete = ({
     }
   };
 
+  // Create themed styled component inside EmployeeAutocomplete
+  const ModernTextField = styled(TextField)(() => createThemedTextField(settings));
+
   return (
     <Box sx={{ position: 'relative', width: '100%' }} ref={dropdownRef}>
       <ModernTextField
@@ -408,13 +359,13 @@ const EmployeeAutocomplete = ({
         autoComplete="off"
         size="small"
         InputProps={{
-          startAdornment: <PersonIcon sx={{ color: '#6D2323', mr: 1 }} />,
+          startAdornment: <PersonIcon sx={{ color: settings.textPrimaryColor || settings.primaryColor || '#6D2323', mr: 1 }} />,
           endAdornment: (
             <IconButton
               onClick={dropdownDisabled ? undefined : handleDropdownClick}
               size="small"
               disabled={dropdownDisabled}
-              sx={{ color: '#6D2323' }}
+              sx={{ color: settings.textPrimaryColor || settings.primaryColor || '#6D2323' }}
             >
               {showDropdown ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
@@ -453,15 +404,15 @@ const EmployeeAutocomplete = ({
                   onClick={() => handleEmployeeSelect(employee)}
                   sx={{
                     '&:hover': {
-                      backgroundColor: '#f5f5f5',
+                      backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.3),
                     },
                   }}
                 >
                   <ListItemText
                     primary={employee.name}
                     secondary={`#${employee.employeeNumber}`}
-                    primaryTypographyProps={{ fontWeight: 'bold' }}
-                    secondaryTypographyProps={{ color: '#666' }}
+                    primaryTypographyProps={{ fontWeight: 'bold', color: settings.textPrimaryColor || '#6D2323' }}
+                    secondaryTypographyProps={{ color: settings.textSecondaryColor || '#666' }}
                   />
                 </ListItem>
               ))}
@@ -488,6 +439,9 @@ const EmployeeAutocomplete = ({
 };
 
 const College = () => {
+  // Get settings from context
+  const { settings } = useSystemSettings();
+  
   const [data, setData] = useState([]);
   const [employeeNames, setEmployeeNames] = useState({});
   const [newCollege, setNewCollege] = useState({
@@ -526,12 +480,21 @@ const College = () => {
   const [hasAccess, setHasAccess] = useState(null);
   const navigate = useNavigate();
   
-  // Color scheme
-  const primaryColor = '#FEF9E1';
-  const secondaryColor = '#FFF8E7';
-  const accentColor = '#6d2323';
-  const accentDark = '#8B3333';
-  const grayColor = '#6c757d';
+  // Create themed styled components using system settings
+  const GlassCard = styled(Card)(() => createThemedCard(settings));
+  
+  const ProfessionalButton = styled(Button)(({ variant = 'contained' }) => 
+    createThemedButton(settings, variant)
+  );
+
+  const ModernTextField = styled(TextField)(() => createThemedTextField(settings));
+  
+  // Color scheme from settings (for compatibility)
+  const primaryColor = settings.accentColor || '#FEF9E1';
+  const secondaryColor = settings.backgroundColor || '#FFF8E7';
+  const accentColor = settings.primaryColor || '#6d2323';
+  const accentDark = settings.secondaryColor || settings.hoverColor || '#8B3333';
+  const grayColor = settings.textSecondaryColor || '#6c757d';
   
   useEffect(() => {
     const userId = localStorage.getItem('employeeNumber');
@@ -542,9 +505,10 @@ const College = () => {
     }
     const checkAccess = async () => {
       try {
+        const authHeaders = getAuthHeaders();
         const response = await fetch(`${API_BASE_URL}/page_access/${userId}`, {
           method: "GET",
-          headers: { "Content-Type": "application/json" },
+          ...authHeaders,
         });
         if (response.ok) {
           const accessData = await response.json();
@@ -587,7 +551,7 @@ const College = () => {
 
   const fetchColleges = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/college/college-table`);
+      const res = await axios.get(`${API_BASE_URL}/college/college-table`, getAuthHeaders());
       setData(res.data);
       
       const uniqueEmployeeIds = [...new Set(res.data.map(c => c.person_id).filter(Boolean))];
@@ -636,7 +600,7 @@ const College = () => {
     
     setLoading(true);
     try {
-      await axios.post(`${API_BASE_URL}/college/college-table`, newCollege);
+      await axios.post(`${API_BASE_URL}/college/college-table`, newCollege, getAuthHeaders());
       setNewCollege({
         collegeNameOfSchool: '',
         collegeDegree: '',
@@ -665,7 +629,7 @@ const College = () => {
 
   const handleUpdate = async () => {
     try {
-      await axios.put(`${API_BASE_URL}/college/college-table/${editCollege.id}`, editCollege);
+      await axios.put(`${API_BASE_URL}/college/college-table/${editCollege.id}`, editCollege, getAuthHeaders());
       setEditCollege(null);
       setOriginalCollege(null);
       setSelectedEditEmployee(null);
@@ -682,7 +646,7 @@ const College = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API_BASE_URL}/college/college-table/${id}`);
+      await axios.delete(`${API_BASE_URL}/college/college-table/${id}`, getAuthHeaders());
       setEditCollege(null);
       setOriginalCollege(null);
       setSelectedEditEmployee(null);
@@ -982,6 +946,7 @@ const College = () => {
                           required
                           error={!!errors.person_id}
                           helperText={errors.person_id || ''}
+                          settings={settings}
                         />
                       </Grid>
 
@@ -994,8 +959,8 @@ const College = () => {
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
-                              backgroundColor: 'rgba(254, 249, 225, 0.8)',
-                              border: '1px solid rgba(109, 35, 35, 0.3)',
+                              backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.8),
+                              border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
                               paddingLeft: '10px',
                               gap: 1.5,
@@ -1033,7 +998,7 @@ const College = () => {
                               alignItems: 'center',
                               justifyContent: 'center',
                               backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                              border: '2px dashed rgba(109, 35, 35, 0.3)',
+                              border: `2px dashed ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
                               minHeight: '30px',
                             }}
@@ -1095,6 +1060,7 @@ const College = () => {
                         value={newCollege.collegePeriodFrom}
                         onChange={(value) => handleChange("collegePeriodFrom", value)}
                         label="Period From"
+                        settings={settings}
                       />
                     </Grid>
 
@@ -1103,6 +1069,7 @@ const College = () => {
                         value={newCollege.collegePeriodTo}
                         onChange={(value) => handleChange("collegePeriodTo", value)}
                         label="Period To"
+                        settings={settings}
                       />
                     </Grid>
 
@@ -1473,6 +1440,7 @@ const College = () => {
                           required
                           disabled={!isEditing}
                           dropdownDisabled={!isEditing}
+                          settings={settings}
                         />
                         {!isEditing && (
                           <Typography
@@ -1498,8 +1466,8 @@ const College = () => {
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
-                              backgroundColor: 'rgba(254, 249, 225, 0.8)',
-                              border: '1px solid rgba(109, 35, 35, 0.3)',
+                              backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.8),
+                              border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
                               padding: '12px',
                               gap: 1.5,
@@ -1537,7 +1505,7 @@ const College = () => {
                               alignItems: 'center',
                               justifyContent: 'center',
                               backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                              border: '2px dashed rgba(109, 35, 35, 0.3)',
+                              border: `2px dashed ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
                               padding: '12px',
                               minHeight: '48px',
@@ -1623,6 +1591,7 @@ const College = () => {
                           value={editCollege.collegePeriodFrom}
                           onChange={(value) => handleChange("collegePeriodFrom", value, true)}
                           label="Period From"
+                          settings={settings}
                         />
                       ) : (
                         <Box>

@@ -53,18 +53,21 @@ import LoadingOverlay from '../LoadingOverlay';
 import SuccessfullOverlay from '../SuccessfulOverlay';
 import AccessDenied from '../AccessDenied';
 import { useNavigate } from 'react-router-dom';
+import { useSystemSettings } from '../../hooks/useSystemSettings';
 
-// Professional styled components matching PayslipOverall
+// Helper function to convert hex to rgb
+const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '109, 35, 35';
+};
+
+// Professional styled components - colors will be applied via sx prop
 const GlassCard = styled(Paper)(({ theme }) => ({
   borderRadius: 20,
-  background: 'rgba(254, 249, 225, 0.95)',
   backdropFilter: 'blur(10px)',
-  boxShadow: '0 8px 40px rgba(109, 35, 35, 0.08)',
-  border: '1px solid rgba(109, 35, 35, 0.1)',
   overflow: 'hidden',
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   '&:hover': {
-    boxShadow: '0 12px 48px rgba(109, 35, 35, 0.15)',
     transform: 'translateY(-4px)',
   },
 }));

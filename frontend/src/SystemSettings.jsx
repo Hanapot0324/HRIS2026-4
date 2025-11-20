@@ -485,7 +485,7 @@ const SystemSetting = () => {
       <Box sx={{ px: 3 }}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <GlassCard>
+            <GlassCard sx={{ overflow: 'visible' }}>
               <CardHeader
                 title={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -524,7 +524,7 @@ const SystemSetting = () => {
                   borderBottom: '1px solid rgba(109,35,35,0.1)'
                 }}
               />
-              <CardContent sx={{ p: 4, bgcolor: (settings.accentColor)}}>
+              <CardContent sx={{ p: 4, bgcolor: (settings.accentColor), overflow: 'visible' }}>
                 <Grid container spacing={3}>
                   {[
                     { label: 'Header | Footer Color', field: 'secondaryColor' },
@@ -536,27 +536,33 @@ const SystemSetting = () => {
                     { label: 'Secondary Text Color', field: 'textSecondaryColor' }
                   ].map(({ label, field }) => (
                     <Grid item xs={12} sm={6} key={field}>
-                      <ModernTextField
-                        fullWidth
-                        label={label}
-                        type="color"
-                        value={settings[field]}
-                        onChange={(e) => handleColorChange(field, e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                        sx={{
-                          '& input[type="color"]': {
-                            cursor: 'pointer',
-                            height: 56,
-                          },
-                          '& .MuiInputLabel-root': {
-                            cursor: 'pointer',
-                            color: settings.textPrimaryColor,
-                          },
-                          '& .MuiOutlinedInput-root': {
-                            cursor: 'pointer',
-                          }
-                        }}
-                      />
+                      <Box sx={{ position: 'relative', zIndex: 1000, overflow: 'visible' }}>
+                        <ModernTextField
+                          fullWidth
+                          label={label}
+                          type="color"
+                          value={settings[field]}
+                          onChange={(e) => handleColorChange(field, e.target.value)}
+                          InputLabelProps={{ shrink: true }}
+                          sx={{
+                            '& input[type="color"]': {
+                              cursor: 'pointer',
+                              height: 56,
+                              zIndex: 1001,
+                              position: 'relative',
+                            },
+                            '& .MuiInputLabel-root': {
+                              cursor: 'pointer',
+                              color: settings.textPrimaryColor,
+                            },
+                            '& .MuiOutlinedInput-root': {
+                              cursor: 'pointer',
+                              zIndex: 1000,
+                              position: 'relative',
+                            }
+                          }}
+                        />
+                      </Box>
                     </Grid>
                   ))}
                 </Grid>

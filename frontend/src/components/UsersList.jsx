@@ -1,6 +1,7 @@
 import API_BASE_URL from "../apiConfig";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getAuthHeaders } from "../utils/auth";
 import {
   Container,
   Paper,
@@ -191,6 +192,9 @@ const UsersList = () => {
   const [hoveredRow, setHoveredRow] = useState(null);
   const [activeTab, setActiveTab] = useState("info");
   const [animatedValue, setAnimatedValue] = useState(0);
+  const [roleChangeDialog, setRoleChangeDialog] = useState(false);
+  const [pendingRoleChange, setPendingRoleChange] = useState(null);
+  const [roleChangeLoading, setRoleChangeLoading] = useState(false);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -211,14 +215,15 @@ const UsersList = () => {
     setError("");
 
     try {
+      const authHeaders = getAuthHeaders();
       const [usersResp, personsResp] = await Promise.all([
         fetch(`${API_BASE_URL}/users`, {
           method: "GET",
-          headers: { "Content-Type": "application/json" },
+          ...authHeaders,
         }),
         fetch(`${API_BASE_URL}/personalinfo/person_table`, {
           method: "GET",
-          headers: { "Content-Type": "application/json" },
+          ...authHeaders,
         }),
       ]);
 
@@ -291,11 +296,12 @@ const UsersList = () => {
 
   const fetchUserPageAccess = async (user) => {
     try {
+      const authHeaders = getAuthHeaders();
       const accessResponse = await fetch(
         `${API_BASE_URL}/page_access/${user.employeeNumber}`,
         {
           method: "GET",
-          headers: { "Content-Type": "application/json" },
+          ...authHeaders,
         }
       );
 
@@ -309,9 +315,10 @@ const UsersList = () => {
           return acc;
         }, {});
 
+        const authHeaders = getAuthHeaders();
         const pagesResponse = await fetch(`${API_BASE_URL}/pages`, {
           method: "GET",
-          headers: { "Content-Type": "application/json" },
+          ...authHeaders,
         });
 
         if (pagesResponse.ok) {
@@ -361,9 +368,10 @@ const UsersList = () => {
     setPageAccessDialog(true);
 
     try {
+      const authHeaders = getAuthHeaders();
       const pagesResponse = await fetch(`${API_BASE_URL}/pages`, {
         method: "GET",
-        headers: { "Content-Type": "application/json" },
+        ...authHeaders,
       });
 
       if (pagesResponse.ok) {
@@ -378,7 +386,7 @@ const UsersList = () => {
           `${API_BASE_URL}/page_access/${user.employeeNumber}`,
           {
             method: "GET",
-            headers: { "Content-Type": "application/json" },
+            ...authHeaders,
           }
         );
 
@@ -411,12 +419,13 @@ const UsersList = () => {
     setAccessChangeInProgress((prev) => ({ ...prev, [pageId]: true }));
 
     try {
+      const authHeaders = getAuthHeaders();
       if (currentAccess === false) {
         const existingAccessResponse = await fetch(
           `${API_BASE_URL}/page_access/${selectedUser.employeeNumber}`,
           {
             method: "GET",
-            headers: { "Content-Type": "application/json" },
+            ...authHeaders,
           }
         );
 
@@ -429,7 +438,7 @@ const UsersList = () => {
           if (!existingRecord) {
             const createResponse = await fetch(`${API_BASE_URL}/page_access`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              ...authHeaders,
               body: JSON.stringify({
                 employeeNumber: selectedUser.employeeNumber,
                 page_id: pageId,
@@ -455,7 +464,7 @@ const UsersList = () => {
               `${API_BASE_URL}/page_access/${selectedUser.employeeNumber}/${pageId}`,
               {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                ...authHeaders,
                 body: JSON.stringify({
                   page_privilege: newAccess ? "1" : "0",
                 }),
@@ -482,7 +491,7 @@ const UsersList = () => {
           `${API_BASE_URL}/page_access/${selectedUser.employeeNumber}/${pageId}`,
           {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            ...authHeaders,
             body: JSON.stringify({
               page_privilege: newAccess ? "1" : "0",
             }),
@@ -532,6 +541,80 @@ const UsersList = () => {
     setSelectedUserForDetails(null);
     setActiveTab("info");
     setAnimatedValue(0);
+  };
+
+  const handleRoleChange = (user, newRole) => {
+    if (user.role === newRole) return;
+    
+    setPendingRoleChange({
+      user,
+      oldRole: user.role,
+      newRole: newRole,
+    });
+    setRoleChangeDialog(true);
+  };
+
+  const confirmRoleChange = async () => {
+    if (!pendingRoleChange) return;
+
+    setRoleChangeLoading(true);
+    try {
+      const authHeaders = getAuthHeaders();
+      const response = await fetch(
+        `${API_BASE_URL}/users/${pendingRoleChange.user.employeeNumber}/role`,
+        {
+          method: "PUT",
+          ...authHeaders,
+          body: JSON.stringify({ role: pendingRoleChange.newRole }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        setError(
+          errorData.error || "Failed to update user role"
+        );
+        setRoleChangeDialog(false);
+        setPendingRoleChange(null);
+        setRoleChangeLoading(false);
+        return;
+      }
+
+      // Update the user in the local state
+      setUsers((prevUsers) =>
+        prevUsers.map((u) =>
+          u.employeeNumber === pendingRoleChange.user.employeeNumber
+            ? { ...u, role: pendingRoleChange.newRole }
+            : u
+        )
+      );
+
+      setFilteredUsers((prevUsers) =>
+        prevUsers.map((u) =>
+          u.employeeNumber === pendingRoleChange.user.employeeNumber
+            ? { ...u, role: pendingRoleChange.newRole }
+            : u
+        )
+      );
+
+      setSuccessMessage(
+        `Role updated from ${pendingRoleChange.oldRole} to ${pendingRoleChange.newRole} for ${pendingRoleChange.user.fullName}`
+      );
+      setTimeout(() => setSuccessMessage(""), 3000);
+
+      setRoleChangeDialog(false);
+      setPendingRoleChange(null);
+    } catch (err) {
+      console.error("Error updating user role:", err);
+      setError("Network error occurred while updating user role");
+    } finally {
+      setRoleChangeLoading(false);
+    }
+  };
+
+  const cancelRoleChange = () => {
+    setRoleChangeDialog(false);
+    setPendingRoleChange(null);
   };
 
   useEffect(() => {
@@ -1103,13 +1186,6 @@ const UsersList = () => {
                         <Security sx={{ mr: 1, verticalAlign: "middle" }} />
                         Page Access
                       </PremiumTableCell>
-                      <PremiumTableCell
-                        isHeader
-                        sx={{ color: accentColor, textAlign: "center" }}
-                      >
-                        <Settings sx={{ mr: 1, verticalAlign: "middle" }} />
-                        Actions
-                      </PremiumTableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -1179,16 +1255,22 @@ const UsersList = () => {
                           </PremiumTableCell>
 
                           <PremiumTableCell>
-                            <Chip
-                              label={(user.role || "").toUpperCase()}
+                            <ModernTextField
+                              select
+                              value={user.role || "staff"}
+                              onChange={(e) => handleRoleChange(user, e.target.value)}
                               size="small"
-                              icon={getRoleColor(user.role).icon}
                               sx={{
-                                ...getRoleColor(user.role).sx,
-                                fontWeight: 600,
-                                padding: "4px 8px",
+                                minWidth: 150,
+                                "& .MuiOutlinedInput-root": {
+                                  bgcolor: "rgba(255, 255, 255, 0.9)",
+                                },
                               }}
-                            />
+                            >
+                              <MenuItem value="superadmin">Superadmin</MenuItem>
+                              <MenuItem value="administrator">Administrator</MenuItem>
+                              <MenuItem value="staff">Staff</MenuItem>
+                            </ModernTextField>
                           </PremiumTableCell>
 
                           <PremiumTableCell sx={{ textAlign: "center" }}>
@@ -1208,23 +1290,12 @@ const UsersList = () => {
                               Manage
                             </ProfessionalButton>
                           </PremiumTableCell>
-
-                          <PremiumTableCell sx={{ textAlign: "center" }}>
-                            <Tooltip title="View Details">
-                              <IconButton
-                                onClick={() => openUserDetails(user)}
-                                sx={{ color: accentColor }}
-                              >
-                                <MoreVert />
-                              </IconButton>
-                            </Tooltip>
-                          </PremiumTableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
                         <TableCell
-                          colSpan={6}
+                          colSpan={5}
                           sx={{ textAlign: "center", py: 8 }}
                         >
                           <Box sx={{ textAlign: "center" }}>
@@ -1922,6 +1993,169 @@ const UsersList = () => {
             </Box>
           )}
         </Drawer>
+
+        {/* Role Change Confirmation Dialog */}
+        <Dialog
+          open={roleChangeDialog}
+          onClose={cancelRoleChange}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 4,
+              bgcolor: primaryColor,
+            },
+          }}
+        >
+          <DialogTitle
+            sx={{
+              background: `linear-gradient(135deg, ${accentColor} 0%, ${accentDark} 100%)`,
+              color: primaryColor,
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              p: 3,
+              fontWeight: 700,
+            }}
+          >
+            <VerifiedUser sx={{ fontSize: 30 }} />
+            Confirm Role Change
+          </DialogTitle>
+
+          <DialogContent sx={{ p: 4 }}>
+            {pendingRoleChange && (
+              <>
+                <Box
+                  sx={{
+                    mb: 3,
+                    p: 3,
+                    borderRadius: 3,
+                    border: `1px solid ${alpha(accentColor, 0.2)}`,
+                    bgcolor: alpha(primaryColor, 0.5),
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <Avatar
+                      src={pendingRoleChange.user.avatar || ""}
+                      alt={pendingRoleChange.user.fullName}
+                      sx={{
+                        bgcolor: accentColor,
+                        width: 64,
+                        height: 64,
+                        fontWeight: 700,
+                        fontSize: "1.2rem",
+                        border: "3px solid #fff",
+                        boxShadow: "0 4px 12px rgba(109,35,35,0.2)",
+                      }}
+                    >
+                      {!pendingRoleChange.user.avatar &&
+                        getInitials(pendingRoleChange.user.fullName)}
+                    </Avatar>
+                    <Box>
+                      <Typography
+                        variant="h6"
+                        sx={{ fontWeight: 700, color: accentColor }}
+                      >
+                        {pendingRoleChange.user.fullName}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: accentDark, mt: 1 }}
+                      >
+                        Employee: <strong>{pendingRoleChange.user.employeeNumber}</strong>
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+
+                <Alert
+                  severity="warning"
+                  sx={{
+                    mb: 3,
+                    borderRadius: 2,
+                    "& .MuiAlert-message": { fontWeight: 500 },
+                  }}
+                  icon={<Info />}
+                >
+                  You are about to change the user's role. This action will be logged in the audit trail.
+                </Alert>
+
+                <Box
+                  sx={{
+                    p: 3,
+                    borderRadius: 2,
+                    bgcolor: alpha(accentColor, 0.05),
+                    border: `1px solid ${alpha(accentColor, 0.1)}`,
+                  }}
+                >
+                  <Typography
+                    variant="body1"
+                    sx={{ mb: 2, fontWeight: 600, color: accentColor }}
+                  >
+                    Role Change Details:
+                  </Typography>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+                    <Chip
+                      label={pendingRoleChange.oldRole.toUpperCase()}
+                      size="small"
+                      icon={getRoleColor(pendingRoleChange.oldRole).icon}
+                      sx={{
+                        ...getRoleColor(pendingRoleChange.oldRole).sx,
+                        fontWeight: 600,
+                      }}
+                    />
+                    <Typography sx={{ color: accentDark }}>→</Typography>
+                    <Chip
+                      label={pendingRoleChange.newRole.toUpperCase()}
+                      size="small"
+                      icon={getRoleColor(pendingRoleChange.newRole).icon}
+                      sx={{
+                        ...getRoleColor(pendingRoleChange.newRole).sx,
+                        fontWeight: 600,
+                      }}
+                    />
+                  </Box>
+                </Box>
+              </>
+            )}
+          </DialogContent>
+
+          <DialogActions sx={{ p: 3, gap: 2 }}>
+            <ProfessionalButton
+              onClick={cancelRoleChange}
+              variant="outlined"
+              disabled={roleChangeLoading}
+              sx={{
+                borderColor: accentColor,
+                color: accentColor,
+                "&:hover": {
+                  borderColor: accentDark,
+                  bgcolor: alpha(accentColor, 0.05),
+                },
+              }}
+            >
+              Cancel
+            </ProfessionalButton>
+            <ProfessionalButton
+              onClick={confirmRoleChange}
+              variant="contained"
+              disabled={roleChangeLoading}
+              startIcon={roleChangeLoading ? <CircularProgress size={20} /> : <CheckCircle />}
+              sx={{
+                bgcolor: accentColor,
+                color: primaryColor,
+                "&:hover": {
+                  bgcolor: accentDark,
+                },
+                "&:disabled": {
+                  bgcolor: alpha(accentColor, 0.5),
+                },
+              }}
+            >
+              {roleChangeLoading ? "Updating..." : "Confirm Change"}
+            </ProfessionalButton>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Box>
   );

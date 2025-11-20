@@ -1,6 +1,7 @@
 import API_BASE_URL from '../../apiConfig';
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { getAuthHeaders } from '../../utils/auth';
 import {
   Container,
   Typography,
@@ -58,73 +59,19 @@ import LoadingOverlay from '../LoadingOverlay';
 import SuccessfullOverlay from '../SuccessfulOverlay';
 import AccessDenied from '../AccessDenied';
 import { useNavigate } from 'react-router-dom';
+import { useSystemSettings } from '../../hooks/useSystemSettings';
+import {
+  createThemedCard,
+  createThemedButton,
+  createThemedTextField,
+} from '../../utils/theme';
+import { alpha } from '@mui/material';
 
-// Professional styled components
-const GlassCard = styled(Card)(({ theme }) => ({
-  borderRadius: 20,
-  background: 'rgba(254, 249, 225, 0.95)',
-  backdropFilter: 'blur(10px)',
-  boxShadow: '0 8px 40px rgba(109, 35, 35, 0.08)',
-  border: '1px solid rgba(109, 35, 35, 0.1)',
-  overflow: 'hidden',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  '&:hover': {
-    boxShadow: '0 12px 48px rgba(109, 35, 35, 0.15)',
-    transform: 'translateY(-4px)',
-  },
-}));
-
-const ProfessionalButton = styled(Button)(({ theme, variant, color = 'primary' }) => ({
-  borderRadius: 12,
-  fontWeight: 600,
-  padding: '12px 24px',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  textTransform: 'none',
-  fontSize: '0.95rem',
-  letterSpacing: '0.025em',
-  boxShadow: variant === 'contained' ? '0 4px 14px rgba(254, 249, 225, 0.25)' : 'none',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: variant === 'contained' ? '0 6px 20px rgba(254, 249, 225, 0.35)' : 'none',
-  },
-  '&:active': {
-    transform: 'translateY(0)',
-  },
-}));
-
-const ModernTextField = styled(TextField)(({ theme }) => ({
-  '& .MuiOutlinedInput-root': {
-    borderRadius: 12,
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    '&:hover': {
-      transform: 'translateY(-1px)',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    },
-    '&.Mui-focused': {
-      transform: 'translateY(-1px)',
-      boxShadow: '0 4px 20px rgba(254, 249, 225, 0.25)',
-      backgroundColor: 'rgba(255, 255, 255, 1)',
-    },
-  },
-  '& .MuiInputLabel-root': {
-    fontWeight: 500,
-  },
-}));
-
-// Auth header helper
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  };
-};
+// Professional styled components - will be created inside component with settings
 
 // Custom Year Input Component with Dropdown
 const YearInput = ({
+  settings = {},
   value,
   onChange,
   label,
@@ -159,6 +106,9 @@ const YearInput = ({
     }
   };
 
+  // Create themed styled component inside YearInput
+  const ModernTextField = styled(TextField)(() => createThemedTextField(settings));
+
   return (
     <FormControl fullWidth size="small" error={!!error}>
       <Typography
@@ -166,7 +116,7 @@ const YearInput = ({
         sx={{
           fontWeight: 'bold',
           mb: 0.5,
-          color: '#333',
+          color: settings.textPrimaryColor || settings.primaryColor || '#333',
           display: 'block',
         }}
       >
@@ -186,7 +136,7 @@ const YearInput = ({
                 onClick={() => setOpen(!open)}
                 size="small"
                 disabled={disabled}
-                sx={{ color: '#6D2323' }}
+                sx={{ color: settings.textPrimaryColor || settings.primaryColor || '#6D2323' }}
               >
                 <ArrowDropDownIcon />
               </IconButton>
@@ -239,6 +189,7 @@ const EmployeeAutocomplete = ({
   selectedEmployee,
   onEmployeeSelect,
   dropdownDisabled = false,
+  settings = {},
 }) => {
   const [query, setQuery] = useState('');
   const [employees, setEmployees] = useState([]);
@@ -378,6 +329,9 @@ const EmployeeAutocomplete = ({
     }
   };
 
+  // Create themed styled component inside EmployeeAutocomplete
+  const ModernTextField = styled(TextField)(() => createThemedTextField(settings));
+
   return (
     <Box sx={{ position: 'relative', width: '100%' }} ref={dropdownRef}>
       <ModernTextField
@@ -514,11 +468,26 @@ const Vocational = () => {
   const navigate = useNavigate();
   
   // Color scheme
-  const primaryColor = '#FEF9E1';
-  const secondaryColor = '#FFF8E7';
-  const accentColor = '#6d2323';
-  const accentDark = '#8B3333';
-  const grayColor = '#6c757d';
+  const { settings } = useSystemSettings();
+  
+  // Create themed styled components using system settings
+  const GlassCard = styled(Card)(() => createThemedCard(settings));
+  
+  const ProfessionalButton = styled(Button)(({ variant = 'contained' }) => 
+    createThemedButton(settings, variant)
+  );
+
+  const ModernTextField = styled(TextField)(() => createThemedTextField(settings));
+  
+  // Get colors from system settings
+  const primaryColor = settings.accentColor || '#FEF9E1'; // Cards color
+  const secondaryColor = settings.backgroundColor || '#FFF8E7'; // Background
+  const accentColor = settings.primaryColor || '#6d2323'; // Primary accent
+  const accentDark = settings.secondaryColor || '#8B3333'; // Darker accent
+  const textPrimaryColor = settings.textPrimaryColor || '#6d2323';
+  const textSecondaryColor = settings.textSecondaryColor || '#FEF9E1';
+  const hoverColor = settings.hoverColor || '#6D2323';
+  const grayColor = settings.textSecondaryColor || '#6c757d';
 
   useEffect(() => {
     const userId = localStorage.getItem('employeeNumber');
@@ -529,9 +498,10 @@ const Vocational = () => {
     }
     const checkAccess = async () => {
       try {
+        const authHeaders = getAuthHeaders();
         const response = await fetch(`${API_BASE_URL}/page_access/${userId}`, {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
+          ...authHeaders,
         });
         if (response.ok) {
           const accessData = await response.json();
@@ -558,7 +528,8 @@ const Vocational = () => {
   const fetchVocationalData = async () => {
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/vocational/vocational-table`
+        `${API_BASE_URL}/vocational/vocational-table`,
+        getAuthHeaders()
       );
       setData(res.data);
 
@@ -632,7 +603,8 @@ const Vocational = () => {
     try {
       await axios.post(
         `${API_BASE_URL}/vocational/vocational-table`,
-        newVocational
+        newVocational,
+        getAuthHeaders()
       );
       setNewVocational({
         vocationalNameOfSchool: '',
@@ -667,7 +639,8 @@ const Vocational = () => {
     try {
       await axios.put(
         `${API_BASE_URL}/vocational/vocational-table/${editVocational.id}`,
-        editVocational
+        editVocational,
+        getAuthHeaders()
       );
       setEditVocational(null);
       setOriginalVocational(null);
@@ -688,7 +661,7 @@ const Vocational = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API_BASE_URL}/vocational/vocational-table/${id}`);
+      await axios.delete(`${API_BASE_URL}/vocational/vocational-table/${id}`, getAuthHeaders());
       setEditVocational(null);
       setOriginalVocational(null);
       setSelectedEditEmployee(null);
@@ -1002,6 +975,7 @@ const Vocational = () => {
                           required
                           error={!!errors.person_id}
                           helperText={errors.person_id || ''}
+                          settings={settings}
                         />
                       </Grid>
 
@@ -1117,6 +1091,7 @@ const Vocational = () => {
                         label="Period From"
                         error={!!errors.vocationalPeriodFrom}
                         helperText={errors.vocationalPeriodFrom || ''}
+                        settings={settings}
                       />
                     </Grid>
 
@@ -1127,6 +1102,7 @@ const Vocational = () => {
                         label="Period To"
                         error={!!errors.vocationalPeriodTo}
                         helperText={errors.vocationalPeriodTo || ''}
+                        settings={settings}
                       />
                     </Grid>
 
@@ -1149,6 +1125,7 @@ const Vocational = () => {
                         label="Year Graduated"
                         autoUpdate={true}
                         sourceYear={newVocational.vocationalPeriodTo}
+                        settings={settings}
                       />
                     </Grid>
 
@@ -1484,6 +1461,7 @@ const Vocational = () => {
                           required
                           disabled={!isEditing}
                           dropdownDisabled={!isEditing}
+                          settings={settings}
                         />
                         {!isEditing && (
                           <Typography
@@ -1634,6 +1612,7 @@ const Vocational = () => {
                           value={editVocational.vocationalPeriodFrom}
                           onChange={(value) => handleChange('vocationalPeriodFrom', value, true)}
                           label="Period From"
+                          settings={settings}
                         />
                       ) : (
                         <>
@@ -1660,6 +1639,7 @@ const Vocational = () => {
                           value={editVocational.vocationalPeriodTo}
                           onChange={(value) => handleChange('vocationalPeriodTo', value, true)}
                           label="Period To"
+                          settings={settings}
                         />
                       ) : (
                         <>
@@ -1713,6 +1693,7 @@ const Vocational = () => {
                           label="Year Graduated"
                           autoUpdate={true}
                           sourceYear={editVocational.vocationalPeriodTo}
+                          settings={settings}
                         />
                       ) : (
                         <>

@@ -59,19 +59,22 @@ import ReorderIcon from '@mui/icons-material/Reorder';
 import LoadingOverlay from '../LoadingOverlay';
 import AccessDenied from '../AccessDenied';
 import { useNavigate } from "react-router-dom";
-import { styled } from "@mui/material/styles";
+import { styled, alpha } from "@mui/material/styles";
+import { useSystemSettings } from '../../hooks/useSystemSettings';
 
-// Professional styled components
+// Helper function to convert hex to rgb
+const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '109, 35, 35';
+};
+
+// Professional styled components - colors will be applied via sx prop
 const GlassCard = styled(Paper)(({ theme }) => ({
   borderRadius: 20,
-  background: 'rgba(254, 249, 225, 0.95)',
   backdropFilter: 'blur(10px)',
-  boxShadow: '0 8px 40px rgba(109, 35, 35, 0.08)',
-  border: '1px solid rgba(109, 35, 35, 0.1)',
   overflow: 'hidden',
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   '&:hover': {
-    boxShadow: '0 12px 48px rgba(109, 35, 35, 0.15)',
     transform: 'translateY(-4px)',
   },
 }));
@@ -288,7 +291,7 @@ const EmployeeAutocomplete = ({
               onClick={dropdownDisabled ? undefined : handleDropdownClick}
               size="small"
               disabled={dropdownDisabled}
-              sx={{ color: '#6D2323' }}
+              sx={{ color: textPrimaryColor }}
             >
               {showDropdown ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
@@ -373,6 +376,16 @@ const getAuthHeaders = () => {
 };
 
 const DepartmentAssignment = () => {
+  const { settings } = useSystemSettings();
+  
+  // Get colors from system settings
+  const primaryColor = settings.accentColor || '#FEF9E1'; // Cards color
+  const secondaryColor = settings.backgroundColor || '#FFF8E7'; // Background
+  const accentColor = settings.primaryColor || '#6d2323'; // Primary accent
+  const accentDark = settings.secondaryColor || '#8B3333'; // Darker accent
+  const textPrimaryColor = settings.textPrimaryColor || '#6d2323';
+  const textSecondaryColor = settings.textSecondaryColor || '#FEF9E1';
+  const hoverColor = settings.hoverColor || '#6D2323';
   const [data, setData] = useState([]);
   const [departmentData, setDepartmentData] = useState([]);
   const [newAssignment, setNewAssignment] = useState({
@@ -670,8 +683,8 @@ const DepartmentAssignment = () => {
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <CircularProgress sx={{ color: "#6d2323", mb: 2 }} />
-          <Typography variant="h6" sx={{ color: "#6d2323" }}>
+          <CircularProgress sx={{ color: textPrimaryColor, mb: 2 }} />
+          <Typography variant="h6" sx={{ color: textPrimaryColor }}>
             Loading access information...
           </Typography>
         </Box>
@@ -715,12 +728,19 @@ const DepartmentAssignment = () => {
         {/* Header */}
         <Fade in timeout={500}>
           <Box sx={{ mb: 4 }}>
-            <GlassCard>
+            <GlassCard sx={{
+              background: `rgba(${hexToRgb(primaryColor)}, 0.95)`,
+              boxShadow: `0 8px 40px ${alpha(accentColor, 0.08)}`,
+              border: `1px solid ${alpha(accentColor, 0.1)}`,
+              '&:hover': {
+                boxShadow: `0 12px 48px ${alpha(accentColor, 0.15)}`,
+              },
+            }}>
               <Box
                 sx={{
                   p: 5,
-                  background: `linear-gradient(135deg, #FEF9E1 0%, #FFF8E7 100%)`,
-                  color: '#6d2323',
+                  background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
+                  color: textPrimaryColor,
                   position: 'relative',
                   overflow: 'hidden',
                 }}
@@ -733,7 +753,7 @@ const DepartmentAssignment = () => {
                     right: -50,
                     width: 200,
                     height: 200,
-                    background: 'radial-gradient(circle, rgba(109,35,35,0.1) 0%, rgba(109,35,35,0) 70%)',
+                    background: `radial-gradient(circle, ${alpha(accentColor, 0.1)} 0%, ${alpha(accentColor, 0)} 70%)`,
                   }}
                 />
                 <Box
@@ -743,7 +763,7 @@ const DepartmentAssignment = () => {
                     left: '30%',
                     width: 150,
                     height: 150,
-                    background: 'radial-gradient(circle, rgba(109,35,35,0.08) 0%, rgba(109,35,35,0) 70%)',
+                    background: `radial-gradient(circle, ${alpha(accentColor, 0.08)} 0%, ${alpha(accentColor, 0)} 70%)`,
                   }}
                 />
                 
@@ -751,17 +771,17 @@ const DepartmentAssignment = () => {
                   <Box display="flex" alignItems="center">
                     <Avatar 
                       sx={{ 
-                        bgcolor: 'rgba(109,35,35,0.15)', 
+                        bgcolor: alpha(accentColor, 0.15), 
                         mr: 4, 
                         width: 64,
                         height: 64,
-                        boxShadow: '0 8px 24px rgba(109,35,35,0.15)'
+                        boxShadow: `0 8px 24px ${alpha(accentColor, 0.15)}`
                       }}
                     >
-                      <DomainIcon sx={{color: '#6d2323', fontSize: 32 }} />
+                      <DomainIcon sx={{color: textPrimaryColor, fontSize: 32 }} />
                     </Avatar>
                     <Box>
-                      <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1, lineHeight: 1.2, color: '#6d2323' }}>
+                      <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1, lineHeight: 1.2, color: textPrimaryColor }}>
                         Department Assignment Management
                       </Typography>
                       <Typography variant="body1" sx={{ opacity: 0.8, fontWeight: 400, color: '#8B3333' }}>
@@ -774,8 +794,8 @@ const DepartmentAssignment = () => {
                       label="Enterprise Grade" 
                       size="small" 
                       sx={{ 
-                        bgcolor: 'rgba(109,35,35,0.15)', 
-                        color: '#6d2323',
+                        bgcolor: alpha(accentColor, 0.15), 
+                        color: textPrimaryColor,
                         fontWeight: 500,
                         '& .MuiChip-label': { px: 1 }
                       }} 
@@ -784,9 +804,9 @@ const DepartmentAssignment = () => {
                       <IconButton 
                         onClick={() => window.location.reload()}
                         sx={{ 
-                          bgcolor: 'rgba(109,35,35,0.1)', 
-                          '&:hover': { bgcolor: 'rgba(109,35,35,0.2)' },
-                          color: '#6d2323',
+                          bgcolor: alpha(accentColor, 0.1), 
+                          '&:hover': { bgcolor: alpha(accentColor, 0.2) },
+                          color: textPrimaryColor,
                           width: 48,
                           height: 48,
                         }}
@@ -810,8 +830,8 @@ const DepartmentAssignment = () => {
                 <Box
                   sx={{
                     p: 4,
-                    background: `linear-gradient(135deg, #FEF9E1 0%, #FFF8E7 100%)`,
-                    color: '#6d2323',
+                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
+                    color: textPrimaryColor,
                     display: "flex",
                     alignItems: "center",
                     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
@@ -923,7 +943,7 @@ const DepartmentAssignment = () => {
                                 variant="body2"
                                 sx={{
                                   fontWeight: 'bold',
-                                  color: '#6d2323',
+                                  color: textPrimaryColor,
                                   fontSize: '14px',
                                   lineHeight: 1.2,
                                 }}
@@ -1001,8 +1021,8 @@ const DepartmentAssignment = () => {
                 <Box
                   sx={{
                     p: 4,
-                    background: `linear-gradient(135deg, #FEF9E1 0%, #FFF8E7 100%)`,
-                    color: '#6d2323',
+                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
+                    color: textPrimaryColor,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
@@ -1030,12 +1050,12 @@ const DepartmentAssignment = () => {
                     sx={{
                       backgroundColor: 'rgba(255, 255, 255, 0.2)',
                       '& .MuiToggleButton-root': {
-                        color: '#6d2323',
+                        color: textPrimaryColor,
                         borderColor: 'rgba(109, 35, 35, 0.5)',
                         padding: '4px 8px',
                         '&.Mui-selected': {
                           backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                          color: '#6d2323'
+                          color: textPrimaryColor
                         },
                       }
                     }}
@@ -1154,7 +1174,7 @@ const DepartmentAssignment = () => {
                                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                                   <DomainIcon sx={{ fontSize: 18, color: '#6d2323', mr: 0.5 }} />
                                   <Typography variant="caption" sx={{ 
-                                    color: '#6d2323', 
+                                    color: textPrimaryColor, 
                                     px: 0.5, 
                                     py: 0.2, 
                                     borderRadius: 0.5,
@@ -1192,10 +1212,10 @@ const DepartmentAssignment = () => {
                                       size="small" 
                                       sx={{ 
                                         bgcolor: 'rgba(109,35,35,0.1)', 
-                                        color: '#6d2323',
+                                        color: textPrimaryColor,
                                         fontWeight: 500,
                                         '&:hover': {
-                                          bgcolor: 'rgba(109,35,35,0.2)',
+                                          bgcolor: alpha(accentColor, 0.2),
                                         }
                                       }} 
                                     />
@@ -1240,10 +1260,10 @@ const DepartmentAssignment = () => {
                                   size="small" 
                                   sx={{ 
                                     bgcolor: 'rgba(109,35,35,0.1)', 
-                                    color: '#6d2323',
+                                    color: textPrimaryColor,
                                     fontWeight: 500,
                                     '&:hover': {
-                                      bgcolor: 'rgba(109,35,35,0.2)',
+                                      bgcolor: alpha(accentColor, 0.2),
                                     }
                                   }} 
                                 />
@@ -1299,8 +1319,8 @@ const DepartmentAssignment = () => {
                 <Box
                   sx={{
                     p: 4,
-                    background: `linear-gradient(135deg, #FEF9E1 0%, #FFF8E7 100%)`,
-                    color: '#6d2323',
+                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
+                    color: textPrimaryColor,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
@@ -1365,7 +1385,7 @@ const DepartmentAssignment = () => {
                               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                                 <PersonIcon sx={{ fontSize: 18, color: '#6d2323', mr: 0.5 }} />
                                 <Typography variant="caption" sx={{ 
-                                  color: '#6d2323', 
+                                  color: textPrimaryColor, 
                                   px: 0.5, 
                                   py: 0.2, 
                                   borderRadius: 0.5,
@@ -1386,7 +1406,7 @@ const DepartmentAssignment = () => {
                                   size="small" 
                                   sx={{ 
                                     bgcolor: 'rgba(109,35,35,0.1)', 
-                                    color: '#6d2323',
+                                    color: textPrimaryColor,
                                     fontWeight: 500,
                                   }} 
                                 />
@@ -1519,8 +1539,8 @@ const DepartmentAssignment = () => {
                 <Box
                   sx={{
                     p: 4,
-                    background: `linear-gradient(135deg, #FEF9E1 0%, #FFF8E7 100%)`,
-                    color: '#6d2323',
+                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
+                    color: textPrimaryColor,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
@@ -1643,7 +1663,7 @@ const DepartmentAssignment = () => {
                                 variant="body2"
                                 sx={{
                                   fontWeight: 'bold',
-                                  color: '#6d2323',
+                                  color: textPrimaryColor,
                                   fontSize: '14px',
                                   lineHeight: 1.2,
                                 }}

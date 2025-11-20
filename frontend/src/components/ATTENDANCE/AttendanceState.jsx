@@ -37,6 +37,13 @@ import {
   styled,
   CardHeader,
 } from "@mui/material";
+import { useSystemSettings } from "../../hooks/useSystemSettings";
+
+// Helper function to convert hex to rgb
+const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '109, 35, 35';
+};
 import {
   FilterList,
   Search,
@@ -58,14 +65,10 @@ import {
 
 const GlassCard = styled(Card)(({ theme }) => ({
   borderRadius: 20,
-  background: "rgba(254, 249, 225, 0.95)",
   backdropFilter: "blur(10px)",
-  boxShadow: "0 8px 40px rgba(109, 35, 35, 0.08)",
-  border: "1px solid rgba(109, 35, 35, 0.1)",
   overflow: "hidden",
   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
   "&:hover": {
-    boxShadow: "0 12px 48px rgba(109, 35, 35, 0.15)",
     transform: "translateY(-4px)",
   },
 }));
@@ -151,6 +154,7 @@ const PremiumTableCell = styled(TableCell)(({ theme, isHeader = false }) => ({
 }));
 
 const AllAttendanceRecord = () => {
+  const { settings } = useSystemSettings();
   const [personID, setPersonID] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -163,12 +167,15 @@ const AllAttendanceRecord = () => {
   const [sortOrder, setSortOrder] = useState("desc");
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-  // Color scheme aligned with AttendanceDevice
-  const primaryColor = "#FEF9E1";
-  const secondaryColor = "#FFF8E7";
-  const accentColor = "#6d2323";
-  const accentDark = "#8B3333";
-  const creamColor = "#FEF9E1";
+  // Get colors from system settings
+  const primaryColor = settings.accentColor || "#FEF9E1"; // Cards color
+  const secondaryColor = settings.backgroundColor || "#FFF8E7"; // Background
+  const accentColor = settings.primaryColor || "#6d2323"; // Primary accent
+  const accentDark = settings.secondaryColor || "#8B3333"; // Darker accent
+  const textPrimaryColor = settings.textPrimaryColor || "#6d2323";
+  const textSecondaryColor = settings.textSecondaryColor || "#FEF9E1";
+  const hoverColor = settings.hoverColor || "#6D2323";
+  const creamColor = settings.accentColor || "#FEF9E1";
   const blackColor = "#1a1a1a";
   const whiteColor = "#FFFFFF";
   const grayColor = "#6c757d";
@@ -405,12 +412,19 @@ const AllAttendanceRecord = () => {
         {/* Header */}
         <Fade in timeout={500}>
           <Box sx={{ mb: 4 }}>
-            <GlassCard>
+            <GlassCard sx={{
+              background: `rgba(${hexToRgb(primaryColor)}, 0.95)`,
+              boxShadow: `0 8px 40px ${alpha(accentColor, 0.08)}`,
+              border: `1px solid ${alpha(accentColor, 0.1)}`,
+              "&:hover": {
+                boxShadow: `0 12px 48px ${alpha(accentColor, 0.15)}`,
+              },
+            }}>
               <Box
                 sx={{
                   p: 5,
                   background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-                  color: accentColor,
+                  color: textPrimaryColor,
                   position: "relative",
                   overflow: "hidden",
                 }}
@@ -422,8 +436,7 @@ const AllAttendanceRecord = () => {
                     right: -50,
                     width: 200,
                     height: 200,
-                    background:
-                      "radial-gradient(circle, rgba(109,35,35,0.1) 0%, rgba(109,35,35,0) 70%)",
+                    background: `radial-gradient(circle, ${alpha(accentColor, 0.1)} 0%, ${alpha(accentColor, 0)} 70%)`,
                   }}
                 />
                 <Box
@@ -433,8 +446,7 @@ const AllAttendanceRecord = () => {
                     left: "30%",
                     width: 150,
                     height: 150,
-                    background:
-                      "radial-gradient(circle, rgba(109,35,35,0.08) 0%, rgba(109,35,35,0) 70%)",
+                    background: `radial-gradient(circle, ${alpha(accentColor, 0.08)} 0%, ${alpha(accentColor, 0)} 70%)`,
                   }}
                 />
 
@@ -448,14 +460,14 @@ const AllAttendanceRecord = () => {
                   <Box display="flex" alignItems="center">
                     <Avatar
                       sx={{
-                        bgcolor: "rgba(109,35,35,0.15)",
+                        bgcolor: alpha(accentColor, 0.15),
                         mr: 4,
                         width: 64,
                         height: 64,
-                        boxShadow: "0 8px 24px rgba(109,35,35,0.15)",
+                        boxShadow: `0 8px 24px ${alpha(accentColor, 0.15)}`,
                       }}
                     >
-                      <Search sx={{color: accentColor, fontSize: 32 }} />
+                      <Search sx={{color: textPrimaryColor, fontSize: 32 }} />
                     </Avatar>
                     <Box>
                       <Typography
@@ -465,7 +477,7 @@ const AllAttendanceRecord = () => {
                           fontWeight: 700,
                           mb: 1,
                           lineHeight: 1.2,
-                          color: accentColor,
+                          color: textPrimaryColor,
                         }}
                       >
                         Attendance Record State
@@ -475,7 +487,7 @@ const AllAttendanceRecord = () => {
                         sx={{
                           opacity: 0.8,
                           fontWeight: 400,
-                          color: accentDark,
+                          color: textPrimaryColor,
                         }}
                       >
                         Review attendance records states
@@ -487,8 +499,8 @@ const AllAttendanceRecord = () => {
                       label="System Generated"
                       size="small"
                       sx={{
-                        bgcolor: "rgba(109,35,35,0.15)",
-                        color: accentColor,
+                        bgcolor: alpha(accentColor, 0.15),
+                        color: textPrimaryColor,
                         fontWeight: 500,
                         "& .MuiChip-label": { px: 1 },
                       }}
@@ -498,14 +510,14 @@ const AllAttendanceRecord = () => {
                         onClick={() => fetchRecords(true)}
                         disabled={!personID || !startDate || !endDate}
                         sx={{
-                          bgcolor: "rgba(109,35,35,0.1)",
-                          "&:hover": { bgcolor: "rgba(109,35,35,0.2)" },
-                          color: accentColor,
+                          bgcolor: alpha(accentColor, 0.1),
+                          "&:hover": { bgcolor: alpha(accentColor, 0.2) },
+                          color: textPrimaryColor,
                           width: 48,
                           height: 48,
                           "&:disabled": {
-                            bgcolor: "rgba(109,35,35,0.05)",
-                            color: "rgba(109,35,35,0.3)",
+                            bgcolor: alpha(accentColor, 0.05),
+                            color: alpha(accentColor, 0.3),
                           },
                         }}
                       >
@@ -521,7 +533,15 @@ const AllAttendanceRecord = () => {
 
         {/* Controls */}
         <Fade in timeout={700}>
-          <GlassCard sx={{ mb: 4 }}>
+          <GlassCard sx={{ 
+            mb: 4,
+            background: `rgba(${hexToRgb(primaryColor)}, 0.95)`,
+            boxShadow: `0 8px 40px ${alpha(accentColor, 0.08)}`,
+            border: `1px solid ${alpha(accentColor, 0.1)}`,
+            "&:hover": {
+              boxShadow: `0 12px 48px ${alpha(accentColor, 0.15)}`,
+            },
+          }}>
             <CardContent sx={{ p: 4 }}>
               <Box component="form" onSubmit={handleSubmit}>
                 <Grid container spacing={3}>
@@ -536,7 +556,7 @@ const AllAttendanceRecord = () => {
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
-                            <Person sx={{ color: accentColor }} />
+                            <Person sx={{ color: textPrimaryColor }} />
                           </InputAdornment>
                         ),
                       }}
@@ -554,7 +574,7 @@ const AllAttendanceRecord = () => {
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
-                            <CalendarToday sx={{ color: accentColor }} />
+                            <CalendarToday sx={{ color: textPrimaryColor }} />
                           </InputAdornment>
                         ),
                       }}
@@ -572,7 +592,7 @@ const AllAttendanceRecord = () => {
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
-                            <CalendarToday sx={{ color: accentColor }} />
+                            <CalendarToday sx={{ color: textPrimaryColor }} />
                           </InputAdornment>
                         ),
                       }}

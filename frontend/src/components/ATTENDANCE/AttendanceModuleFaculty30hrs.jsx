@@ -59,18 +59,21 @@ import {
 import dayjs from "dayjs";
 import * as XLSX from "xlsx";
 import { useNavigate } from 'react-router-dom';
+import { useSystemSettings } from '../../hooks/useSystemSettings';
 
-// Professional styled components with swapped colors
+// Helper function to convert hex to rgb
+const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '109, 35, 35';
+};
+
+// Professional styled components - colors will be applied via sx prop
 const GlassCard = styled(Card)(({ theme }) => ({
   borderRadius: 20,
-  background: 'rgba(254, 249, 225, 0.95)',
   backdropFilter: 'blur(10px)',
-  boxShadow: '0 8px 40px rgba(109, 35, 35, 0.08)',
-  border: '1px solid rgba(109, 35, 35, 0.1)',
   overflow: 'hidden',
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   '&:hover': {
-    boxShadow: '0 12px 48px rgba(109, 35, 35, 0.15)',
     transform: 'translateY(-4px)',
   },
 }));
@@ -131,6 +134,7 @@ const PremiumTableCell = styled(TableCell)(({ theme, isHeader = false, bgColor =
 }));
 
 const AttendanceModuleFaculty = () => {
+  const { settings } = useSystemSettings();
   const [employeeNumber, setEmployeeNumber] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -141,11 +145,14 @@ const AttendanceModuleFaculty = () => {
   const navigate = useNavigate();
   const theme = useTheme();
 
-  // Swapped color scheme
-  const primaryColor = '#FEF9E1'; // Now cream is primary
-  const secondaryColor = '#FFF8E7'; // Light cream
-  const accentColor = '#6d2323'; // Burgundy is now accent
-  const accentDark = '#8B3333'; // Darker burgundy
+  // Get colors from system settings
+  const primaryColor = settings.accentColor || '#FEF9E1'; // Cards color
+  const secondaryColor = settings.backgroundColor || '#FFF8E7'; // Background
+  const accentColor = settings.primaryColor || '#6d2323'; // Primary accent
+  const accentDark = settings.secondaryColor || '#8B3333'; // Darker accent
+  const textPrimaryColor = settings.textPrimaryColor || '#6d2323';
+  const textSecondaryColor = settings.textSecondaryColor || '#FEF9E1';
+  const hoverColor = settings.hoverColor || '#6D2323';
   const blackColor = '#1a1a1a';
   const whiteColor = '#FFFFFF';
   const grayColor = '#6c757d';

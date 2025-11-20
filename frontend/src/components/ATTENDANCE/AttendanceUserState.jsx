@@ -55,27 +55,21 @@ import {
   KeyboardArrowDown,
   FilterList,
 } from '@mui/icons-material';
+import { useSystemSettings } from '../../hooks/useSystemSettings';
 
-// Color scheme
-const primaryColor = '#FEF9E1'; // Cream
-const secondaryColor = '#FFF8E7'; // Light cream
-const accentColor = '#6D2323'; // Burgundy
-const accentDark = '#8B3333'; // Darker burgundy
-const blackColor = '#1a1a1a';
-const whiteColor = '#FFFFFF';
-const grayColor = '#6c757d';
+// Helper function to convert hex to rgb
+const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '109, 35, 35';
+};
 
-// Styled components
+// Styled components - colors will be applied via sx prop
 const GlassCard = styled(Card)(({ theme }) => ({
   borderRadius: 20,
-  background: 'rgba(254, 249, 225, 0.95)',
   backdropFilter: 'blur(10px)',
-  boxShadow: '0 8px 40px rgba(109, 35, 35, 0.08)',
-  border: '1px solid rgba(109, 35, 35, 0.1)',
   overflow: 'hidden',
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   '&:hover': {
-    boxShadow: '0 12px 48px rgba(109, 35, 35, 0.15)',
     transform: 'translateY(-4px)',
   },
 }));
@@ -152,6 +146,19 @@ const PremiumTableCell = styled(TableCell)(({ theme, isHeader = false }) => ({
 }));
 
 const AttendanceUserState = () => {
+  const { settings } = useSystemSettings();
+  
+  // Get colors from system settings
+  const primaryColor = settings.accentColor || '#FEF9E1'; // Cards color
+  const secondaryColor = settings.backgroundColor || '#FFF8E7'; // Background
+  const accentColor = settings.primaryColor || '#6D2323'; // Primary accent
+  const accentDark = settings.secondaryColor || '#8B3333'; // Darker accent
+  const textPrimaryColor = settings.textPrimaryColor || '#6D2323';
+  const textSecondaryColor = settings.textSecondaryColor || '#FEF9E1';
+  const hoverColor = settings.hoverColor || '#6D2323';
+  const blackColor = '#1a1a1a';
+  const whiteColor = '#FFFFFF';
+  const grayColor = '#6c757d';
   const loggedInEmployeeNumber = localStorage.getItem('employeeNumber') || '';
   const today = new Date();
   // Use local date instead of UTC

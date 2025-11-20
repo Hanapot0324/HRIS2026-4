@@ -1,6 +1,7 @@
 import API_BASE_URL from '../../apiConfig';
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { getAuthHeaders } from '../../utils/auth';
 import {
   Container,
   Typography,
@@ -28,6 +29,7 @@ import {
   styled,
   Avatar,
   Tooltip,
+  alpha,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -52,70 +54,12 @@ import LoadingOverlay from '../LoadingOverlay';
 import SuccessfullOverlay from '../SuccessfulOverlay';
 import AccessDenied from '../AccessDenied';
 import { useNavigate } from "react-router-dom";
-
-// Professional styled components
-const GlassCard = styled(Card)(({ theme }) => ({
-  borderRadius: 20,
-  background: 'rgba(254, 249, 225, 0.95)',
-  backdropFilter: 'blur(10px)',
-  boxShadow: '0 8px 40px rgba(109, 35, 35, 0.08)',
-  border: '1px solid rgba(109, 35, 35, 0.1)',
-  overflow: 'hidden',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  '&:hover': {
-    boxShadow: '0 12px 48px rgba(109, 35, 35, 0.15)',
-    transform: 'translateY(-4px)',
-  },
-}));
-
-const ProfessionalButton = styled(Button)(({ theme, variant, color = 'primary' }) => ({
-  borderRadius: 12,
-  fontWeight: 600,
-  padding: '12px 24px',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  textTransform: 'none',
-  fontSize: '0.95rem',
-  letterSpacing: '0.025em',
-  boxShadow: variant === 'contained' ? '0 4px 14px rgba(254, 249, 225, 0.25)' : 'none',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: variant === 'contained' ? '0 6px 20px rgba(254, 249, 225, 0.35)' : 'none',
-  },
-  '&:active': {
-    transform: 'translateY(0)',
-  },
-}));
-
-const ModernTextField = styled(TextField)(({ theme }) => ({
-  '& .MuiOutlinedInput-root': {
-    borderRadius: 12,
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    '&:hover': {
-      transform: 'translateY(-1px)',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    },
-    '&.Mui-focused': {
-      transform: 'translateY(-1px)',
-      boxShadow: '0 4px 20px rgba(254, 249, 225, 0.25)',
-      backgroundColor: 'rgba(255, 255, 255, 1)',
-    },
-  },
-  '& .MuiInputLabel-root': {
-    fontWeight: 500,
-  },
-}));
-
-// Auth header helper
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  };
-};
+import { useSystemSettings } from '../../hooks/useSystemSettings';
+import {
+  createThemedCard,
+  createThemedButton,
+  createThemedTextField,
+} from '../../utils/theme';
 
 // Employee Autocomplete Component
 const EmployeeAutocomplete = ({
@@ -129,6 +73,7 @@ const EmployeeAutocomplete = ({
   selectedEmployee,
   onEmployeeSelect,
   dropdownDisabled = false,
+  settings = {},
 }) => {
   const [query, setQuery] = useState('');
   const [employees, setEmployees] = useState([]);
@@ -268,6 +213,8 @@ const EmployeeAutocomplete = ({
     }
   };
 
+  const ModernTextField = styled(TextField)(() => createThemedTextField(settings));
+
   return (
     <Box sx={{ position: 'relative', width: '100%' }} ref={dropdownRef}>
       <ModernTextField
@@ -285,13 +232,13 @@ const EmployeeAutocomplete = ({
         autoComplete="off"
         size="small"
         InputProps={{
-          startAdornment: <PersonIcon sx={{ color: '#6D2323', mr: 1 }} />,
+          startAdornment: <PersonIcon sx={{ color: settings.textPrimaryColor || settings.primaryColor || '#6D2323', mr: 1 }} />,
           endAdornment: (
             <IconButton
               onClick={dropdownDisabled ? undefined : handleDropdownClick}
               size="small"
               disabled={dropdownDisabled}
-              sx={{ color: '#6D2323' }}
+              sx={{ color: settings.textPrimaryColor || settings.primaryColor || '#6D2323' }}
             >
               {showDropdown ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
@@ -330,15 +277,15 @@ const EmployeeAutocomplete = ({
                   onClick={() => handleEmployeeSelect(employee)}
                   sx={{
                     '&:hover': {
-                      backgroundColor: '#f5f5f5',
+                      backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.3),
                     },
                   }}
                 >
                   <ListItemText
                     primary={employee.name}
                     secondary={`#${employee.employeeNumber}`}
-                    primaryTypographyProps={{ fontWeight: 'bold' }}
-                    secondaryTypographyProps={{ color: '#666' }}
+                    primaryTypographyProps={{ fontWeight: 'bold', color: settings.textPrimaryColor || '#6D2323' }}
+                    secondaryTypographyProps={{ color: settings.textSecondaryColor || '#666' }}
                   />
                 </ListItem>
               ))}
@@ -365,6 +312,9 @@ const EmployeeAutocomplete = ({
 };
 
 const Children = () => {
+  // Get settings from context
+  const { settings } = useSystemSettings();
+  
   const [children, setChildren] = useState([]);
   const [employeeNames, setEmployeeNames] = useState({});
   const [newChild, setNewChild] = useState({
@@ -408,12 +358,21 @@ const Children = () => {
   const [hasAccess, setHasAccess] = useState(null);
   const navigate = useNavigate();
   
-  // Color scheme
-  const primaryColor = '#FEF9E1';
-  const secondaryColor = '#FFF8E7';
-  const accentColor = '#6d2323';
-  const accentDark = '#8B3333';
-  const grayColor = '#6c757d';
+  // Create themed styled components using system settings
+  const GlassCard = styled(Card)(() => createThemedCard(settings));
+  
+  const ProfessionalButton = styled(Button)(({ variant = 'contained' }) => 
+    createThemedButton(settings, variant)
+  );
+
+  const ModernTextField = styled(TextField)(() => createThemedTextField(settings));
+  
+  // Color scheme from settings (for compatibility)
+  const primaryColor = settings.accentColor || '#FEF9E1';
+  const secondaryColor = settings.backgroundColor || '#FFF8E7';
+  const accentColor = settings.primaryColor || '#6d2323';
+  const accentDark = settings.secondaryColor || settings.hoverColor || '#8B3333';
+  const grayColor = settings.textSecondaryColor || '#6c757d';
   
   useEffect(() => {
     const userId = localStorage.getItem('employeeNumber');
@@ -424,9 +383,10 @@ const Children = () => {
     }
     const checkAccess = async () => {
       try {
+        const authHeaders = getAuthHeaders();
         const response = await fetch(`${API_BASE_URL}/page_access/${userId}`, {
           method: "GET",
-          headers: { "Content-Type": "application/json" },
+          ...authHeaders,
         });
         if (response.ok) {
           const accessData = await response.json();
@@ -451,7 +411,7 @@ const Children = () => {
 
   const fetchChildren = async () => {
     try {
-      const result = await axios.get(`${API_BASE_URL}/childrenRoute/children-table`);
+      const result = await axios.get(`${API_BASE_URL}/childrenRoute/children-table`, getAuthHeaders());
       setChildren(result.data);
       
       const uniqueEmployeeIds = [...new Set(result.data.map(c => c.person_id).filter(Boolean))];
@@ -517,7 +477,7 @@ const Children = () => {
     
     setLoading(true);
     try {
-      await axios.post(`${API_BASE_URL}/childrenRoute/children-table`, newChild);
+      await axios.post(`${API_BASE_URL}/childrenRoute/children-table`, newChild, getAuthHeaders());
       setNewChild({
         childrenFirstName: '',
         childrenMiddleName: '',
@@ -544,7 +504,7 @@ const Children = () => {
 
   const handleUpdate = async () => {
     try {
-      await axios.put(`${API_BASE_URL}/childrenRoute/children-table/${editChild.id}`, editChild);
+      await axios.put(`${API_BASE_URL}/childrenRoute/children-table/${editChild.id}`, editChild, getAuthHeaders());
       setEditChild(null);
       setOriginalChild(null);
       setSelectedEditEmployee(null);
@@ -561,7 +521,7 @@ const Children = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API_BASE_URL}/childrenRoute/children-table/${id}`);
+      await axios.delete(`${API_BASE_URL}/childrenRoute/children-table/${id}`, getAuthHeaders());
       setEditChild(null);
       setOriginalChild(null);
       setSelectedEditEmployee(null);
@@ -893,6 +853,7 @@ const Children = () => {
                           required
                           error={!!errors.person_id}
                           helperText={errors.person_id || ''}
+                          settings={settings}
                         />
                       </Grid>
 
@@ -905,8 +866,8 @@ const Children = () => {
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
-                              backgroundColor: 'rgba(254, 249, 225, 0.8)',
-                              border: '1px solid rgba(109, 35, 35, 0.3)',
+                              backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.8),
+                              border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
                               paddingLeft: '10px',
                               gap: 1.5,
@@ -944,7 +905,7 @@ const Children = () => {
                               alignItems: 'center',
                               justifyContent: 'center',
                               backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                              border: '2px dashed rgba(109, 35, 35, 0.3)',
+                              border: `2px dashed ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
                               minHeight: '30px',
                             }}
@@ -1104,7 +1065,7 @@ const Children = () => {
                       backgroundColor: 'rgba(255, 255, 255, 0.2)',
                       '& .MuiToggleButton-root': {
                         color: accentColor,
-                        borderColor: 'rgba(109, 35, 35, 0.5)',
+                        borderColor: alpha(settings.primaryColor || '#6d2323', 0.5),
                         padding: '4px 8px',
                         '&.Mui-selected': {
                           backgroundColor: 'rgba(255, 255, 255, 0.3)',
@@ -1171,7 +1132,7 @@ const Children = () => {
                               onClick={() => handleOpenEmployeeChildrenModal(group.employeeId, group.employeeName, group.children)}
                               sx={{
                                 cursor: "pointer",
-                                border: "1px solid rgba(109, 35, 35, 0.1)",
+                                border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.1)}`,
                                 height: "100%",
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -1237,7 +1198,7 @@ const Children = () => {
                             mb: 1,
                             "&:hover": { 
                               borderColor: accentColor,
-                              backgroundColor: 'rgba(254, 249, 225, 0.3)'
+                              backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.3)
                             },
                           }}
                         >
@@ -1409,8 +1370,8 @@ const Children = () => {
                                 px: 1,
                                 py: 0.3,
                                 borderRadius: 0.5,
-                                backgroundColor: 'rgba(109, 35, 35, 0.1)',
-                                border: '1px solid rgba(109, 35, 35, 0.2)',
+                                backgroundColor: alpha(settings.primaryColor || '#6d2323', 0.1),
+                                border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.2)}`,
                                 alignSelf: 'flex-start',
                                 mt: 'auto'
                               }}
@@ -1499,6 +1460,7 @@ const Children = () => {
                           selectedEmployee={selectedEditEmployee}
                           onEmployeeSelect={isEditing ? handleEditEmployeeSelect : () => {}}
                           placeholder="Search and select employee..."
+                          settings={settings}
                           required
                           disabled={!isEditing}
                           dropdownDisabled={!isEditing}
@@ -1527,8 +1489,8 @@ const Children = () => {
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
-                              backgroundColor: 'rgba(254, 249, 225, 0.8)',
-                              border: '1px solid rgba(109, 35, 35, 0.3)',
+                              backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.8),
+                              border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
                               padding: '12px',
                               gap: 1.5,
@@ -1566,7 +1528,7 @@ const Children = () => {
                               alignItems: 'center',
                               justifyContent: 'center',
                               backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                              border: '2px dashed rgba(109, 35, 35, 0.3)',
+                              border: `2px dashed ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
                               padding: '12px',
                               minHeight: '48px',
@@ -1610,9 +1572,9 @@ const Children = () => {
                       ) : (
                         <Box sx={{ 
                           p: 1.5, 
-                          bgcolor: 'rgba(254, 249, 225, 0.5)', 
+                          bgcolor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.5), 
                           borderRadius: 1,
-                          border: '1px solid rgba(109, 35, 35, 0.2)'
+                          border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.2)}`
                         }}>
                           <Typography variant="body2">
                             {editChild.childrenFirstName}
@@ -1635,9 +1597,9 @@ const Children = () => {
                       ) : (
                         <Box sx={{ 
                           p: 1.5, 
-                          bgcolor: 'rgba(254, 249, 225, 0.5)', 
+                          bgcolor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.5), 
                           borderRadius: 1,
-                          border: '1px solid rgba(109, 35, 35, 0.2)'
+                          border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.2)}`
                         }}>
                           <Typography variant="body2">
                             {editChild.childrenMiddleName || 'N/A'}
@@ -1660,9 +1622,9 @@ const Children = () => {
                       ) : (
                         <Box sx={{ 
                           p: 1.5, 
-                          bgcolor: 'rgba(254, 249, 225, 0.5)', 
+                          bgcolor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.5), 
                           borderRadius: 1,
-                          border: '1px solid rgba(109, 35, 35, 0.2)'
+                          border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.2)}`
                         }}>
                           <Typography variant="body2">
                             {editChild.childrenLastName}
@@ -1685,9 +1647,9 @@ const Children = () => {
                       ) : (
                         <Box sx={{ 
                           p: 1.5, 
-                          bgcolor: 'rgba(254, 249, 225, 0.5)', 
+                          bgcolor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.5), 
                           borderRadius: 1,
-                          border: '1px solid rgba(109, 35, 35, 0.2)'
+                          border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.2)}`
                         }}>
                           <Typography variant="body2">
                             {editChild.childrenNameExtension || 'N/A'}
@@ -1711,9 +1673,9 @@ const Children = () => {
                       ) : (
                         <Box sx={{ 
                           p: 1.5, 
-                          bgcolor: 'rgba(254, 249, 225, 0.5)', 
+                          bgcolor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.5), 
                           borderRadius: 1,
-                          border: '1px solid rgba(109, 35, 35, 0.2)'
+                          border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.2)}`
                         }}>
                           <Typography variant="body2">
                             {editChild.dateOfBirth?.split('T')[0] || 'N/A'}

@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import axios from 'axios';
+import { getAuthHeaders } from '../../utils/auth';
 import {
   Button,
   Box,
@@ -353,9 +354,10 @@ const PersonTable = () => {
     }
     const checkAccess = async () => {
       try {
+        const authHeaders = getAuthHeaders();
         const response = await fetch(`${API_BASE_URL}/page_access/${userId}`, {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
+          ...authHeaders,
         });
         if (response.ok) {
           const accessData = await response.json();
@@ -480,7 +482,8 @@ const PersonTable = () => {
   const fetchPersons = async () => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/personalinfo/person_table`
+        `${API_BASE_URL}/personalinfo/person_table`,
+        getAuthHeaders()
       );
       setData(response.data);
       setFilteredData(response.data);
@@ -562,7 +565,7 @@ const PersonTable = () => {
 
     setLoading(true);
     try {
-      await axios.post(`${API_BASE_URL}/personalinfo/person_table`, newPerson);
+      await axios.post(`${API_BASE_URL}/personalinfo/person_table`, newPerson, getAuthHeaders());
       setNewPerson(
         Object.fromEntries(Object.keys(newPerson).map((k) => [k, '']))
       );
@@ -591,7 +594,8 @@ const PersonTable = () => {
     try {
       await axios.put(
         `${API_BASE_URL}/personalinfo/person_table/${editPerson.id}`,
-        editPerson
+        editPerson,
+        getAuthHeaders()
       );
       setEditPerson(null);
       setOriginalPerson(null);
@@ -609,7 +613,7 @@ const PersonTable = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API_BASE_URL}/personalinfo/person_table/${id}`);
+      await axios.delete(`${API_BASE_URL}/personalinfo/person_table/${id}`, getAuthHeaders());
       setEditPerson(null);
       setOriginalPerson(null);
       setSelectedEditEmployee(null);

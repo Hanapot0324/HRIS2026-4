@@ -1,6 +1,7 @@
 import API_BASE_URL from "../apiConfig";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getAuthHeaders } from "../utils/auth";
 import {
   Alert,
   TextField,
@@ -97,9 +98,10 @@ const Registration = () => {
     }
     const checkAccess = async () => {
       try {
+        const authHeaders = getAuthHeaders();
         const response = await fetch(`${API_BASE_URL}/page_access/${userId}`, {
           method: "GET",
-          headers: { "Content-Type": "application/json" },
+          ...authHeaders,
         });
         if (response.ok) {
           const accessData = await response.json();
@@ -205,9 +207,10 @@ const Registration = () => {
     }
 
     try {
+      const authHeaders = getAuthHeaders();
       const response = await fetch(`${API_BASE_URL}/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        ...authHeaders,
         body: JSON.stringify(formData),
       });
 

@@ -47,18 +47,21 @@ import logo from '../../assets/logo.png';
 import hrisLogo from '../../assets/hrisLogo.png';
 import LoadingOverlay from '../LoadingOverlay';
 import SuccessfulOverlay from '../SuccessfulOverlay';
+import { useSystemSettings } from '../../hooks/useSystemSettings';
 
-// Professional styled components with swapped colors
+// Helper function to convert hex to rgb
+const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '109, 35, 35';
+};
+
+// Professional styled components - colors will be applied via sx prop
 const GlassCard = styled(Card)(({ theme }) => ({
   borderRadius: 20,
-  background: 'rgba(254, 249, 225, 0.95)',
   backdropFilter: 'blur(10px)',
-  boxShadow: '0 8px 40px rgba(109, 35, 35, 0.08)',
-  border: '1px solid rgba(109, 35, 35, 0.1)',
   overflow: 'hidden',
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   '&:hover': {
-    boxShadow: '0 12px 48px rgba(109, 35, 35, 0.15)',
     transform: 'translateY(-4px)',
   },
 }));
@@ -135,11 +138,16 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
     message: '',
   });
 
-  // Swapped color scheme
-  const primaryColor = '#FEF9E1'; // Now cream is primary
-  const secondaryColor = '#FFF8E7'; // Light cream
-  const accentColor = '#6d2323'; // Burgundy is now accent
-  const accentDark = '#8B3333'; // Darker burgundy
+  const { settings } = useSystemSettings();
+  
+  // Get colors from system settings
+  const primaryColor = settings.accentColor || '#FEF9E1'; // Cards color
+  const secondaryColor = settings.backgroundColor || '#FFF8E7'; // Background
+  const accentColor = settings.primaryColor || '#6d2323'; // Primary accent
+  const accentDark = settings.secondaryColor || '#8B3333'; // Darker accent
+  const textPrimaryColor = settings.textPrimaryColor || '#6d2323';
+  const textSecondaryColor = settings.textSecondaryColor || '#FEF9E1';
+  const hoverColor = settings.hoverColor || '#6D2323';
   const blackColor = '#1a1a1a';
   const whiteColor = '#FFFFFF';
   const grayColor = '#6c757d';
@@ -439,12 +447,19 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
         {/* Header */}
         <Fade in timeout={500}>
           <Box sx={{ mb: 4 }}>
-            <GlassCard>
+            <GlassCard sx={{
+              background: `rgba(${hexToRgb(primaryColor)}, 0.95)`,
+              boxShadow: `0 8px 40px ${alpha(accentColor, 0.08)}`,
+              border: `1px solid ${alpha(accentColor, 0.1)}`,
+              '&:hover': {
+                boxShadow: `0 12px 48px ${alpha(accentColor, 0.15)}`,
+              },
+            }}>
               <Box
                 sx={{
                   p: 5,
                   background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-                  color: accentColor,
+                  color: textPrimaryColor,
                   position: 'relative',
                   overflow: 'hidden',
                 }}
@@ -457,7 +472,7 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
                     right: -50,
                     width: 200,
                     height: 200,
-                    background: 'radial-gradient(circle, rgba(109,35,35,0.1) 0%, rgba(109,35,35,0) 70%)',
+                    background: `radial-gradient(circle, ${alpha(accentColor, 0.1)} 0%, ${alpha(accentColor, 0)} 70%)`,
                   }}
                 />
                 <Box
@@ -467,7 +482,7 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
                     left: '30%',
                     width: 150,
                     height: 150,
-                    background: 'radial-gradient(circle, rgba(109,35,35,0.08) 0%, rgba(109,35,35,0) 70%)',
+                    background: `radial-gradient(circle, ${alpha(accentColor, 0.08)} 0%, ${alpha(accentColor, 0)} 70%)`,
                   }}
                 />
                 
@@ -475,21 +490,21 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
                   <Box display="flex" alignItems="center">
                     <Avatar 
                       sx={{ 
-                        bgcolor: 'rgba(109,35,35,0.15)', 
+                        bgcolor: alpha(accentColor, 0.15), 
                         mr: 4, 
                         width: 64, // Reduced from 72
                         height: 64, // Reduced from 72
-                        boxShadow: '0 8px 24px rgba(109,35,35,0.15)'
+                        boxShadow: `0 8px 24px ${alpha(accentColor, 0.15)}`
                       }}
                     >
-                      <WorkIcon sx={{color: accentColor, fontSize: 32 }} /> {/* Reduced from 40 */}
+                      <WorkIcon sx={{color: textPrimaryColor, fontSize: 32 }} /> {/* Reduced from 40 */}
                     </Avatar>
                     <Box>
                       {/* Changed from h3 to h4 for smaller title */}
-                      <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1, lineHeight: 1.2, color: accentColor }}>
+                      <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1, lineHeight: 1.2, color: textPrimaryColor }}>
                         Employee Payslip Distribution
                       </Typography>
-                      <Typography variant="body1" sx={{ opacity: 0.8, fontWeight: 400, color: accentDark }}>
+                      <Typography variant="body1" sx={{ opacity: 0.8, fontWeight: 400, color: textPrimaryColor }}>
                         Manage and distribute monthly employee payslip records
                       </Typography>
                     </Box>
@@ -500,7 +515,7 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
                       size="small" 
                       sx={{ 
                         bgcolor: 'rgba(109,35,35,0.15)', 
-                        color: accentColor,
+                        color: textPrimaryColor,
                         fontWeight: 500,
                         '& .MuiChip-label': { px: 1 }
                       }} 
@@ -511,7 +526,7 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
                         sx={{ 
                           bgcolor: 'rgba(109,35,35,0.1)', 
                           '&:hover': { bgcolor: 'rgba(109,35,35,0.2)' },
-                          color: accentColor,
+                          color: textPrimaryColor,
                           width: 48,
                           height: 48,
                         }}
@@ -556,7 +571,15 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
 
         {/* Controls */}
         <Fade in timeout={700}>
-          <GlassCard sx={{ mb: 4 }}>
+          <GlassCard sx={{ 
+            mb: 4,
+            background: `rgba(${hexToRgb(primaryColor)}, 0.95)`,
+            boxShadow: `0 8px 40px ${alpha(accentColor, 0.08)}`,
+            border: `1px solid ${alpha(accentColor, 0.1)}`,
+            '&:hover': {
+              boxShadow: `0 12px 48px ${alpha(accentColor, 0.15)}`,
+            },
+          }}>
             <CardContent sx={{ p: 4 }}>
               <Grid container spacing={4}>
                 <Grid item xs={12} md={6}>
@@ -602,7 +625,7 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
                   variant="h6"
                   gutterBottom
                   sx={{
-                    color: accentColor,
+                    color: textPrimaryColor,
                     display: "flex",
                     alignItems: "center",
                     mb: 2,
@@ -653,7 +676,15 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
         {/* Employee Table */}
         {selectedMonth && (
           <Fade in timeout={900}>
-            <GlassCard sx={{ mb: 4 }}>
+            <GlassCard sx={{ 
+            mb: 4,
+            background: `rgba(${hexToRgb(primaryColor)}, 0.95)`,
+            boxShadow: `0 8px 40px ${alpha(accentColor, 0.08)}`,
+            border: `1px solid ${alpha(accentColor, 0.1)}`,
+            '&:hover': {
+              boxShadow: `0 12px 48px ${alpha(accentColor, 0.15)}`,
+            },
+          }}>
               <Box sx={{ 
                 p: 4, 
                 background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`, 
@@ -675,7 +706,7 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
                       size="small"
                       sx={{ 
                         bgcolor: 'rgba(109,35,35,0.15)', 
-                        color: accentColor,
+                        color: textPrimaryColor,
                         fontWeight: 500
                       }} 
                     />
@@ -684,7 +715,7 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
                       size="small"
                       sx={{ 
                         bgcolor: 'rgba(109,35,35,0.15)', 
-                        color: accentColor,
+                        color: textPrimaryColor,
                         fontWeight: 500
                       }} 
                     />
@@ -697,7 +728,7 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
                     height: 80,
                     fontSize: '2rem',
                     fontWeight: 600,
-                    color: accentColor
+                    color: textPrimaryColor
                   }}
                 >
                   {selectedMonth ? selectedMonth.substring(0, 1) : 'E'}
@@ -782,7 +813,7 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
                                 height: 80,
                                 fontSize: '2rem',
                                 fontWeight: 600,
-                                color: accentColor
+                                color: textPrimaryColor
                               }}
                             >
                               <Search sx={{ fontSize: 40 }} />
@@ -807,11 +838,18 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
         {/* Bulk Send Button */}
         {selectedMonth && filteredPayroll.length > 0 && (
           <Fade in timeout={1100}>
-            <GlassCard>
+            <GlassCard sx={{
+              background: `rgba(${hexToRgb(primaryColor)}, 0.95)`,
+              boxShadow: `0 8px 40px ${alpha(accentColor, 0.08)}`,
+              border: `1px solid ${alpha(accentColor, 0.1)}`,
+              '&:hover': {
+                boxShadow: `0 12px 48px ${alpha(accentColor, 0.15)}`,
+              },
+            }}>
               <CardHeader
                 title={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: alpha(primaryColor, 0.8), color: accentColor }}>
+                    <Avatar sx={{ bgcolor: alpha(primaryColor, 0.8), color: textPrimaryColor }}>
                       <Send />
                     </Avatar>
                     <Box>
@@ -837,6 +875,7 @@ const PayslipDistribution = forwardRef(({ employee }, ref) => {
                   sx={{
                     py: 2,
                     bgcolor: accentColor,
+                    color: textSecondaryColor,
                     color: primaryColor,
                     fontSize: '1rem',
                     '&:hover': {

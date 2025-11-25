@@ -2,14 +2,7 @@ import API_BASE_URL from '../../apiConfig';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
-import {
-  AccessTime,
-  CalendarToday,
-  Print,
-  SaveOutlined,
-  Search,
-  SearchOutlined,
-} from '@mui/icons-material';
+import { AccessTime, CalendarToday, SearchOutlined } from '@mui/icons-material';
 import PrintIcon from '@mui/icons-material/Print';
 import {
   Avatar,
@@ -26,7 +19,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import earistLogo from '../../assets/earistLogo.jpg';
+import earistLogo from '../../assets/earistLogo.png';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
 import { alpha } from '@mui/material/styles';
 import { jsPDF } from 'jspdf';
@@ -43,15 +36,14 @@ const hexToRgb = (hex) => {
     : '109, 35, 35';
 };
 
-// Professional styled components - colors will be applied via sx prop
+// --- FIXED STYLED COMPONENTS (Removed Transforms to stop movement) ---
+
 const GlassCard = styled(Card)(({ theme }) => ({
   borderRadius: 20,
   backdropFilter: 'blur(10px)',
   overflow: 'hidden',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  '&:hover': {
-    transform: 'translateY(-4px)',
-  },
+  // REMOVED: transform: 'translateY(-4px)' on hover to prevent layout shift
+  transition: 'box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
 }));
 
 const ProfessionalButton = styled(Button)(
@@ -59,21 +51,22 @@ const ProfessionalButton = styled(Button)(
     borderRadius: 12,
     fontWeight: 600,
     padding: '12px 24px',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    transition: 'box-shadow 0.2s ease-in-out, background-color 0.2s', // Removed transform transition
     textTransform: 'none',
     fontSize: '0.95rem',
     letterSpacing: '0.025em',
     boxShadow:
       variant === 'contained' ? '0 4px 14px rgba(254, 249, 225, 0.25)' : 'none',
     '&:hover': {
-      transform: 'translateY(-2px)',
+      // REMOVED: transform: 'translateY(-2px)'
       boxShadow:
         variant === 'contained'
           ? '0 6px 20px rgba(254, 249, 225, 0.35)'
           : 'none',
     },
     '&:active': {
-      transform: 'translateY(0)',
+      // REMOVED: transform: 'translateY(0)'
+      boxShadow: 'none',
     },
   })
 );
@@ -81,14 +74,15 @@ const ProfessionalButton = styled(Button)(
 const ModernTextField = styled(TextField)(({ theme }) => ({
   '& .MuiOutlinedInput-root': {
     borderRadius: 12,
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    transition:
+      'box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s', // Removed transform transition
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
     '&:hover': {
-      transform: 'translateY(-1px)',
+      // REMOVED: transform: 'translateY(-1px)'
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
     },
     '&.Mui-focused': {
-      transform: 'translateY(-1px)',
+      // REMOVED: transform: 'translateY(-1px)'
       boxShadow: '0 4px 20px rgba(254, 249, 225, 0.25)',
       backgroundColor: 'rgba(255, 255, 255, 1)',
     },
@@ -109,14 +103,13 @@ const DailyTimeRecord = () => {
   const dtrRef = React.useRef(null);
 
   // Get colors from system settings
-  const primaryColor = settings.accentColor || '#FEF9E1'; // Cards color
-  const secondaryColor = settings.backgroundColor || '#FFF8E7'; // Background
-  const accentColor = settings.primaryColor || '#6d2323'; // Primary accent
-  const accentDark = settings.secondaryColor || '#8B3333'; // Darker accent
+  const primaryColor = settings.accentColor || '#FEF9E1';
+  const secondaryColor = settings.backgroundColor || '#FFF8E7';
+  const accentColor = settings.primaryColor || '#6d2323';
+  const accentDark = settings.secondaryColor || '#8B3333';
   const textPrimaryColor = settings.textPrimaryColor || '#6d2323';
   const textSecondaryColor = settings.textSecondaryColor || '#FEF9E1';
   const hoverColor = settings.hoverColor || '#6D2323';
-  const grayColor = '#6c757d';
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -129,12 +122,11 @@ const DailyTimeRecord = () => {
   };
 
   useEffect(() => {
-    // Retrieve and decode the token from local storage
     const token = localStorage.getItem('token');
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        setPersonID(decoded.employeeNumber); // Set the employeeNumber in state
+        setPersonID(decoded.employeeNumber);
       } catch (error) {
         console.error('Error decoding token:', error);
       }
@@ -156,14 +148,9 @@ const DailyTimeRecord = () => {
       const data = response.data;
 
       if (data.length > 0) {
-        // Set the records
         setRecords(data);
-
-        // Extract and set the employee name from the first record
         const { firstName, lastName } = data[0];
         setEmployeeName(`${firstName} ${lastName}`);
-
-        // Fetch official times separately using the personID
         await fetchOfficialTimes(personID);
       } else {
         setRecords([]);
@@ -175,17 +162,15 @@ const DailyTimeRecord = () => {
     }
   };
 
-  // New function to fetch official times
   const fetchOfficialTimes = async (employeeID) => {
     try {
       const response = await axios.get(
         `${API_BASE_URL}/officialtimetable/${employeeID}`,
-        getAuthHeaders() // ✅ Pass token headers
+        getAuthHeaders()
       );
 
       const data = response.data;
 
-      // Map the official times by day
       const officialTimesMap = data.reduce((acc, record) => {
         acc[record.day] = {
           officialTimeIN: record.officialTimeIN,
@@ -203,30 +188,54 @@ const DailyTimeRecord = () => {
     }
   };
 
-  // Also fetch official times when personID changes (on component mount)
   useEffect(() => {
     if (personID) {
       fetchOfficialTimes(personID);
     }
   }, [personID]);
 
-  // Original print function for browser printing
-  const printPage = () => {
-    const elementsToHide = document.querySelectorAll('.no-print');
-    const sidebar = document.querySelector('.MuiDrawer-root');
-    const header = document.querySelector('.header');
+  const printPage = async () => {
+    // 1. Check if the element exists
+    if (!dtrRef.current) return;
 
-    if (sidebar) sidebar.style.display = 'none';
-    if (header) header.style.display = 'none';
+    try {
+      // 2. Initialize PDF (Same settings as downloadPDF)
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'in',
+        format: 'a4',
+      });
 
-    elementsToHide.forEach((el) => (el.style.display = 'none'));
-    window.print();
-    elementsToHide.forEach((el) => (el.style.display = ''));
-    if (sidebar) sidebar.style.display = '';
-    if (header) header.style.display = '';
+      // 3. Capture the exact visual state using html2canvas
+      const canvas = await html2canvas(dtrRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+
+      // 4. Convert to image & Calculate positions (Same math as downloadPDF)
+      const imgData = canvas.toDataURL('image/png');
+      const dtrWidth = 7;
+      const dtrHeight = 7.5;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const baselineX = (pageWidth - dtrWidth) / 2;
+      const yOffset = (pageHeight - dtrHeight) / 2;
+      const adjustLeft = 0.2;
+      const xOffset = baselineX + adjustLeft;
+
+      // 5. Add image to PDF
+      pdf.addImage(imgData, 'PNG', xOffset, yOffset, dtrWidth, dtrHeight);
+
+      // 6. Set PDF to Auto Print and Open it in a new tab
+      pdf.autoPrint();
+      const blobUrl = pdf.output('bloburl');
+      window.open(blobUrl, '_blank');
+    } catch (error) {
+      console.error('Error generating print view:', error);
+    }
   };
 
-  // New function for PDF download
   const downloadPDF = async () => {
     if (!dtrRef.current) return;
 
@@ -237,7 +246,6 @@ const DailyTimeRecord = () => {
         format: 'a4',
       });
 
-      // Convert the DTR to canvas (NO forced width/height)
       const canvas = await html2canvas(dtrRef.current, {
         scale: 2,
         useCORS: true,
@@ -245,31 +253,16 @@ const DailyTimeRecord = () => {
       });
 
       const imgData = canvas.toDataURL('image/png');
-
-      // Fixed DTR size (DO NOT CHANGE — this prevents distortion)
       const dtrWidth = 7;
       const dtrHeight = 7.5;
-
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-
-      // Center baseline
       const baselineX = (pageWidth - dtrWidth) / 2;
       const yOffset = (pageHeight - dtrHeight) / 2;
-
-      // 👉 MODIFY THIS VALUE ONLY (move a little left, without cutting)
       const adjustLeft = 0.2;
-      // Example:
-      // -0.5 = slight left
-      // -1 = more left
-      // +0.5 = slight right
-      // +1 = more right
-
       const xOffset = baselineX + adjustLeft;
 
-      // Add image with FIXED size (no squeeze)
       pdf.addImage(imgData, 'PNG', xOffset, yOffset, dtrWidth, dtrHeight);
-
       pdf.save(`DTR-${employeeName}-${formatMonth(startDate)}.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -284,18 +277,15 @@ const DailyTimeRecord = () => {
 
   const formatMonth = (dateString) => {
     const date = new Date(dateString);
-    const options = { month: 'long' }; // Only include the month name
+    const options = { month: 'long' };
     return date.toLocaleDateString(undefined, options).toUpperCase();
   };
 
-  // Format time to ensure it's on one line (e.g., "09:22:49 AM")
   const formatTime = (timeString) => {
     if (!timeString) return '';
-    // Remove extra whitespace and newlines, ensure AM/PM is on same line
     return timeString.replace(/\s+/g, ' ').trim();
   };
 
-  const currentYear = new Date().getFullYear();
   const months = [
     'JAN',
     'FEB',
@@ -315,29 +305,23 @@ const DailyTimeRecord = () => {
     const year = new Date().getFullYear();
     const start = new Date(Date.UTC(year, monthIndex, 1));
     const end = new Date(Date.UTC(year, monthIndex + 1, 0));
-
-    const formattedStart = start.toISOString().substring(0, 10);
-    const formattedEnd = end.toISOString().substring(0, 10);
-
-    setStartDate(formattedStart);
-    setEndDate(formattedEnd);
+    setStartDate(start.toISOString().substring(0, 10));
+    setEndDate(end.toISOString().substring(0, 10));
   };
 
-  // Function to format the start date (Month DayNumber)
   const formatStartDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    const options = { month: 'long', day: 'numeric' }; // e.g., October 1
+    const options = { month: 'long', day: 'numeric' };
     return date.toLocaleDateString('en-US', options);
   };
 
-  // Function to format the end date (DayNumber, Year)
   const formatEndDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    const day = date.getDate(); // Get the day number
-    const year = date.getFullYear(); // Get the year
-    return `${day}, ${year}`; // Format as "DayNumber, Year"
+    const day = date.getDate();
+    const year = date.getFullYear();
+    return `${day}, ${year}`;
   };
 
   const formattedStartDate = formatStartDate(startDate);
@@ -347,6 +331,11 @@ const DailyTimeRecord = () => {
     <Container maxWidth="xl" sx={{ py: 4, mt: -5 }}>
       <style>
         {`
+          /* FIX: Force vertical scrollbar to prevent center-jump when data loads */
+          html {
+            overflow-y: scroll;
+          }
+
           /* Frontend responsive styles (NOT for print) */
           .dtr-responsive-header,
           .dtr-responsive-cell,
@@ -370,127 +359,21 @@ const DailyTimeRecord = () => {
           }
 
           @media print {
-            /* Hide everything except DTR tables */
-            .no-print {
-              display: none !important;
-            }
-
-            /* Hide navigation and UI elements */
-            .header,
-            .top-banner,
-            .page-banner,
-            header,
-            footer,
-            .MuiDrawer-root,
-            .MuiAppBar-root {
-              display: none !important;
-            }
-
-            /* Page setup */
-            html, body {
-              width: 21cm;
-              height: 29.7cm;
-              margin: 0;
-              padding: 0;
-              background: white;
-            }
-
-            /* Container - center content on A4 */
-            .MuiContainer-root {
-              max-width: 100% !important;
-              width: 21cm !important;
-              margin: 0 auto !important;
-              padding: 0 !important;
-              display: flex !important;
-              justify-content: center !important;
-              align-items: center !important;
-              background: white !important;
-            }
-
-            /* Remove all backgrounds */
-            .MuiPaper-root,
-            .MuiBox-root,
-            .MuiCard-root {
-              background: transparent !important;
-              box-shadow: none !important;
-              margin: 0 !important;
-            }
-
-            /* DTR Table Container - two tables side by side */
-            .table-container {
-              width: 100% !important;
-              height: auto !important;
-              margin: 0 auto !important;
-              padding: 0 !important;
-              display: block !important;
-              background: transparent !important;
-            }
-
-            .table-wrapper {
-              width: 100% !important;
-              height: auto !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              display: flex !important;
-              justify-content: center !important;
-              align-items: flex-start !important;
-              box-sizing: border-box !important;
-            }
-
-            .table-side-by-side {
-              display: flex !important;
-              flex-direction: row !important;
-              gap: 1.5% !important;
-              width: 100% !important;
-              height: auto !important;
-            }
-
-            .table-side-by-side table {
-              width: 47% !important;
-              border: 1px solid black !important;
-              border-collapse: collapse !important;
-              background: white !important;
-            }
-
-            /* Table cells - white background for readability */
-            table td,
-            table th {
-              background: white !important;
-              font-family: Arial, "Times New Roman", serif !important;
-              position: relative !important;
-            }
-
-            /* Ensure proper font for header text */
-            table thead div,
-            table thead p,
-            table thead h4 {
-              font-family: Arial, "Times New Roman", serif !important;
-            }
-
-            /* Fix overlapping content in official times section */
-            table td div {
-              position: relative !important;
-            }
-
-            /* Prevent page breaks */
-            table {
-              page-break-inside: avoid !important;
-              table-layout: fixed !important;
-            }
-
-            /* Fixed widths for print/PDF */
-            .dtr-responsive-header,
-            .dtr-responsive-cell,
-            .dtr-time-cell {
-              width: auto !important;
-              white-space: nowrap !important;
-              word-break: keep-all !important;
-            }
-
-            /* Ensure proper spacing at bottom */
-            table tbody tr:last-child td {
-              padding-bottom: 20px !important;
-            }
+            .no-print { display: none !important; }
+            .header, .top-banner, .page-banner, header, footer, .MuiDrawer-root, .MuiAppBar-root { display: none !important; }
+            html, body { width: 21cm; height: 29.7cm; margin: 0; padding: 0; background: white; }
+            .MuiContainer-root { max-width: 100% !important; width: 21cm !important; margin: 0 auto !important; padding: 0 !important; display: flex !important; justify-content: center !important; align-items: center !important; background: white !important; }
+            .MuiPaper-root, .MuiBox-root, .MuiCard-root { background: transparent !important; box-shadow: none !important; margin: 0 !important; }
+            .table-container { width: 100% !important; height: auto !important; margin: 0 auto !important; padding: 0 !important; display: block !important; background: transparent !important; }
+            .table-wrapper { width: 100% !important; height: auto !important; margin: 0 !important; padding: 0 !important; display: flex !important; justify-content: center !important; align-items: flex-start !important; box-sizing: border-box !important; }
+            .table-side-by-side { display: flex !important; flex-direction: row !important; gap: 1.5% !important; width: 100% !important; height: auto !important; }
+            .table-side-by-side table { width: 47% !important; border: 1px solid black !important; border-collapse: collapse !important; background: white !important; }
+            table td, table th { background: white !important; font-family: Arial, "Times New Roman", serif !important; position: relative !important; }
+            table thead div, table thead p, table thead h4 { font-family: Arial, "Times New Roman", serif !important; }
+            table td div { position: relative !important; }
+            table { page-break-inside: avoid !important; table-layout: fixed !important; }
+            .dtr-responsive-header, .dtr-responsive-cell, .dtr-time-cell { width: auto !important; white-space: nowrap !important; word-break: keep-all !important; }
+            table tbody tr:last-child td { padding-bottom: 20px !important; }
           }
         `}
       </style>
@@ -770,1068 +653,631 @@ const DailyTimeRecord = () => {
             elevation={4}
             sx={{
               borderRadius: 2,
-              overflow: 'hidden',
+              overflowX: 'auto',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
               border: '1px solid rgba(109, 35, 35, 0.1)',
               mb: 4,
               width: '100%',
             }}
           >
-            <Box sx={{ p: 5, overflowX: 'auto' }}>
+            <Box sx={{ p: 5, minWidth: 'fit-content' }}>
               <div className="table-container" ref={dtrRef}>
                 <div className="table-wrapper">
                   <div
                     style={{
                       display: 'flex',
-                      gap: '1.5%',
-                      justifyContent: 'center',
+                      gap: '2%',
+                      width: '8.5in',
+                      minWidth: '8.5in',
+                      margin: '0 auto',
+                      backgroundColor: 'white',
                     }}
                     className="table-side-by-side"
                   >
-                    {/* First Table */}
-                    <table
-                      style={{
-                        border: '1px solid black',
-                        borderCollapse: 'collapse',
-                        width: '47%',
-                      }}
-                      className="print-visble"
-                    >
-                      <thead style={{ textAlign: 'center', position: 'relative' }}>
-                        <tr>
-                          <div
-                            style={{
-                              position: 'absolute',
-                              top: '1.5rem',
-                              left: '50%',
-                              transform: 'translateX(-50%)',
-                              fontWeight: 'bold',
-                              fontSize: '13px',
-                              fontFamily: 'Arial, "Times New Roman", serif',
-                            }}
-                          >
-                            Republic of the Philippines
-                          </div>
+                    {(() => {
+                      const dataFontSize = '10px';
+                      const rowHeight = '16px';
 
-                          <td
-                            colSpan="1"
-                            style={{
-                              position: 'relative',
-                              padding: '0',
-                              lineHeight: '0',
-                              height: '0px',
-                              textAlign: 'right',
-                              marginRight: '0',
-                            }}
-                          >
-                            <img
-                              src={earistLogo}
-                              alt="EARIST Logo"
-                              width="55"
-                              height="55"
+                      const renderHeader = () => (
+                        <thead
+                          style={{ textAlign: 'center', position: 'relative' }}
+                        >
+                          <tr>
+                            <div
                               style={{
                                 position: 'absolute',
-                                marginTop: '-14%',
-                                left: '60%',
-                              }}
-                            />
-                          </td>
-                          <td colSpan="3">
-                            <p
-                              style={{
-                                marginTop: '15%',
-                                fontSize: '15px',
+                                paddingTop: '25px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
                                 fontWeight: 'bold',
-                                textAlign: 'center',
-                                marginLeft: '20%',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              EULOGIO "AMANG" RODRIGUEZ <br /> INSTITUTE OF
-                              SCIENCE & TECHNOLOGY
-                            </p>
-                          </td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                        </tr>
-                        <tr>
-                          <td colSpan="9">
-                            <p
-                              style={{
-                                fontSize: '14px',
-                                fontWeight: 'bold',
-                                lineHeight: '0',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              Nagtahan, Sampaloc Manila
-                            </p>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td colSpan="9">
-                            <p
-                              style={{
                                 fontSize: '12px',
-                                fontWeight: 'bold',
-                                lineHeight: '0',
                                 fontFamily: 'Arial, "Times New Roman", serif',
+                                width: '100%',
                               }}
                             >
-                              Civil Service Form No. 48
-                            </p>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td colSpan="9" style={{ padding: '2', lineHeight: '0' }}>
-                            <h4
-                              style={{
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                                textAlign: 'center',
-                                marginTop: '15px',
-                                fontWeight: 'bold',
-                                fontSize: '20px',
-                              }}
-                            >
-                              DAILY TIME RECORD
-                            </h4>
-                          </td>
-                        </tr>
-                        <tr style={{ position: 'relative' }}>
-                          <td colSpan="3" style={{ padding: '2', lineHeight: '0' }}>
-                            <p
-                              style={{
-                                fontSize: '15px',
-                                margin: '0',
-                                height: '20px',
-                                textAlign: 'left',
-                                padding: '0 1rem',
-                                marginTop: '6%',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              NAME: <b>{employeeName}</b>
-                            </p>
-                          </td>
-                          <td></td>
-                        </tr>
-                        <tr>
-                          <td colSpan="5" style={{ padding: '2', lineHeight: '0' }}>
-                            <p
-                              style={{
-                                fontSize: '15px',
-                                margin: '0',
-                                height: '10px',
-                                paddingLeft: '1rem',
-                                textAlign: 'Left',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              Covered Dates:{' '}
-                              <b>
-                                {formattedStartDate} - {formattedEndDate}
-                              </b>
-                            </p>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td colSpan="3" style={{ padding: '2', lineHeight: '2', textAlign: 'left' }}>
-                            <p
-                              style={{
-                                fontSize: '15px',
-                                margin: '0',
-                                paddingLeft: '1rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              For the month of:{' '}
-                              <b>{startDate ? formatMonth(startDate) : ''}</b>
-                            </p>
-                          </td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                        </tr>
-                        <tr>
-                          <td
-                            style={{
-                              fontSize: '15px',
-                              margin: '0',
-                              height: '10px',
-                              position: 'absolute',
-                              paddingLeft: '1rem',
-                              textAlign: 'left',
-                              fontFamily: 'Arial, "Times New Roman", serif',
-                            }}
-                          >
-                            Official hours for arrival (regular day) and
-                            departure
-                          </td>
-                        </tr>
-                        
-                        {/* Empty rows for spacing */}
-                        {Array.from({ length: 15 }, (_, i) => (
-                          <tr key={`empty1-${i}`}>
-                            <td colSpan="3"></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                          </tr>
-                        ))}
-                        
-                        <tr style={{ position: 'relative' }}>
-                          <td></td>
-                          <td></td>
-                          <td style={{ position: 'absolute', display: 'flex', flexDirection: 'column', right: '50%', gap: '1px', paddingBottom: '5rem', fontFamily: 'Arial, "Times New Roman", serif' }}>
-                            Regular days M-TH
-                          </td>
-                          <td></td>
-                          <td></td>
-                          <td
-                            style={{
-                              position: 'absolute',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              right: '5%',
-                              gap: '1px',
-                              paddingBottom: '2rem',
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                margin: '0',
-                                height: '10px',
-                                textAlign: 'Left',
-                                fontSize: '0.8rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              M - {officialTimes['Monday']?.officialTimeIN || '00:00:00'} - {officialTimes['Monday']?.officialTimeOUT || '00:00:00'}
+                              Republic of the Philippines
                             </div>
-
-                            <div
+                            <td
+                              colSpan="1"
                               style={{
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                margin: '0',
-                                height: '10px',
-                                textAlign: 'left',
-                                fontSize: '0.8rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
+                                position: 'relative',
+                                width: '60px', // Fixed width for logo column
                               }}
                             >
-                              T - {officialTimes['Tuesday']?.officialTimeIN || '00:00:00'} - {officialTimes['Tuesday']?.officialTimeOUT || '00:00:00'}
-                            </div>
-
-                            <div
-                              style={{
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                margin: '0',
-                                height: '10px',
-                                textAlign: 'Left',
-                                fontSize: '0.8rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              W - {officialTimes['Wednesday']?.officialTimeIN || '00:00:00'} - {officialTimes['Wednesday']?.officialTimeOUT || '00:00:00'}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                margin: '0',
-                                height: '10px',
-                                textAlign: 'left',
-                                fontSize: '0.8rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              TH - {officialTimes['Thursday']?.officialTimeIN || '00:00:00'} - {officialTimes['Thursday']?.officialTimeOUT || '00:00:00'}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                margin: '0',
-                                height: '10px',
-                                textAlign: 'Left',
-                                fontSize: '0.8rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              F - {officialTimes['Friday']?.officialTimeIN || '00:00:00'} - {officialTimes['Friday']?.officialTimeOUT || '00:00:00'}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                margin: '0',
-                                height: '10px',
-                                textAlign: 'Left',
-                                fontSize: '0.8rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              SAT - {officialTimes['Saturday']?.officialTimeIN || '00:00:00'} - {officialTimes['Saturday']?.officialTimeOUT || '00:00:00'}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                margin: '0',
-                                height: '10px',
-                                textAlign: 'Left',
-                                fontSize: '0.8rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              SUN - {officialTimes['Sunday']?.officialTimeIN || '00:00:00'} - {officialTimes['Sunday']?.officialTimeOUT || '00:00:00'}
-                            </div>
-                          </td>
-                          <td></td>
-                          <td></td>
-                        </tr>
-
-                        {/* Empty rows for spacing */}
-                        {Array.from({ length: 10 }, (_, i) => (
-                          <tr key={`empty2-${i}`}>
-                            <td colSpan="3"></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                          </tr>
-                        ))}
-
-                        <tr>
-                          <td colSpan="3" style={{ position: 'absolute', display: 'flex', justifyContent: 'left', flexDirection: 'column', right: '58.2%', gap: '1px', paddingBottom: '5rem', fontFamily: 'Arial, "Times New Roman", serif' }}>
-                            Saturdays
-                          </td>
-                          <td></td>
-                          <td></td>
-                        </tr>
-
-                        {/* Empty rows for spacing */}
-                        {Array.from({ length: 50 }, (_, i) => (
-                          <tr key={`empty3-${i}`}>
-                            <td colSpan="3"></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                          </tr>
-                        ))}
-                      </thead>
-                      <tr>
-                        <th
-                          rowSpan="2"
-                          style={{
-                            textAlign: 'center',
-                            verticalAlign: 'middle',
-                            border: '1px solid black',
-                            fontFamily: 'Arial, "Times New Roman", serif',
-                          }}
-                          className="dtr-responsive-header"
-                        >
-                          DAY
-                        </th>
-                        <th colSpan="2" style={{ border: '1px solid black', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-header">
-                          A.M.
-                        </th>
-                        <th colSpan="2" style={{ border: '1px solid black', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-header">
-                          P.M.
-                        </th>
-                        <th style={{ border: '1px solid black', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-header">Late</th>
-                        <th style={{ border: '1px solid black', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-header">Undertime</th>
-                      </tr>
-                      <tr style={{ textAlign: 'center' }}>
-                        <td style={{ border: '1px solid black', whiteSpace: 'nowrap', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-cell">Arrival</td>
-                        <td style={{ border: '1px solid black', whiteSpace: 'nowrap', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-cell">Departure</td>
-                        <td style={{ border: '1px solid black', whiteSpace: 'nowrap', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-cell">Arrival</td>
-                        <td style={{ border: '1px solid black', whiteSpace: 'nowrap', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-cell">Departure</td>
-                        <td style={{ border: '1px solid black', whiteSpace: 'nowrap', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-cell">Minutes</td>
-                        <td style={{ border: '1px solid black', whiteSpace: 'nowrap', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-cell">Minutes</td>
-                      </tr>
-
-                      <tbody>
-                        {Array.from({ length: 31 }, (_, i) => {
-                          const day = (i + 1).toString().padStart(2, '0');
-                          const record = records.find((r) =>
-                            r.date.endsWith(`-${day}`)
-                          );
-
-                          return (
-                            <tr key={i}>
-                              <td
+                              <img
+                                src={earistLogo}
+                                alt="Logo"
+                                width="50"
+                                height="50"
                                 style={{
-                                  border: '1px solid black',
-                                  textAlign: 'center',
-                                  padding: '4px 8px',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                                className="dtr-responsive-cell"
-                              >
-                                {day}
-                              </td>
-                              <td
-                                style={{
-                                  border: '1px solid black',
-                                  textAlign: 'center',
-                                  whiteSpace: 'nowrap',
-                                  padding: '4px 8px',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                                className="dtr-time-cell"
-                              >
-                                {formatTime(record?.timeIN || '')}
-                              </td>
-                              <td
-                                style={{
-                                  border: '1px solid black',
-                                  textAlign: 'center',
-                                  whiteSpace: 'nowrap',
-                                  padding: '4px 8px',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                                className="dtr-time-cell"
-                              >
-                                {formatTime(record?.breaktimeIN || '')}
-                              </td>
-                              <td
-                                style={{
-                                  border: '1px solid black',
-                                  textAlign: 'center',
-                                  whiteSpace: 'nowrap',
-                                  padding: '4px 8px',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                                className="dtr-time-cell"
-                              >
-                                {formatTime(record?.breaktimeOUT || '')}
-                              </td>
-                              <td
-                                style={{
-                                  border: '1px solid black',
-                                  textAlign: 'center',
-                                  whiteSpace: 'nowrap',
-                                  padding: '4px 8px',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                                className="dtr-time-cell"
-                              >
-                                {formatTime(record?.timeOUT || '')}
-                              </td>
-                              <td
-                                style={{
-                                  border: '1px solid black',
-                                  textAlign: 'center',
-                                  padding: '4px 8px',
-                                  whiteSpace: 'nowrap',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                                className="dtr-responsive-cell"
-                              >
-                                {record?.minutes || ''}
-                              </td>
-                              <td
-                                style={{
-                                  border: '1px solid black',
-                                  textAlign: 'center',
-                                  padding: '4px 8px',
-                                  whiteSpace: 'nowrap',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                                className="dtr-responsive-cell"
-                              >
-                                {record?.minutes || ''}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        <tr>
-                          <td colSpan="9" style={{ padding: '20px 10px 10px 10px' }}>
-                            <div>
-                              <hr
-                                style={{
-                                  borderTop: '3px solid black',
-                                  width: '98%',
-                                  margin: '0 auto',
+                                  position: 'absolute',
+                                  top: '25px',
+                                  right: '10px',
                                 }}
                               />
+                            </td>
+                            <td
+                              colSpan="5"
+                              style={{
+                                verticalAlign: 'bottom',
+                                paddingBottom: '5px',
+                                paddingRight: '70px',
+                              }}
+                            >
                               <p
                                 style={{
-                                  textAlign: 'justify',
-                                  width: '95%',
-                                  margin: '10px auto 0 auto',
-                                  fontSize: '11px',
-                                  lineHeight: '1.4',
+                                  margin: '0',
+                                  fontSize: '11.50px',
+                                  fontWeight: 'bold',
+                                  textAlign: 'center',
+                                  width: '100%',
                                   fontFamily: 'Arial, "Times New Roman", serif',
+                                  lineHeight: '1.2',
+                                  paddingTop: '40px',
                                 }}
                               >
-                                I certify on my honor that the above is a true
-                                and correct report of the hours of work
-                                performed, record of which was made daily at the
-                                time of arrival and departure from office.
+                                EULOGIO "AMANG" RODRIGUEZ <br /> INSTITUTE OF
+                                SCIENCE & TECHNOLOGY
                               </p>
-                              <hr
-                                style={{
-                                  borderTop: '1px double black',
-                                  width: '94%',
-                                  margin: '15px auto 0 auto',
-                                }}
-                              />
+                            </td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                          </tr>
+                          <tr>
+                            <td colSpan="9">
                               <p
                                 style={{
+                                  fontSize: '11px',
+                                  fontWeight: 'bold',
+                                  marginTop: '-2%',
+                                  fontFamily: 'Arial, serif',
+                                }}
+                              >
+                                Nagtahan, Sampaloc Manila
+                              </p>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td colSpan="9">
+                              <p
+                                style={{
+                                  fontSize: '8px',
+                                  fontWeight: 'bold',
+                                  paddingTop: '-2px',
+                                  fontFamily: 'Arial, serif',
+                                }}
+                              >
+                                Civil Service Form No. 48
+                              </p>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td
+                              colSpan="9"
+                              style={{ padding: '2', lineHeight: '0' }}
+                            >
+                              <h4
+                                style={{
+                                  fontFamily: 'Arial, serif',
                                   textAlign: 'center',
                                   marginTop: '10px',
-                                  fontSize: '11px',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
+                                  fontWeight: 'bold',
+                                  fontSize: '16px',
                                 }}
                               >
-                                Verified as to prescribe office hours.
-                              </p>
-                              <hr
+                                DAILY TIME RECORD
+                              </h4>
+                            </td>
+                          </tr>
+                          <tr style={{ position: 'relative' }}>
+                            <td
+                              colSpan="5"
+                              style={{ padding: '2', lineHeight: '0' }}
+                            >
+                              <p
                                 style={{
-                                  borderTop: '1px solid black',
-                                  width: '94%',
-                                  margin: '10px auto 0 auto',
-                                  marginBottom: '10px',
+                                  fontSize: '11px',
+                                  margin: '0',
+                                  height: '20px',
+                                  textAlign: 'left',
+                                  padding: '0 5px',
+                                  marginTop: '6%',
+                                  fontFamily: 'Arial, serif',
                                 }}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-
-                    {/* Second Table - Duplicate */}
-                    <table
-                      style={{
-                        border: '1px solid black',
-                        borderCollapse: 'collapse',
-                        width: '47%',
-                      }}
-                      className="print-visble"
-                    >
-                      <thead style={{ textAlign: 'center', position: 'relative' }}>
-                        <tr>
-                          <div
-                            style={{
-                              position: 'absolute',
-                              top: '1.5rem',
-                              left: '50%',
-                              transform: 'translateX(-50%)',
-                              fontWeight: 'bold',
-                              fontSize: '13px',
-                              fontFamily: 'Arial, "Times New Roman", serif',
-                            }}
-                          >
-                            Republic of the Philippines
-                          </div>
-
-                          <td
-                            colSpan="1"
-                            style={{
-                              position: 'relative',
-                              padding: '0',
-                              lineHeight: '0',
-                              height: '0px',
-                              textAlign: 'right',
-                              marginRight: '0',
-                            }}
-                          >
-                            <img
-                              src={earistLogo}
-                              alt="EARIST Logo"
-                              width="55"
-                              height="55"
+                              >
+                                NAME: <b>{employeeName}</b>
+                              </p>
+                            </td>
+                            <td></td>
+                          </tr>
+                          <tr>
+                            <td
+                              colSpan="9"
+                              style={{ padding: '2', lineHeight: '0' }}
+                            >
+                              <p
+                                style={{
+                                  fontSize: '11px',
+                                  margin: '0',
+                                  height: '10px',
+                                  paddingLeft: '5px',
+                                  textAlign: 'Left',
+                                  fontFamily: 'Arial, serif',
+                                }}
+                              >
+                                Covered Dates:{' '}
+                                <b>
+                                  {formattedStartDate} - {formattedEndDate}
+                                </b>
+                              </p>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td
+                              colSpan="9"
+                              style={{
+                                padding: '2',
+                                lineHeight: '2',
+                                textAlign: 'left',
+                              }}
+                            >
+                              <p
+                                style={{
+                                  fontSize: '11px',
+                                  margin: '0',
+                                  paddingLeft: '5px',
+                                  fontFamily: 'Arial, serif',
+                                }}
+                              >
+                                For the month of:{' '}
+                                <b>{startDate ? formatMonth(startDate) : ''}</b>
+                              </p>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td
+                              style={{
+                                fontSize: '10px',
+                                margin: '0',
+                                height: '10px',
+                                position: 'absolute',
+                                paddingLeft: '5px',
+                                textAlign: 'left',
+                                fontFamily: 'Arial, serif',
+                              }}
+                            >
+                              Official hours for arrival (regular day) and
+                              departure
+                            </td>
+                          </tr>
+                          {Array.from({ length: 15 }, (_, i) => (
+                            <tr key={`empty1-${i}`}>
+                              <td colSpan="3"></td>
+                              <td></td>
+                              <td></td>
+                              <td></td>
+                            </tr>
+                          ))}
+                          <tr style={{ position: 'relative' }}>
+                            <td></td>
+                            <td></td>
+                            <td
                               style={{
                                 position: 'absolute',
-                                marginTop: '-14%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                left: '5%',
+                                gap: '1px',
+                                paddingBottom: '5rem',
+                                fontFamily: 'Arial, serif',
+                                fontSize: '10px',
+                                whiteSpace: 'nowrap',
+                                top: '-10px',
+                              }}
+                            >
+                              Regular days M-TH
+                            </td>
+                            <td></td>
+                            <td></td>
+                            <td
+                              style={{
+                                position: 'absolute',
                                 left: '60%',
-                              }}
-                            />
-                          </td>
-                          <td colSpan="3">
-                            <p
-                              style={{
-                                marginTop: '15%',
-                                fontSize: '15px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '2px',
+                                paddingBottom: '2rem',
+                                fontFamily: 'Arial, serif',
+                                fontSize: '9px',
                                 fontWeight: 'bold',
-                                textAlign: 'center',
-                                marginLeft: '23%',
-                                fontFamily: 'Arial, "Times New Roman", serif',
+                                width: '200px',
+                                top: '-70px',
                               }}
                             >
-                              EULOGIO "AMANG" RODRIGUEZ <br /> INSTITUTE OF
-                              SCIENCE & TECHNOLOGY
-                            </p>
-                          </td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                        </tr>
-                        <tr>
-                          <td colSpan="9">
-                            <p
-                              style={{
-                                fontSize: '14px',
-                                fontWeight: 'bold',
-                                lineHeight: '0',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              Nagtahan, Sampaloc Manila
-                            </p>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td colSpan="9">
-                            <p
-                              style={{
-                                fontSize: '12px',
-                                fontWeight: 'bold',
-                                lineHeight: '0',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              Civil Service Form No. 48
-                            </p>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td colSpan="9" style={{ padding: '2', lineHeight: '0' }}>
-                            <h4
-                              style={{
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                                textAlign: 'center',
-                                marginTop: '15px',
-                                fontWeight: 'bold',
-                                fontSize: '20px',
-                              }}
-                            >
-                              DAILY TIME RECORD
-                            </h4>
-                          </td>
-                        </tr>
-                        <tr style={{ position: 'relative' }}>
-                          <td colSpan="3" style={{ padding: '2', lineHeight: '0' }}>
-                            <p
-                              style={{
-                                fontSize: '15px',
-                                margin: '0',
-                                height: '20px',
-                                textAlign: 'left',
-                                padding: '0 1rem',
-                                marginTop: '6%',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              NAME: <b>{employeeName}</b>
-                            </p>
-                          </td>
-                          <td></td>
-                        </tr>
-                        <tr>
-                          <td colSpan="5" style={{ padding: '2', lineHeight: '0' }}>
-                            <p
-                              style={{
-                                fontSize: '15px',
-                                margin: '0',
-                                height: '10px',
-                                paddingLeft: '1rem',
-                                textAlign: 'Left',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              Covered Dates:{' '}
-                              <b>
-                                {formattedStartDate} - {formattedEndDate}
-                              </b>
-                            </p>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td colSpan="3" style={{ padding: '2', lineHeight: '2', textAlign: 'left' }}>
-                            <p
-                              style={{
-                                fontSize: '15px',
-                                margin: '0',
-                                paddingLeft: '1rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              For the month of:{' '}
-                              <b>{startDate ? formatMonth(startDate) : ''}</b>
-                            </p>
-                          </td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                        </tr>
-                        <tr>
-                          <td
-                            style={{
-                              fontSize: '15px',
-                              margin: '0',
-                              height: '10px',
-                              position: 'absolute',
-                              paddingLeft: '1rem',
-                              textAlign: 'left',
-                              fontFamily: 'Arial, "Times New Roman", serif',
-                            }}
-                          >
-                            Official hours for arrival (regular day) and
-                            departure
-                          </td>
-                        </tr>
-                        
-                        {/* Empty rows for spacing */}
-                        {Array.from({ length: 15 }, (_, i) => (
-                          <tr key={`empty1-${i}`}>
-                            <td colSpan="3"></td>
-                            <td></td>
+                              {[
+                                'Monday',
+                                'Tuesday',
+                                'Wednesday',
+                                'Thursday',
+                                'Friday',
+                                'Saturday',
+                                'Sunday',
+                              ].map((d) => {
+                                const shortDay =
+                                  d === 'Thursday'
+                                    ? 'TH'
+                                    : d === 'Sunday'
+                                    ? 'SUN'
+                                    : d === 'Saturday'
+                                    ? 'SAT'
+                                    : d.charAt(0);
+                                return (
+                                  <div
+                                    key={d}
+                                    style={{
+                                      display: 'flex',
+                                      justifyContent: 'flex-start',
+                                      gap: '5px',
+                                    }}
+                                  >
+                                    <span style={{ width: '25px' }}>
+                                      {shortDay} -
+                                    </span>
+                                    <span>
+                                      {officialTimes[d]?.officialTimeIN ||
+                                        '00:00:00'}{' '}
+                                      -{' '}
+                                      {officialTimes[d]?.officialTimeOUT ||
+                                        '00:00:00'}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </td>
                             <td></td>
                             <td></td>
                           </tr>
-                        ))}
-                        
-                        <tr style={{ position: 'relative' }}>
-                          <td></td>
-                          <td></td>
-                          <td style={{ position: 'absolute', display: 'flex', flexDirection: 'column', right: '50%', gap: '1px', paddingBottom: '5rem', fontFamily: 'Arial, "Times New Roman", serif' }}>
-                            Regular days M-TH
-                          </td>
-                          <td></td>
-                          <td></td>
-                          <td
-                            style={{
-                              position: 'absolute',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              right: '5%',
-                              gap: '1px',
-                              paddingBottom: '2rem',
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                margin: '0',
-                                height: '10px',
-                                textAlign: 'Left',
-                                fontSize: '0.8rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              M - {officialTimes['Monday']?.officialTimeIN || '00:00:00'} - {officialTimes['Monday']?.officialTimeOUT || '00:00:00'}
-                            </div>
-
-                            <div
-                              style={{
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                margin: '0',
-                                height: '10px',
-                                textAlign: 'left',
-                                fontSize: '0.8rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              T - {officialTimes['Tuesday']?.officialTimeIN || '00:00:00'} - {officialTimes['Tuesday']?.officialTimeOUT || '00:00:00'}
-                            </div>
-
-                            <div
-                              style={{
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                margin: '0',
-                                height: '10px',
-                                textAlign: 'Left',
-                                fontSize: '0.8rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              W - {officialTimes['Wednesday']?.officialTimeIN || '00:00:00'} - {officialTimes['Wednesday']?.officialTimeOUT || '00:00:00'}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                margin: '0',
-                                height: '10px',
-                                textAlign: 'left',
-                                fontSize: '0.8rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              TH - {officialTimes['Thursday']?.officialTimeIN || '00:00:00'} - {officialTimes['Thursday']?.officialTimeOUT || '00:00:00'}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                margin: '0',
-                                height: '10px',
-                                textAlign: 'Left',
-                                fontSize: '0.8rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              F - {officialTimes['Friday']?.officialTimeIN || '00:00:00'} - {officialTimes['Friday']?.officialTimeOUT || '00:00:00'}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                margin: '0',
-                                height: '10px',
-                                textAlign: 'Left',
-                                fontSize: '0.8rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              SAT - {officialTimes['Saturday']?.officialTimeIN || '00:00:00'} - {officialTimes['Saturday']?.officialTimeOUT || '00:00:00'}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                margin: '0',
-                                height: '10px',
-                                textAlign: 'Left',
-                                fontSize: '0.8rem',
-                                fontFamily: 'Arial, "Times New Roman", serif',
-                              }}
-                            >
-                              SUN - {officialTimes['Sunday']?.officialTimeIN || '00:00:00'} - {officialTimes['Sunday']?.officialTimeOUT || '00:00:00'}
-                            </div>
-                          </td>
-                          <td></td>
-                          <td></td>
-                        </tr>
-
-                        {/* Empty rows for spacing */}
-                        {Array.from({ length: 10 }, (_, i) => (
-                          <tr key={`empty2-${i}`}>
-                            <td colSpan="3"></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                          </tr>
-                        ))}
-
-                        <tr>
-                          <td colSpan="3" style={{ position: 'absolute', display: 'flex', justifyContent: 'left', flexDirection: 'column', right: '58.2%', gap: '1px', paddingBottom: '5rem', fontFamily: 'Arial, "Times New Roman", serif' }}>
-                            Saturdays
-                          </td>
-                          <td></td>
-                          <td></td>
-                        </tr>
-
-                        {/* Empty rows for spacing */}
-                        {Array.from({ length: 50 }, (_, i) => (
-                          <tr key={`empty3-${i}`}>
-                            <td colSpan="3"></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                          </tr>
-                        ))}
-                      </thead>
-                      <tr>
-                        <th
-                          rowSpan="2"
-                          style={{
-                            textAlign: 'center',
-                            verticalAlign: 'middle',
-                            border: '1px solid black',
-                            fontFamily: 'Arial, "Times New Roman", serif',
-                          }}
-                          className="dtr-responsive-header"
-                        >
-                          DAY
-                        </th>
-                        <th colSpan="2" style={{ border: '1px solid black', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-header">
-                          A.M.
-                        </th>
-                        <th colSpan="2" style={{ border: '1px solid black', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-header">
-                          P.M.
-                        </th>
-                        <th style={{ border: '1px solid black', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-header">Late</th>
-                        <th style={{ border: '1px solid black', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-header">Undertime</th>
-                      </tr>
-                      <tr style={{ textAlign: 'center' }}>
-                        <td style={{ border: '1px solid black', whiteSpace: 'nowrap', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-cell">Arrival</td>
-                        <td style={{ border: '1px solid black', whiteSpace: 'nowrap', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-cell">Departure</td>
-                        <td style={{ border: '1px solid black', whiteSpace: 'nowrap', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-cell">Arrival</td>
-                        <td style={{ border: '1px solid black', whiteSpace: 'nowrap', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-cell">Departure</td>
-                        <td style={{ border: '1px solid black', whiteSpace: 'nowrap', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-cell">Hours</td>
-                        <td style={{ border: '1px solid black', whiteSpace: 'nowrap', fontFamily: 'Arial, "Times New Roman", serif' }} className="dtr-responsive-cell">Minutes</td>
-                      </tr>
-
-                      <tbody>
-                        {Array.from({ length: 31 }, (_, i) => {
-                          const day = (i + 1).toString().padStart(2, '0');
-                          const record = records.find((r) =>
-                            r.date.endsWith(`-${day}`)
-                          );
-
-                          return (
-                            <tr key={i}>
-                              <td
-                                style={{
-                                  border: '1px solid black',
-                                  textAlign: 'center',
-                                  padding: '4px 8px',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                                className="dtr-responsive-cell"
-                              >
-                                {day}
-                              </td>
-                              <td
-                                style={{
-                                  border: '1px solid black',
-                                  textAlign: 'center',
-                                  whiteSpace: 'nowrap',
-                                  padding: '4px 8px',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                                className="dtr-time-cell"
-                              >
-                                {formatTime(record?.timeIN || '')}
-                              </td>
-                              <td
-                                style={{
-                                  border: '1px solid black',
-                                  textAlign: 'center',
-                                  whiteSpace: 'nowrap',
-                                  padding: '4px 8px',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                                className="dtr-time-cell"
-                              >
-                                {formatTime(record?.breaktimeIN || '')}
-                              </td>
-                              <td
-                                style={{
-                                  border: '1px solid black',
-                                  textAlign: 'center',
-                                  whiteSpace: 'nowrap',
-                                  padding: '4px 8px',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                                className="dtr-time-cell"
-                              >
-                                {formatTime(record?.breaktimeOUT || '')}
-                              </td>
-                              <td
-                                style={{
-                                  border: '1px solid black',
-                                  textAlign: 'center',
-                                  whiteSpace: 'nowrap',
-                                  padding: '4px 8px',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                                className="dtr-time-cell"
-                              >
-                                {formatTime(record?.timeOUT || '')}
-                              </td>
-                              <td
-                                style={{
-                                  border: '1px solid black',
-                                  textAlign: 'center',
-                                  padding: '4px 8px',
-                                  whiteSpace: 'nowrap',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                                className="dtr-responsive-cell"
-                              >
-                                {record?.hours || ''}
-                              </td>
-                              <td
-                                style={{
-                                  border: '1px solid black',
-                                  textAlign: 'center',
-                                  padding: '4px 8px',
-                                  whiteSpace: 'nowrap',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                                className="dtr-responsive-cell"
-                              >
-                                {record?.minutes || ''}
-                              </td>
+                          {Array.from({ length: 8 }, (_, i) => (
+                            <tr key={`empty2-${i}`}>
+                              <td colSpan="3"></td>
+                              <td></td>
+                              <td></td>
+                              <td></td>
                             </tr>
-                          );
-                        })}
-                        <tr>
-                          <td colSpan="9" style={{ padding: '20px 10px 10px 10px' }}>
-                            <div>
-                              <hr
-                                style={{
-                                  borderTop: '3px solid black',
-                                  width: '98%',
-                                  margin: '0 auto',
-                                }}
-                              />
-                              <p
-                                style={{
-                                  textAlign: 'justify',
-                                  width: '95%',
-                                  margin: '10px auto 0 auto',
-                                  fontSize: '11px',
-                                  lineHeight: '1.4',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                              >
-                                I certify on my honor that the above is a true
-                                and correct report of the hours of work
-                                performed, record of which was made daily at the
-                                time of arrival and departure from office.
-                              </p>
-                              <hr
-                                style={{
-                                  borderTop: '1px double black',
-                                  width: '94%',
-                                  margin: '15px auto 0 auto',
-                                }}
-                              />
-                              <p
-                                style={{
-                                  textAlign: 'center',
-                                  marginTop: '10px',
-                                  fontSize: '11px',
-                                  fontFamily: 'Arial, "Times New Roman", serif',
-                                }}
-                              >
-                                Verified as to prescribe office hours.
-                              </p>
-                              <hr
-                                style={{
-                                  borderTop: '1px solid black',
-                                  width: '94%',
-                                  margin: '10px auto 0 auto',
-                                  marginBottom: '10px',
-                                  marginRight: '20px',
-                                }}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                          ))}
+                          <tr>
+                            <td
+                              style={{
+                                position: 'absolute',
+                                left: '5%',
+                                fontSize: '10px',
+                                fontFamily: 'Arial, serif',
+                                top: '260px',
+                              }}
+                            >
+                              Saturdays
+                            </td>
+                          </tr>
+                          {Array.from({ length: 2 }, (_, i) => (
+                            <tr key={`empty3-${i}`}>
+                              <td colSpan="3"></td>
+                              <td></td>
+                              <td></td>
+                              <td></td>
+                            </tr>
+                          ))}
+                          <tr>
+                            <th
+                              rowSpan="2"
+                              style={{
+                                border: '1px solid black',
+                                fontFamily: 'Arial, serif',
+                                fontSize: dataFontSize,
+                              }}
+                            >
+                              DAY
+                            </th>
+                            <th
+                              colSpan="2"
+                              style={{
+                                border: '1px solid black',
+                                fontFamily: 'Arial, serif',
+                                fontSize: dataFontSize,
+                              }}
+                            >
+                              A.M.
+                            </th>
+                            <th
+                              colSpan="2"
+                              style={{
+                                border: '1px solid black',
+                                fontFamily: 'Arial, serif',
+                                fontSize: dataFontSize,
+                              }}
+                            >
+                              P.M.
+                            </th>
+                            <th
+                              style={{
+                                border: '1px solid black',
+                                fontFamily: 'Arial, serif',
+                                fontSize: dataFontSize,
+                              }}
+                            >
+                              Late
+                            </th>
+                            <th
+                              style={{
+                                border: '1px solid black',
+                                fontFamily: 'Arial, serif',
+                                fontSize: dataFontSize,
+                              }}
+                            >
+                              Undertime
+                            </th>
+                          </tr>
+                          <tr style={{ textAlign: 'center' }}>
+                            <td
+                              style={{
+                                border: '1px solid black',
+                                fontSize: '9px',
+                                fontFamily: 'Arial, serif',
+                              }}
+                            >
+                              Arrival
+                            </td>
+                            <td
+                              style={{
+                                border: '1px solid black',
+                                fontSize: '9px',
+                                fontFamily: 'Arial, serif',
+                              }}
+                            >
+                              Departure
+                            </td>
+                            <td
+                              style={{
+                                border: '1px solid black',
+                                fontSize: '9px',
+                                fontFamily: 'Arial, serif',
+                              }}
+                            >
+                              Arrival
+                            </td>
+                            <td
+                              style={{
+                                border: '1px solid black',
+                                fontSize: '9px',
+                                fontFamily: 'Arial, serif',
+                              }}
+                            >
+                              Departure
+                            </td>
+                            <td
+                              style={{
+                                border: '1px solid black',
+                                fontSize: '9px',
+                                fontFamily: 'Arial, serif',
+                              }}
+                            >
+                              Min
+                            </td>
+                            <td
+                              style={{
+                                border: '1px solid black',
+                                fontSize: '9px',
+                                fontFamily: 'Arial, serif',
+                              }}
+                            >
+                              Min
+                            </td>
+                          </tr>
+                        </thead>
+                      );
+
+                      const cellStyle = {
+                        border: '1px solid black',
+                        textAlign: 'center',
+                        padding: '0 2px',
+                        fontFamily: 'Arial, serif',
+                        fontSize: dataFontSize,
+                        height: rowHeight,
+                        whiteSpace: 'nowrap',
+                      };
+
+                      return (
+                        <>
+                          {/* ================= TABLE 1 ================= */}
+                          <table
+                            style={{
+                              border: '1px solid black',
+                              borderCollapse: 'collapse',
+                              width: '49%',
+                              tableLayout: 'fixed',
+                            }}
+                            className="print-visble"
+                          >
+                            {renderHeader()}
+                            <tbody>
+                              {Array.from({ length: 31 }, (_, i) => {
+                                const day = (i + 1).toString().padStart(2, '0');
+                                const record = records.find((r) =>
+                                  r.date.endsWith(`-${day}`)
+                                );
+                                return (
+                                  <tr key={i}>
+                                    <td style={cellStyle}>{day}</td>
+                                    <td style={cellStyle}>
+                                      {formatTime(record?.timeIN || '')}
+                                    </td>
+                                    <td style={cellStyle}>
+                                      {formatTime(record?.breaktimeIN || '')}
+                                    </td>
+                                    <td style={cellStyle}>
+                                      {formatTime(record?.breaktimeOUT || '')}
+                                    </td>
+                                    <td style={cellStyle}>
+                                      {formatTime(record?.timeOUT || '')}
+                                    </td>
+                                    <td style={cellStyle}>
+                                      {record?.minutes || ''}
+                                    </td>
+                                    <td style={cellStyle}>
+                                      {record?.minutes || ''}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                              <tr>
+                                <td colSpan="7" style={{ padding: '10px 5px' }}>
+                                  <hr
+                                    style={{
+                                      borderTop: '2px solid black',
+                                      width: '100%',
+                                    }}
+                                  />
+                                  <p
+                                    style={{
+                                      textAlign: 'justify',
+                                      fontSize: '9px',
+                                      lineHeight: '1.1',
+                                      fontFamily: 'Arial, serif',
+                                      margin: '5px 0',
+                                    }}
+                                  >
+                                    I certify on my honor that the above is a
+                                    true and correct report of the hours of work
+                                    performed...
+                                  </p>
+                                  <hr
+                                    style={{
+                                      borderTop: '1px solid black',
+                                      width: '100%',
+                                      marginTop: '15px',
+                                    }}
+                                  />
+                                  <p
+                                    style={{
+                                      textAlign: 'center',
+                                      fontSize: '9px',
+                                      fontFamily: 'Arial, serif',
+                                    }}
+                                  >
+                                    Verified as to prescribed office hours.
+                                  </p>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+
+                          {/* ================= TABLE 2 ================= */}
+                          <table
+                            style={{
+                              border: '1px solid black',
+                              borderCollapse: 'collapse',
+                              width: '49%',
+                              tableLayout: 'fixed',
+                            }}
+                            className="print-visble"
+                          >
+                            {renderHeader()}
+                            <tbody>
+                              {Array.from({ length: 31 }, (_, i) => {
+                                const day = (i + 1).toString().padStart(2, '0');
+                                const record = records.find((r) =>
+                                  r.date.endsWith(`-${day}`)
+                                );
+                                return (
+                                  <tr key={i}>
+                                    <td style={cellStyle}>{day}</td>
+                                    <td style={cellStyle}>
+                                      {formatTime(record?.timeIN || '')}
+                                    </td>
+                                    <td style={cellStyle}>
+                                      {formatTime(record?.breaktimeIN || '')}
+                                    </td>
+                                    <td style={cellStyle}>
+                                      {formatTime(record?.breaktimeOUT || '')}
+                                    </td>
+                                    <td style={cellStyle}>
+                                      {formatTime(record?.timeOUT || '')}
+                                    </td>
+                                    <td style={cellStyle}>
+                                      {record?.hours || ''}
+                                    </td>
+                                    <td style={cellStyle}>
+                                      {record?.minutes || ''}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                              <tr>
+                                <td colSpan="7" style={{ padding: '10px 5px' }}>
+                                  <hr
+                                    style={{
+                                      borderTop: '2px solid black',
+                                      width: '100%',
+                                    }}
+                                  />
+                                  <p
+                                    style={{
+                                      textAlign: 'justify',
+                                      fontSize: '9px',
+                                      lineHeight: '1.1',
+                                      fontFamily: 'Arial, serif',
+                                      margin: '5px 0',
+                                    }}
+                                  >
+                                    I certify on my honor that the above is a
+                                    true and correct report of the hours of work
+                                    performed...
+                                  </p>
+                                  <hr
+                                    style={{
+                                      borderTop: '1px solid black',
+                                      width: '100%',
+                                      marginTop: '15px',
+                                    }}
+                                  />
+                                  <p
+                                    style={{
+                                      textAlign: 'center',
+                                      fontSize: '9px',
+                                      fontFamily: 'Arial, serif',
+                                    }}
+                                  >
+                                    Verified as to prescribed office hours.
+                                  </p>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

@@ -4,6 +4,7 @@ import axios from 'axios';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SaveIcon from '@mui/icons-material/Save';
 import SearchIcon from '@mui/icons-material/Search';
+import { useCRUDButtonStyles } from '../../hooks/useCRUDButtonStyles';
 
 import {
   Typography,
@@ -973,12 +974,8 @@ const OfficialTimeForm = () => {
                       sx={{
                         py: 2,
                         px: 6,
-                        bgcolor: accentColor,
-                        color: primaryColor,
                         fontSize: '1rem',
-                        '&:hover': {
-                          bgcolor: accentDark,
-                        }
+                        ...saveButtonStyles
                       }}
                     >
                       {found ? 'Update' : 'Save'}

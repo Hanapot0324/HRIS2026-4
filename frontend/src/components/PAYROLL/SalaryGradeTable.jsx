@@ -563,12 +563,12 @@ const SalaryGradeTable = () => {
                     startIcon={<AddIcon />}
                     fullWidth
                     sx={{
-                      backgroundColor: accentColor,
-                      color: primaryColor,
                       py: 1.5,
                       fontSize: '1rem',
-                      "&:hover": { 
-                        backgroundColor: accentDark,
+                      backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                      color: settings.accentColor || '#FEF9E1',
+                      '&:hover': {
+                        backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
                       },
                     }}
                   >
@@ -636,9 +636,11 @@ const SalaryGradeTable = () => {
                   startIcon={<Shortcut />}
                   onClick={() => navigate('/item-table')}
                   sx={{
-                    backgroundColor: accentColor,
-                    color: primaryColor,
-                    "&:hover": { backgroundColor: accentDark },
+                    backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                    color: settings.accentColor || '#FEF9E1',
+                    '&:hover': {
+                      backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
+                    },
                   }}
                 >
                   Insert to Item Table
@@ -792,23 +794,33 @@ const SalaryGradeTable = () => {
                               variant="contained"
                               startIcon={<SaveIcon />}
                               sx={{
-                                backgroundColor: accentColor,
-                                color: primaryColor,
+                                backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                                color: settings.accentColor || '#FEF9E1',
                                 py: 0.5,
                                 fontSize: '0.8rem',
+                                minWidth: '80px',
+                                '&:hover': {
+                                  backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
+                                },
                               }}
                             >
                               Update
                             </ProfessionalButton>
                             <ProfessionalButton
                               onClick={() => setEditSalaryGradeId(null)}
-                              variant="contained"
+                              variant="outlined"
                               startIcon={<CancelIcon />}
                               sx={{
-                                backgroundColor: blackColor,
-                                color: primaryColor,
+                                borderColor: settings.cancelButtonColor || '#6c757d',
+                                color: settings.cancelButtonColor || '#6c757d',
                                 py: 0.5,
                                 fontSize: '0.8rem',
+                                minWidth: '80px',
+                                '&:hover': {
+                                  backgroundColor: alpha(settings.cancelButtonColor || '#6c757d', 0.1),
+                                  borderColor: settings.cancelButtonHoverColor || '#5a6268',
+                                  color: settings.cancelButtonHoverColor || '#5a6268',
+                                },
                               }}
                             >
                               Cancel
@@ -821,23 +833,33 @@ const SalaryGradeTable = () => {
                               variant="contained"
                               startIcon={<EditIcon />}
                               sx={{
-                                backgroundColor: accentColor,
-                                color: primaryColor,
+                                backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                                color: settings.accentColor || '#FEF9E1',
                                 py: 0.5,
                                 fontSize: '0.8rem',
+                                minWidth: '80px',
+                                '&:hover': {
+                                  backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
+                                },
                               }}
                             >
                               Edit
                             </ProfessionalButton>
                             <ProfessionalButton
                               onClick={() => deleteSalaryGrade(record.id)}
-                              variant="contained"
+                              variant="outlined"
                               startIcon={<DeleteIcon />}
                               sx={{
-                                backgroundColor: blackColor,
-                                color: primaryColor,
+                                borderColor: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                                color: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
                                 py: 0.5,
                                 fontSize: '0.8rem',
+                                minWidth: '80px',
+                                '&:hover': {
+                                  backgroundColor: alpha(settings.deleteButtonColor || settings.primaryColor || '#6d2323', 0.1),
+                                  borderColor: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
+                                  color: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
+                                },
                               }}
                             >
                               Delete

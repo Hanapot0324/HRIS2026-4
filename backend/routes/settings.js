@@ -64,6 +64,17 @@ router.get('/api/system-settings', (req, res) => {
             '© 2025 EARIST Manila - Human Resources Information System. All rights Reserved.',
           copyrightSymbol: '©', // Added copyrightSymbol
           enableWatermark: true,
+          // CRUD Button Colors
+          createButtonColor: '#6d2323',
+          createButtonHoverColor: '#a31d1d',
+          readButtonColor: '#6d2323',
+          readButtonHoverColor: '#a31d1d',
+          updateButtonColor: '#6d2323',
+          updateButtonHoverColor: '#a31d1d',
+          deleteButtonColor: '#6d2323',
+          deleteButtonHoverColor: '#a31d1d',
+          cancelButtonColor: '#6c757d',
+          cancelButtonHoverColor: '#5a6268',
         });
       }
 
@@ -74,6 +85,27 @@ router.get('/api/system-settings', (req, res) => {
           settings[row.setting_key] = row.setting_value === 'true';
         } else {
           settings[row.setting_key] = row.setting_value;
+        }
+      });
+
+      // Merge with default CRUD button colors if they don't exist
+      const defaultCRUDColors = {
+        createButtonColor: '#6d2323',
+        createButtonHoverColor: '#a31d1d',
+        readButtonColor: '#6d2323',
+        readButtonHoverColor: '#a31d1d',
+        updateButtonColor: '#6d2323',
+        updateButtonHoverColor: '#a31d1d',
+        deleteButtonColor: '#6d2323',
+        deleteButtonHoverColor: '#a31d1d',
+        cancelButtonColor: '#6c757d',
+        cancelButtonHoverColor: '#5a6268',
+      };
+
+      // Add missing CRUD button colors to settings
+      Object.keys(defaultCRUDColors).forEach(key => {
+        if (!settings[key]) {
+          settings[key] = defaultCRUDColors[key];
         }
       });
 

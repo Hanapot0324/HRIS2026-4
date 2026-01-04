@@ -497,7 +497,7 @@ const PayrollReleased = () => {
   const handleSaveToExcel = () => {
     // Create worksheet data
     const ws_data = [
-      // Header row (58 columns)
+      // Header row (56 columns)
       [
         'No.',
         'Department',
@@ -522,8 +522,6 @@ const PayrollReleased = () => {
         'PhilHealth',
         'Total Other Deductions',
         'Total Deductions',
-        '1st Pay',
-        '2nd Pay',
         'No.',
         'RT Ins.',
         'EC',
@@ -559,7 +557,7 @@ const PayrollReleased = () => {
         'Date Submitted',
       ],
       // Empty row after header
-      Array(58).fill(''),
+      Array(56).fill(''),
     ];
 
     // Add data rows with empty rows in between
@@ -602,8 +600,6 @@ const PayrollReleased = () => {
         toNumber(row.PhilHealthContribution ?? row.philHealth),
         toNumber(row.totalOtherDeds),
         toNumber(row.totalDeductions),
-        toNumber(row.pay1st),
-        toNumber(row.pay2nd),
         // 26-32: contribution breakdown and computes (if available)
         index + 1,
         toNumber(row.rtIns),
@@ -646,7 +642,7 @@ const PayrollReleased = () => {
       ]);
 
       // Add empty row after each data row
-      ws_data.push(Array(58).fill(''));
+      ws_data.push(Array(56).fill(''));
     });
 
     // Create workbook and add the worksheet
@@ -1513,12 +1509,6 @@ const PayrollReleased = () => {
                               Net Salary
                             </PremiumTableCell>
                             <PremiumTableCell isHeader sx={{ color: textPrimaryColor }}>
-                              1st Pay
-                            </PremiumTableCell>
-                            <PremiumTableCell isHeader sx={{ color: textPrimaryColor }}>
-                              2nd Pay
-                            </PremiumTableCell>
-                            <PremiumTableCell isHeader sx={{ color: textPrimaryColor }}>
                               Date Released
                             </PremiumTableCell>
                           </TableRow>
@@ -1600,26 +1590,6 @@ const PayrollReleased = () => {
                                         )
                                       : ''}
                                   </PremiumTableCell>
-                                  <PremiumTableCell
-                                    sx={{ color: 'red', fontWeight: 'bold' }}
-                                  >
-                                    {row.pay1st
-                                      ? Number(row.pay1st).toLocaleString('en-US', {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        })
-                                      : ''}{' '}
-                                  </PremiumTableCell>
-                                  <PremiumTableCell
-                                    sx={{ color: 'red', fontWeight: 'bold' }}
-                                  >
-                                    {row.pay2nd
-                                      ? Number(row.pay2nd).toLocaleString('en-US', {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        })
-                                      : ''}
-                                  </PremiumTableCell>
                                   <PremiumTableCell>
                                     {row.dateReleased
                                       ? new Date(
@@ -1632,7 +1602,7 @@ const PayrollReleased = () => {
                           ) : (
                             <TableRow>
                               <PremiumTableCell
-                                colSpan={14}
+                                colSpan={12}
                                 align="center"
                                 sx={{ py: 8 }}
                               >

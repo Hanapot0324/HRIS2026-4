@@ -7,17 +7,12 @@ function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  console.log('Auth header:', authHeader);
-  console.log('Token:', token ? 'Token exists' : 'No token');
-
   if (!token) return res.status(401).json({ error: 'No token provided' });
 
   jwt.verify(token, process.env.JWT_SECRET || 'secret', (err, user) => {
     if (err) {
-      console.log('JWT verification error:', err.message);
       return res.status(403).json({ error: 'Invalid token' });
     }
-    console.log('Decoded JWT:', user); // 👈 see what fields are in the token
     req.user = user;
     next();
   });

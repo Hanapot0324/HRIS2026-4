@@ -353,24 +353,24 @@ const PayrollProcessed = () => {
           getAuthHeaders()
         );
         
-        // Filter for Regular employees only (employmentCategory = 1)
+        // Filter for Job Order employees only (employmentCategory = 0)
         // employmentCategory: 0 = Job Order, 1 = Regular, -1 = Not set
-        const regularData = res.data.filter(
-          (item) => item.employmentCategory === 1
+        const joData = res.data.filter(
+          (item) => item.employmentCategory === 0
         );
         
-        setFinalizedData(regularData);
-        setFilteredFinalizedData(regularData);
+        setFinalizedData(joData);
+        setFilteredFinalizedData(joData);
 
         // Calculate summary data
-        const totalNet = regularData.reduce(
+        const totalNet = joData.reduce(
           (sum, item) => sum + parseFloat(item.netSalary || 0),
           0
         );
 
         setSummaryData((prev) => ({
-          totalEmployees: regularData.length,
-          processedEmployees: regularData.length,
+          totalEmployees: joData.length,
+          processedEmployees: joData.length,
           totalReleased: prev.totalReleased, // Will be updated by useEffect
           totalNetSalary: totalNet,
         }));
@@ -598,11 +598,11 @@ const PayrollProcessed = () => {
         `${API_BASE_URL}/PayrollRoute/payroll-processed`,
         getAuthHeaders()
       );
-      // Filter for Regular employees only
-      const regularData = res.data.filter(
-        (item) => item.employmentCategory === 1
+      // Filter for Job Order employees only
+      const joData = res.data.filter(
+        (item) => item.employmentCategory === 0
       );
-      setFinalizedData(regularData);
+      setFinalizedData(joData);
       setFilteredFinalizedData((prev) => {
         // Reapply current filters
         let filtered = res.data;
@@ -816,11 +816,11 @@ const PayrollProcessed = () => {
             `${API_BASE_URL}/PayrollRoute/payroll-processed`,
             getAuthHeaders()
           );
-          // Filter for Regular employees only
-          const regularData = res.data.filter(
-            (item) => item.employmentCategory === 1
+          // Filter for Job Order employees only
+          const joData = res.data.filter(
+            (item) => item.employmentCategory === 0
           );
-          setFinalizedData(regularData);
+          setFinalizedData(joData);
           applyFilters(selectedDepartment, searchTerm, selectedDate);
           alert("Failed to delete record(s). Please try again.");
         } finally {
@@ -1787,36 +1787,6 @@ const PayrollProcessed = () => {
                               isHeader
                               sx={{ color: textPrimaryColor }}
                             >
-                              Rate NBC 584
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              NBC 594
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Rate NBC 594
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              NBC DIFF'L 597
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Increment
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
                               Gross Salary
                             </PremiumTableCell>
                             <PremiumTableCell
@@ -1853,247 +1823,13 @@ const PayrollProcessed = () => {
                               isHeader
                               sx={{ color: textPrimaryColor }}
                             >
-                              Withholding Tax
+                              PAGIBIG
                             </PremiumTableCell>
                             <PremiumTableCell
                               isHeader
                               sx={{ color: textPrimaryColor }}
                             >
-                              <b>Total GSIS Deductions</b>
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              <b>Total Pag-ibig Deductions</b>
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              PhilHealth
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              <b>Total Other Deductions</b>
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              <b>Total Deductions</b>
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              1st Pay
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              2nd Pay
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              No.
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              RT Ins.
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              EC
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              PhilHealth
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Pag-Ibig
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{
-                                color: textPrimaryColor,
-                                borderLeft: "2px solid black",
-                              }}
-                            >
-                              Pay1st Compute
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Pay2nd Compute
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{
-                                color: textPrimaryColor,
-                                borderLeft: "2px solid black",
-                              }}
-                            >
-                              No.
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Name
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Position
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Withholding Tax
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Personal Life Ret Ins
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              GSIS Salary Loan
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              GSIS Policy Loan
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              gsisArrears
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              CPL
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              MPL
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              EAL
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              MPL LITE
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Emergency Loan (ELA)
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Total GSIS Deductions
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Pag-ibig Fund Contribution
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Pag-ibig 2
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Multi-Purpose Loan
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Total Pag-Ibig Deduction
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              PhilHealth
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              liquidatingCash
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              LandBank Salary Loan
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Earist Credit COOP.
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              FEU
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Total Other Deductions
-                            </PremiumTableCell>
-                            <PremiumTableCell
-                              isHeader
-                              sx={{ color: textPrimaryColor }}
-                            >
-                              Total Deductions
+                              <b>Net Salary</b>
                             </PremiumTableCell>
                             <PremiumTableCell
                               isHeader
@@ -2190,60 +1926,6 @@ const PayrollProcessed = () => {
                                       {row.position}
                                     </ExcelTableCell>
                                     <ExcelTableCell>
-                                      {row.rateNbc584
-                                        ? Number(row.rateNbc584).toLocaleString(
-                                            "en-US",
-                                            {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            }
-                                          )
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.nbc594
-                                        ? Number(row.nbc594).toLocaleString(
-                                            "en-US",
-                                            {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            }
-                                          )
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.rateNbc594
-                                        ? Number(row.rateNbc594).toLocaleString(
-                                            "en-US",
-                                            {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            }
-                                          )
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.nbcDiffl597
-                                        ? Number(
-                                            row.nbcDiffl597
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.increment
-                                        ? Number(row.increment).toLocaleString(
-                                            "en-US",
-                                            {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            }
-                                          )
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
                                       {row.grossSalary
                                         ? Number(
                                             row.grossSalary
@@ -2278,8 +1960,8 @@ const PayrollProcessed = () => {
                                           )
                                         : ""}
                                     </ExcelTableCell>
-                                    <ExcelTableCell>{row.h}</ExcelTableCell>
-                                    <ExcelTableCell>{row.m}</ExcelTableCell>
+                                    <ExcelTableCell>{row.h || 0}</ExcelTableCell>
+                                    <ExcelTableCell>{row.m || 0}</ExcelTableCell>
                                     <ExcelTableCell>
                                       {row.sss
                                         ? Number(row.sss).toLocaleString(
@@ -2289,398 +1971,29 @@ const PayrollProcessed = () => {
                                               maximumFractionDigits: 2,
                                             }
                                           )
-                                        : ""}
+                                        : "0.00"}
                                     </ExcelTableCell>
                                     <ExcelTableCell>
-                                      {row.withholdingTax
+                                      {row.pagibig || row.pagibigFundCont
                                         ? Number(
-                                            row.withholdingTax
+                                            row.pagibig || row.pagibigFundCont || 0
                                           ).toLocaleString("en-US", {
                                             minimumFractionDigits: 2,
                                             maximumFractionDigits: 2,
                                           })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.totalGsisDeds
-                                        ? Number(
-                                            row.totalGsisDeds
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.totalPagibigDeds
-                                        ? Number(
-                                            row.totalPagibigDeds
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.PhilHealthContribution
-                                        ? Number(
-                                            row.PhilHealthContribution
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.totalOtherDeds
-                                        ? Number(
-                                            row.totalOtherDeds
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.totalDeductions
-                                        ? Number(
-                                            row.totalDeductions
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
+                                        : "0.00"}
                                     </ExcelTableCell>
                                     <ExcelTableCell
-                                      sx={{ color: "red", fontWeight: "bold" }}
+                                      sx={{ fontWeight: "bold", color: textPrimaryColor }}
                                     >
-                                      {row.pay1st
-                                        ? Number(row.pay1st).toLocaleString(
+                                      {row.netSalary
+                                        ? Number(row.netSalary).toLocaleString(
                                             "en-US",
                                             {
                                               minimumFractionDigits: 2,
                                               maximumFractionDigits: 2,
                                             }
                                           )
-                                        : ""}{" "}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell
-                                      sx={{ color: "red", fontWeight: "bold" }}
-                                    >
-                                      {row.pay2nd
-                                        ? Number(row.pay2nd).toLocaleString(
-                                            "en-US",
-                                            {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            }
-                                          )
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>{index + 1}</ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.rtIns
-                                        ? Number(row.rtIns).toLocaleString(
-                                            "en-US",
-                                            {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            }
-                                          )
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.ec
-                                        ? Number(row.ec).toLocaleString(
-                                            "en-US",
-                                            {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            }
-                                          )
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.PhilHealthContribution
-                                        ? Number(
-                                            row.PhilHealthContribution
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.pagibigFundCont
-                                        ? Number(
-                                            row.pagibigFundCont
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell
-                                      sx={{
-                                        borderLeft: "2px solid black",
-                                        color: "red",
-                                        fontWeight: "bold",
-                                      }}
-                                    >
-                                      {row.pay1stCompute
-                                        ? Number(
-                                            row.pay1stCompute
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell
-                                      sx={{ color: "red", fontWeight: "bold" }}
-                                    >
-                                      {row.pay2ndCompute
-                                        ? Number(
-                                            row.pay2ndCompute
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell
-                                      sx={{ borderLeft: "2px solid black" }}
-                                    >
-                                      {index + 1}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>{row.name}</ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.position}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.withholdingTax
-                                        ? Number(
-                                            row.withholdingTax
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.personalLifeRetIns
-                                        ? Number(
-                                            row.personalLifeRetIns
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.gsisSalaryLoan
-                                        ? Number(
-                                            row.gsisSalaryLoan
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.gsisPolicyLoan
-                                        ? Number(
-                                            row.gsisPolicyLoan
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.gsisArrears
-                                        ? Number(
-                                            row.gsisArrears
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.cpl
-                                        ? Number(row.cpl).toLocaleString(
-                                            "en-US",
-                                            {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            }
-                                          )
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.mpl
-                                        ? Number(row.mpl).toLocaleString(
-                                            "en-US",
-                                            {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            }
-                                          )
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.eal
-                                        ? Number(row.eal).toLocaleString(
-                                            "en-US",
-                                            {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            }
-                                          )
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.mplLite
-                                        ? Number(row.mplLite).toLocaleString(
-                                            "en-US",
-                                            {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            }
-                                          )
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.emergencyLoan
-                                        ? Number(
-                                            row.emergencyLoan
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.totalGsisDeds
-                                        ? Number(
-                                            row.totalGsisDeds
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.pagibigFundCont
-                                        ? Number(
-                                            row.pagibigFundCont
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.pagibig2
-                                        ? Number(row.pagibig2).toLocaleString(
-                                            "en-US",
-                                            {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            }
-                                          )
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.multiPurpLoan
-                                        ? Number(
-                                            row.multiPurpLoan
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.totalPagibigDeds
-                                        ? Number(
-                                            row.totalPagibigDeds
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.PhilHealthContribution
-                                        ? Number(
-                                            row.PhilHealthContribution
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.liquidatingCash
-                                        ? Number(
-                                            row.liquidatingCash
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.landbankSalaryLoan
-                                        ? Number(
-                                            row.landbankSalaryLoan
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.earistCreditCoop
-                                        ? Number(
-                                            row.earistCreditCoop
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.feu
-                                        ? Number(row.feu).toLocaleString(
-                                            "en-US",
-                                            {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            }
-                                          )
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.totalOtherDeds
-                                        ? Number(
-                                            row.totalOtherDeds
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
-                                        : ""}
-                                    </ExcelTableCell>
-                                    <ExcelTableCell>
-                                      {row.totalDeductions
-                                        ? Number(
-                                            row.totalDeductions
-                                          ).toLocaleString("en-US", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })
                                         : ""}
                                     </ExcelTableCell>
                                     <ExcelTableCell>
@@ -2694,7 +2007,7 @@ const PayrollProcessed = () => {
                           ) : (
                             <TableRow>
                               <PremiumTableCell
-                                colSpan={49}
+                                colSpan={17}
                                 align="center"
                                 sx={{ py: 8 }}
                               >

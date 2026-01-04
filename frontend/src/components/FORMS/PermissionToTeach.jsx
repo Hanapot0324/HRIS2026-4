@@ -51,7 +51,7 @@ const PermissionToTeach = () => {
             <table style={{border: '1px solid black', borderCollapse: 'collapse', width: '7.5in', tableLayout: 'fixed' }}>
                 <tr>
                     <td colspan="11" style={{height: '0.2in', fontSize: '80%', border: '1px solid black' }}>
-                        Name: _________________________________________________________<br />
+                        Name: <span style={{borderBottom: '1px solid black', minWidth: '300px', display: 'inline-block', margin: '0 4px'}}></span><br />
                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                         Surname
                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -60,7 +60,7 @@ const PermissionToTeach = () => {
                         Middle Name
                     </td>
                     <td colspan="5" style={{height: '0.2in', fontSize: '80%', border: '1px solid black', verticalAlign: 'top' }}>
-                        Civil Status: __________________<br />
+                        Civil Status: <span style={{borderBottom: '1px solid black', minWidth: '120px', display: 'inline-block', margin: '0 4px'}}></span><br />
                     </td>
                 </tr>
                 <tr>
@@ -263,7 +263,7 @@ const PermissionToTeach = () => {
             </table>
             <br />
             <br />
-            ________________________________<br />
+            <span style={{borderBottom: '1px solid black', minWidth: '250px', display: 'inline-block', margin: '4px 0'}}></span><br />
             Signature of Teacher Over Printed Name<br />
             <br />
             <br />
@@ -271,14 +271,14 @@ const PermissionToTeach = () => {
             <font size="2"><i>I hereby certify that Mr./Ms./Mrs. ________________________________ is physically fit for the teaching job.</i>
             <br />
             <br />
-            _______________________________<br />
+            <span style={{borderBottom: '1px solid black', minWidth: '250px', display: 'inline-block', margin: '4px 0'}}></span><br />
             Signature of the Government Physician<br />
             <br />
             <br />
             <b><i>Recommending Approval:</i></b>
             <br />
             <br />
-            _______________________________<br />
+            <span style={{borderBottom: '1px solid black', minWidth: '250px', display: 'inline-block', margin: '4px 0'}}></span><br />
             Signature of the College Dean<br />  
             <br />
             <br />

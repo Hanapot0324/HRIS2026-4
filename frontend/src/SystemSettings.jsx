@@ -32,6 +32,15 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Chip,
+  TablePagination,
+  Collapse,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -45,6 +54,15 @@ import {
   CheckCircle,
   Error as ErrorIcon,
   Undo as UndoIcon,
+  Calculate as CalculateIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Add as AddIcon,
+  Visibility as VisibilityIcon,
+  Code as CodeIcon,
+  CheckCircleOutline,
+  Cancel as CancelIcon,
+  ColorLens as ColorLensIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -150,6 +168,77 @@ const LogoPreviewBox = styled(Box)(({ theme }) => ({
   }
 }));
 
+const GradientColorPicker = styled(Box)(({ theme, color, hoverColor }) => ({
+  position: 'relative',
+  width: '100%',
+  height: 80,
+  borderRadius: 12,
+  background: `linear-gradient(135deg, ${color} 0%, ${hoverColor || color} 100%)`,
+  border: '2px solid rgba(109, 35, 35, 0.2)',
+  cursor: 'pointer',
+  overflow: 'hidden',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  '&:hover': {
+    transform: 'scale(1.02)',
+    boxShadow: `0 8px 24px ${alpha(color, 0.4)}`,
+    borderColor: color,
+  },
+  '&:active': {
+    transform: 'scale(0.98)',
+  },
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: `linear-gradient(45deg, transparent 30%, ${alpha('#fff', 0.2)} 50%, transparent 70%)`,
+    animation: 'shimmer 2s infinite',
+    '@keyframes shimmer': {
+      '0%': { transform: 'translateX(-100%)' },
+      '100%': { transform: 'translateX(100%)' },
+    },
+  },
+}));
+
+const ColorPickerButton = styled(Box)(({ theme, color }) => ({
+  position: 'relative',
+  width: '100%',
+  height: 60,
+  borderRadius: 12,
+  background: color,
+  border: `2px solid ${alpha(color, 0.3)}`,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  overflow: 'hidden',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: `0 6px 20px ${alpha(color, 0.5)}`,
+    borderColor: color,
+    '&::after': {
+      opacity: 1,
+    },
+  },
+  '&:active': {
+    transform: 'translateY(0) scale(0.98)',
+  },
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: `linear-gradient(135deg, ${alpha(color, 0.8)} 0%, ${alpha(color, 0.4)} 100%)`,
+    opacity: 0,
+    transition: 'opacity 0.3s ease',
+  },
+}));
+
 const SystemSetting = () => {
   const [settings, setSettings] = useState({
     primaryColor: '#894444',
@@ -168,6 +257,17 @@ const SystemSetting = () => {
     footerText: '2025 EARIST Manila - Human Resources Information System. All rights Reserved.',
     copyrightSymbol: '©',
     enableWatermark: true,
+    // CRUD Button Colors
+    createButtonColor: '#6d2323',
+    createButtonHoverColor: '#a31d1d',
+    readButtonColor: '#6d2323',
+    readButtonHoverColor: '#a31d1d',
+    updateButtonColor: '#6d2323',
+    updateButtonHoverColor: '#a31d1d',
+    deleteButtonColor: '#6d2323',
+    deleteButtonHoverColor: '#a31d1d',
+    cancelButtonColor: '#6c757d',
+    cancelButtonHoverColor: '#5a6268',
   });
 
   const [originalColors, setOriginalColors] = useState({});
@@ -209,7 +309,12 @@ const SystemSetting = () => {
       
       const colorFields = [
         'primaryColor', 'secondaryColor', 'accentColor', 'textColor',
-        'textPrimaryColor', 'textSecondaryColor', 'hoverColor', 'backgroundColor'
+        'textPrimaryColor', 'textSecondaryColor', 'hoverColor', 'backgroundColor',
+        'createButtonColor', 'createButtonHoverColor',
+        'readButtonColor', 'readButtonHoverColor',
+        'updateButtonColor', 'updateButtonHoverColor',
+        'deleteButtonColor', 'deleteButtonHoverColor',
+        'cancelButtonColor', 'cancelButtonHoverColor'
       ];
       const originalColorValues = {};
       colorFields.forEach(field => {
@@ -363,6 +468,30 @@ const SystemSetting = () => {
     setSnackbar({
       open: true,
       message: 'Colors reset to original values!',
+      severity: 'success',
+    });
+  };
+
+  const handleCRUDColorReset = () => {
+    const defaultCRUDColors = {
+      createButtonColor: '#6d2323',
+      createButtonHoverColor: '#a31d1d',
+      readButtonColor: '#6d2323',
+      readButtonHoverColor: '#a31d1d',
+      updateButtonColor: '#6d2323',
+      updateButtonHoverColor: '#a31d1d',
+      deleteButtonColor: '#6d2323',
+      deleteButtonHoverColor: '#a31d1d',
+      cancelButtonColor: '#6c757d',
+      cancelButtonHoverColor: '#5a6268',
+    };
+    setSettings({
+      ...settings,
+      ...defaultCRUDColors
+    });
+    setSnackbar({
+      open: true,
+      message: 'CRUD button colors reset to default!',
       severity: 'success',
     });
   };
@@ -854,6 +983,221 @@ const SystemSetting = () => {
               </CardContent>
             </GlassCard>
           </Grid>
+
+          {/* CRUD Button Colors */}
+          <Grid item xs={12}>
+            <GlassCard sx={{ overflow: 'visible' }}>
+              <CardHeader
+                title={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar sx={{ bgcolor: alpha(settings.accentColor, 0.8), color: settings.textPrimaryColor }}>
+                      <ColorLensIcon />
+                    </Avatar>
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="h5" component="div" sx={{ fontWeight: 600, color: settings.textPrimaryColor }}>
+                        CRUD Button Colors
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ color: settings.textPrimaryColor }}>
+                        Customize colors for Create, Read, Update, Delete, and Cancel buttons across all components
+                      </Typography>
+                    </Box>
+                    <Tooltip title="Reset CRUD button colors to default">
+                      <IconButton
+                        onClick={handleCRUDColorReset}
+                        sx={{
+                          color: settings.textPrimaryColor,
+                          backgroundColor: alpha(settings.accentColor, 0.3),
+                          '&:hover': {
+                            backgroundColor: alpha(settings.accentColor, 0.5),
+                            transform: 'scale(1.05)',
+                          },
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <UndoIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                }
+                sx={{ 
+                  bgcolor: alpha(settings.accentColor, 0.5), 
+                  pb: 2,
+                  borderBottom: '1px solid rgba(109,35,35,0.1)'
+                }}
+              />
+              <CardContent sx={{ p: 4, bgcolor: (settings.accentColor), overflow: 'visible' }}>
+                <Grid container spacing={2} sx={{ display: 'flex', flexWrap: { xs: 'wrap', sm: 'wrap', md: 'nowrap' } }}>
+                  {[
+                    { 
+                      label: 'Create Button', 
+                      icon: <AddIcon />,
+                      colorField: 'createButtonColor', 
+                      hoverField: 'createButtonHoverColor',
+                      defaultColor: '#6d2323',
+                      defaultHover: '#a31d1d'
+                    },
+                    { 
+                      label: 'Read/View Button', 
+                      icon: <VisibilityIcon />,
+                      colorField: 'readButtonColor', 
+                      hoverField: 'readButtonHoverColor',
+                      defaultColor: '#6d2323',
+                      defaultHover: '#a31d1d'
+                    },
+                    { 
+                      label: 'Update/Edit Button', 
+                      icon: <EditIcon />,
+                      colorField: 'updateButtonColor', 
+                      hoverField: 'updateButtonHoverColor',
+                      defaultColor: '#6d2323',
+                      defaultHover: '#a31d1d'
+                    },
+                    { 
+                      label: 'Delete Button', 
+                      icon: <DeleteIcon />,
+                      colorField: 'deleteButtonColor', 
+                      hoverField: 'deleteButtonHoverColor',
+                      defaultColor: '#6d2323',
+                      defaultHover: '#a31d1d'
+                    },
+                    { 
+                      label: 'Cancel Button', 
+                      icon: <CancelIcon />,
+                      colorField: 'cancelButtonColor', 
+                      hoverField: 'cancelButtonHoverColor',
+                      defaultColor: '#6c757d',
+                      defaultHover: '#5a6268'
+                    },
+                  ].map(({ label, icon, colorField, hoverField, defaultColor, defaultHover }) => (
+                    <Grid item xs={12} sm={6} md={true} key={colorField} sx={{ flex: { md: '1 1 0%' }, minWidth: 0 }}>
+                      <Box sx={{ position: 'relative', zIndex: 1000, overflow: 'visible' }}>
+                        <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, color: settings.textPrimaryColor, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          {icon}
+                          {label}
+                        </Typography>
+                        
+                        {/* Gradient Preview */}
+                        <GradientColorPicker
+                          color={settings[colorField] || defaultColor}
+                          hoverColor={settings[hoverField] || defaultHover}
+                          onClick={() => {
+                            const input = document.getElementById(`${colorField}-input`);
+                            if (input) input.click();
+                          }}
+                          sx={{ mb: 2 }}
+                        >
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: '50%',
+                              left: '50%',
+                              transform: 'translate(-50%, -50%)',
+                              color: '#fff',
+                              fontWeight: 600,
+                              textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                              zIndex: 1,
+                              pointerEvents: 'none',
+                            }}
+                          >
+                            Preview
+                          </Box>
+                        </GradientColorPicker>
+
+                        {/* Color Picker for Normal State */}
+                        <Box sx={{ mb: 1.5 }}>
+                          <Typography variant="caption" sx={{ mb: 0.5, display: 'block', color: settings.textPrimaryColor, opacity: 0.8 }}>
+                            Normal Color
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <ColorPickerButton
+                              color={settings[colorField] || defaultColor}
+                              onClick={() => {
+                                const input = document.getElementById(`${colorField}-input`);
+                                if (input) input.click();
+                              }}
+                              sx={{ flex: 1 }}
+                            >
+                              <input
+                                id={`${colorField}-input`}
+                                type="color"
+                                value={settings[colorField] || defaultColor}
+                                onChange={(e) => handleColorChange(colorField, e.target.value)}
+                                style={{
+                                  position: 'absolute',
+                                  width: '100%',
+                                  height: '100%',
+                                  opacity: 0,
+                                  cursor: 'pointer',
+                                  zIndex: 2,
+                                }}
+                              />
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: '#fff',
+                                  fontWeight: 600,
+                                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                                  zIndex: 1,
+                                  pointerEvents: 'none',
+                                }}
+                              >
+                                {settings[colorField] || defaultColor}
+                              </Typography>
+                            </ColorPickerButton>
+                          </Box>
+                        </Box>
+
+                        {/* Color Picker for Hover State */}
+                        <Box>
+                          <Typography variant="caption" sx={{ mb: 0.5, display: 'block', color: settings.textPrimaryColor, opacity: 0.8 }}>
+                            Hover Color
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <ColorPickerButton
+                              color={settings[hoverField] || defaultHover}
+                              onClick={() => {
+                                const input = document.getElementById(`${hoverField}-input`);
+                                if (input) input.click();
+                              }}
+                              sx={{ flex: 1 }}
+                            >
+                              <input
+                                id={`${hoverField}-input`}
+                                type="color"
+                                value={settings[hoverField] || defaultHover}
+                                onChange={(e) => handleColorChange(hoverField, e.target.value)}
+                                style={{
+                                  position: 'absolute',
+                                  width: '100%',
+                                  height: '100%',
+                                  opacity: 0,
+                                  cursor: 'pointer',
+                                  zIndex: 2,
+                                }}
+                              />
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: '#fff',
+                                  fontWeight: 600,
+                                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                                  zIndex: 1,
+                                  pointerEvents: 'none',
+                                }}
+                              >
+                                {settings[hoverField] || defaultHover}
+                              </Typography>
+                            </ColorPickerButton>
+                          </Box>
+                        </Box>
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
+              </CardContent>
+            </GlassCard>
+          </Grid>
+
         </Grid>
       </Box>
 

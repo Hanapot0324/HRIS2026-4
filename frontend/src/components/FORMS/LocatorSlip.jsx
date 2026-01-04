@@ -33,17 +33,17 @@ const LocatorSlip = () => {
         </div>
         <div style={{position: 'relative', top: '20px', left: '-0.75in', width: '7.75in', float: 'left'}}>
             <font size="3">
-            NAME: _________________________________ POSITION: ______________________<br />
-            PURPOSE: Official _______ Personal _______ Designation: _______________________<br />
-            DESTINATION: ___________________________________________________________<br />
-            Time of Departure: ______________________ Time of Arrival: ______________________ <br />
-            REASONS: ______________________________________________________________<br />
-            ________________________________________________________________________<br />
+            NAME: <span style={{borderBottom: '1px solid black', minWidth: '200px', display: 'inline-block', margin: '0 4px'}}></span> POSITION: <span style={{borderBottom: '1px solid black', minWidth: '150px', display: 'inline-block', margin: '0 4px'}}></span><br />
+            PURPOSE: Official _______ Personal _______ Designation: <span style={{borderBottom: '1px solid black', minWidth: '180px', display: 'inline-block', margin: '0 4px'}}></span><br />
+            DESTINATION: <span style={{borderBottom: '1px solid black', minWidth: '300px', display: 'inline-block', margin: '0 4px'}}></span><br />
+            Time of Departure: <span style={{borderBottom: '1px solid black', minWidth: '120px', display: 'inline-block', margin: '0 4px'}}></span> Time of Arrival: <span style={{borderBottom: '1px solid black', minWidth: '120px', display: 'inline-block', margin: '0 4px'}}></span> <br />
+            REASONS: <span style={{borderBottom: '1px solid black', minWidth: '300px', display: 'inline-block', margin: '0 4px'}}></span><br />
+            <span style={{borderBottom: '1px solid black', minWidth: '400px', display: 'inline-block', margin: '4px 0'}}></span><br />
             </font>
         </div>
         <div style={{position: 'relative', top: '35px', left: '3in', width: '5in', float: 'right'}}>
             <font size="3">APPROVED:<br /><br />
-            _____________________________<br />
+            <span style={{borderBottom: '1px solid black', minWidth: '200px', display: 'inline-block', margin: '4px 0'}}></span><br />
             &emsp;&emsp;&emsp;&emsp;Dean/Head of Office</font>
         </div>
         </div>
@@ -75,17 +75,17 @@ const LocatorSlip = () => {
         </div>
         <div style={{position: 'relative', top: '20px', left: '-0.75in', width: '7.75in', float: 'left'}}>
             <font size="3">
-            NAME: _________________________________ POSITION: ______________________<br />
-            PURPOSE: Official _______ Personal _______ Designation: _______________________<br />
-            DESTINATION: ___________________________________________________________<br />
-            Time of Departure: ______________________ Time of Arrival: ______________________ <br />
-            REASONS: ______________________________________________________________<br />
-            ________________________________________________________________________<br />
+            NAME: <span style={{borderBottom: '1px solid black', minWidth: '200px', display: 'inline-block', margin: '0 4px'}}></span> POSITION: <span style={{borderBottom: '1px solid black', minWidth: '150px', display: 'inline-block', margin: '0 4px'}}></span><br />
+            PURPOSE: Official _______ Personal _______ Designation: <span style={{borderBottom: '1px solid black', minWidth: '180px', display: 'inline-block', margin: '0 4px'}}></span><br />
+            DESTINATION: <span style={{borderBottom: '1px solid black', minWidth: '300px', display: 'inline-block', margin: '0 4px'}}></span><br />
+            Time of Departure: <span style={{borderBottom: '1px solid black', minWidth: '120px', display: 'inline-block', margin: '0 4px'}}></span> Time of Arrival: <span style={{borderBottom: '1px solid black', minWidth: '120px', display: 'inline-block', margin: '0 4px'}}></span> <br />
+            REASONS: <span style={{borderBottom: '1px solid black', minWidth: '300px', display: 'inline-block', margin: '0 4px'}}></span><br />
+            <span style={{borderBottom: '1px solid black', minWidth: '400px', display: 'inline-block', margin: '4px 0'}}></span><br />
             </font>
         </div>
         <div style={{position: 'relative', top: '35px', left: '3in', width: '5in', float: 'right'}}>
             <font size="3">APPROVED:<br /><br />
-            _____________________________<br />
+            <span style={{borderBottom: '1px solid black', minWidth: '200px', display: 'inline-block', margin: '4px 0'}}></span><br />
             &emsp;&emsp;&emsp;&emsp;Dean/Head of Office</font>
         </div>
         <div style={{position: 'relative', top: '-480px', left: '-0.75in', width: '7.75in', float: 'left'}}>

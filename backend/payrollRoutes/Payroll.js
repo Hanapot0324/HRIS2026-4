@@ -47,27 +47,12 @@ function logAudit(
   `;
 
 
-  console.log(`Audit Log: ${action} on ${tableName} by ${user.employeeNumber}`);
-
-
   db.query(
     auditQuery,
     [user.employeeNumber, action, tableName, recordId, targetEmployeeNumber],
     (err) => {
       if (err) {
         console.error('Error inserting audit log:', err);
-        console.error('Audit query:', auditQuery);
-        console.error('Audit values:', [
-          user.employeeNumber,
-          action,
-          tableName,
-          recordId,
-          targetEmployeeNumber,
-        ]);
-      } else {
-        console.log(
-          `Audit log successfully recorded: ${action} on ${tableName}`
-        );
       }
     }
   );
@@ -941,13 +926,68 @@ router.post('/add-rendered-time', authenticateToken, async (req, res) => {
 });
 
 
-router.get('/finalized-payroll', authenticateToken, (req, res) => {
-  const query = 'SELECT * FROM finalize_payroll ORDER BY dateCreated DESC';
+// Updated route name to match database table name
+router.get('/payroll-processed', authenticateToken, (req, res) => {
+  const query = `
+    SELECT pp.*, COALESCE(ec.employmentCategory, -1) AS employmentCategory
+    FROM payroll_processed pp
+    LEFT JOIN employment_category ec ON pp.employeeNumber = ec.employeeNumber
+    ORDER BY pp.dateCreated DESC
+  `;
 
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('Error fetching payroll processed:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    // Audit log
+    logAudit(
+      req.user,
+      'view',
+      'payroll_processed',
+      results.length > 0 ? results[0].id : null
+    );
+
+    res.json(results);
+  });
+});
+
+// Keep old route for backward compatibility (deprecated)
+router.get('/finalized-payroll', authenticateToken, (req, res) => {
+  const query = `
+    SELECT pp.*, COALESCE(ec.employmentCategory, -1) AS employmentCategory
+    FROM payroll_processed pp
+    LEFT JOIN employment_category ec ON pp.employeeNumber = ec.employeeNumber
+    ORDER BY pp.dateCreated DESC
+  `;
 
   db.query(query, (err, results) => {
     if (err) {
       console.error('Error fetching finalized payroll:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    // Audit log
+    logAudit(
+      req.user,
+      'view',
+      'payroll_processed',
+      results.length > 0 ? results[0].id : null
+    );
+
+    res.json(results);
+  });
+});
+
+// GET finalized payroll for Regular employees only
+router.get('/finalized-payroll-regular', authenticateToken, (req, res) => {
+  const query = 'SELECT * FROM payroll_processed ORDER BY dateCreated DESC';
+
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('Error fetching finalized regular payroll:', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
 
@@ -956,7 +996,7 @@ router.get('/finalized-payroll', authenticateToken, (req, res) => {
     logAudit(
       req.user,
       'view',
-      'finalize_payroll',
+      'payroll_processed_regular',
       results.length > 0 ? results[0].id : null
     );
 
@@ -1026,7 +1066,7 @@ router.post('/finalized-payroll', authenticateToken, (req, res) => {
 
 
   const insertQuery = `
-    INSERT INTO finalize_payroll (
+    INSERT INTO payroll_processed (
       employeeNumber, startDate, endDate, name, rateNbc584, nbc594, rateNbc594, nbcDiffl597, grossSalary,
       abs, h, m, s, rh, netSalary, withholdingTax, personalLifeRetIns, totalGsisDeds,
       totalPagibigDeds, totalOtherDeds, totalDeductions, pay1st, pay2nd,
@@ -1047,7 +1087,7 @@ router.post('/finalized-payroll', authenticateToken, (req, res) => {
       logAudit(
         req.user,
         'create_failed',
-        'finalize_payroll',
+        'payroll_processed',
         null,
         employeeNumbers
       );
@@ -1060,7 +1100,7 @@ router.post('/finalized-payroll', authenticateToken, (req, res) => {
     logAudit(
       req.user,
       'create',
-      'finalize_payroll',
+      'payroll_processed',
       result.insertId,
       employeeNumbers
     );
@@ -1108,12 +1148,13 @@ router.post('/finalized-payroll', authenticateToken, (req, res) => {
     });
   });
 });
-router.delete('/finalized-payroll/:id', authenticateToken, (req, res) => {
+// Updated DELETE route to match new endpoint naming
+router.delete('/payroll-processed/:id', authenticateToken, (req, res) => {
   const { id } = req.params;
   const { employeeNumber, name } = req.body;
 
 
-  const deleteQuery = 'DELETE FROM finalize_payroll WHERE id = ?';
+  const deleteQuery = 'DELETE FROM payroll_processed WHERE id = ?';
   const updateQuery = `
     UPDATE payroll_processing
     SET status = 0
@@ -1136,8 +1177,7 @@ router.delete('/finalized-payroll/:id', authenticateToken, (req, res) => {
       }
 
       // Audit log
-      logAudit(req.user, 'delete', 'finalize_payroll', id, employeeNumber);
-
+      logAudit(req.user, 'delete', 'payroll_processed', id, employeeNumber);
 
       res.json({
         message: 'Deleted and status updated.',
@@ -1148,6 +1188,44 @@ router.delete('/finalized-payroll/:id', authenticateToken, (req, res) => {
   });
 });
 
+// Keep old DELETE route for backward compatibility (deprecated)
+router.delete('/finalized-payroll/:id', authenticateToken, (req, res) => {
+  const { id } = req.params;
+  const { employeeNumber, name } = req.body;
+
+  const deleteQuery = 'DELETE FROM payroll_processed WHERE id = ?';
+  const updateQuery = `
+    UPDATE payroll_processing
+    SET status = 0
+    WHERE name = ?
+  `;
+
+  db.query(deleteQuery, [id], (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ message: 'Payroll record not found' });
+    }
+
+    db.query(updateQuery, [name], (updateErr, updateResult) => {
+      if (updateErr) {
+        return res
+          .status(500)
+          .json({ error: 'Deleted but failed to update status.' });
+      }
+
+      // Audit log
+      logAudit(req.user, 'delete', 'payroll_processed', id, employeeNumber);
+
+      res.json({
+        message: 'Deleted and status updated.',
+        deleted: results.affectedRows,
+        updated: updateResult.affectedRows,
+      });
+    });
+  });
+});
 
 module.exports = router;
 

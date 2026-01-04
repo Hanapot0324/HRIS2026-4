@@ -37,6 +37,7 @@ import LoadingOverlay from "./components/LoadingOverlay";
 import SuccessfulOverlay from "./components/SuccessfulOverlay";
 import AccessDenied from "./components/AccessDenied";
 import SystemSetting from "./SystemSettings";
+import PayrollFormulas from "./components/PAYROLL/PayrollFormulas";
 
 import Home from "./components/Home";
 import Sidebar from "./components/Sidebar";
@@ -81,6 +82,7 @@ import Holiday from "./components/PAYROLL/Holiday";
 import PhilHealthTable from "./components/PAYROLL/PhilHealth";
 import PayrollProcess from "./components/PAYROLL/PayrollProcessing";
 import PayrollProcessed from "./components/PAYROLL/PayrollProcessed";
+import PayrollProcessedJO from "./components/PAYROLL/PayrollProcessedJO";
 import PayrollReleased from "./components/PAYROLL/PayrollReleased";
 
 import AssessmentClearance from "./components/FORMS/AssessmentClearance";
@@ -740,6 +742,15 @@ function App() {
             />
 
             <Route
+              path="/payroll-processed-jo"
+              element={
+                <ProtectedRoute allowedRoles={["administrator", "superadmin"]}>
+                  <PayrollProcessedJO />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
               path="/payroll-released"
               element={
                 <ProtectedRoute allowedRoles={["administrator", "superadmin"]}>
@@ -1123,6 +1134,15 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={["administrator", "superadmin"]}>
                   <SystemSetting />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/payroll-formulas"
+              element={
+                <ProtectedRoute allowedRoles={["administrator", "superadmin"]}>
+                  <PayrollFormulas />
                 </ProtectedRoute>
               }
             />

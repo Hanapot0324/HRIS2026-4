@@ -17,7 +17,6 @@ router.get('/api/notifications/:employeeNumber', async (req, res) => {
       [String(employeeNumber)]
     );
     
-    console.log(`Fetching notifications for employeeNumber: ${employeeNumber}, found ${rows.length} notifications`);
     res.json(rows);
   } catch (error) {
     console.error('Error fetching notifications:', error);

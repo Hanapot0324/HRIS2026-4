@@ -177,6 +177,7 @@ const EmployeeAutocomplete = ({
   selectedEmployee,
   onEmployeeSelect,
   dropdownDisabled = false,
+  settings = {},
 }) => {
   const [query, setQuery] = useState('');
   const [employees, setEmployees] = useState([]);
@@ -335,13 +336,13 @@ const EmployeeAutocomplete = ({
         autoComplete="off"
         size="small"
         InputProps={{
-          startAdornment: <PersonIcon sx={{ color: '#6D2323', mr: 1 }} />,
+          startAdornment: <PersonIcon sx={{ color: settings?.textPrimaryColor || settings?.primaryColor || '#6D2323', mr: 1 }} />,
           endAdornment: (
             <IconButton
               onClick={dropdownDisabled ? undefined : handleDropdownClick}
               size="small"
               disabled={dropdownDisabled}
-              sx={{ color: '#6D2323' }}
+              sx={{ color: settings?.textPrimaryColor || settings?.primaryColor || '#6D2323' }}
             >
               {showDropdown ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
@@ -380,15 +381,15 @@ const EmployeeAutocomplete = ({
                   onClick={() => handleEmployeeSelect(employee)}
                   sx={{
                     '&:hover': {
-                      backgroundColor: '#f5f5f5',
+                      backgroundColor: alpha(settings?.accentColor || settings?.backgroundColor || '#FEF9E1', 0.3),
                     },
                   }}
                 >
                   <ListItemText
                     primary={employee.name}
                     secondary={`#${employee.employeeNumber}`}
-                    primaryTypographyProps={{ fontWeight: 'bold' }}
-                    secondaryTypographyProps={{ color: '#666' }}
+                    primaryTypographyProps={{ fontWeight: 'bold', color: settings?.textPrimaryColor || '#6D2323' }}
+                    secondaryTypographyProps={{ color: settings?.textSecondaryColor || '#666' }}
                   />
                 </ListItem>
               ))}
@@ -552,12 +553,42 @@ const ItemTable = () => {
         `${API_BASE_URL}/api/item-table`,
         getAuthHeaders()
       );
-      setData(res.data);
+      
+      // Debug logging
+      console.log('=== ITEM TABLE FRONTEND DEBUG ===');
+      console.log('Response data:', res.data);
+      console.log('Total records received:', res.data?.length || 0);
+      if (res.data && res.data.length > 0) {
+        console.log('Sample record from API:', {
+          id: res.data[0].id,
+          employeeID: res.data[0].employeeID,
+          name: res.data[0].name,
+          item_description: res.data[0].item_description,
+          salary_grade: res.data[0].salary_grade,
+          step: res.data[0].step,
+          effectivityDate: res.data[0].effectivityDate,
+        });
+        // Check for NULL/undefined values
+        const recordsWithNulls = res.data.filter(item => 
+          !item.employeeID || 
+          !item.name || 
+          !item.item_description
+        );
+        if (recordsWithNulls.length > 0) {
+          console.log('Records with NULL/empty values:', recordsWithNulls.length);
+          console.log('Sample record with NULLs:', recordsWithNulls[0]);
+        }
+      }
+      console.log('==================================');
+      
+      setData(res.data || []);
 
       // Fetch employee names for all records
       const uniqueEmployeeIds = [
         ...new Set(res.data.map((item) => item.employeeID).filter(Boolean)),
       ];
+      console.log('Unique employee IDs to fetch names for:', uniqueEmployeeIds);
+      
       const namesMap = {};
 
       await Promise.all(
@@ -568,15 +599,19 @@ const ItemTable = () => {
               getAuthHeaders()
             );
             namesMap[id] = response.data.name || 'Unknown';
+            console.log(`Fetched name for employee ${id}:`, namesMap[id]);
           } catch (error) {
+            console.error(`Error fetching employee ${id}:`, error);
             namesMap[id] = 'Unknown';
           }
         })
       );
 
+      console.log('Final employee names map:', namesMap);
       setEmployeeNames(namesMap);
     } catch (err) {
       console.error('Error fetching data:', err);
+      console.error('Error details:', err.response?.data || err.message);
       showSnackbar('Failed to fetch item records. Please try again.', 'error');
     }
   };
@@ -1147,6 +1182,7 @@ const ItemTable = () => {
                           required
                           error={!!errors.employeeID}
                           helperText={errors.employeeID || ''}
+                          settings={settings}
                         />
                       </Grid>
 
@@ -1162,15 +1198,15 @@ const ItemTable = () => {
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
-                              backgroundColor: 'rgba(254, 249, 225, 0.8)',
-                              border: '1px solid rgba(109, 35, 35, 0.3)',
+                              backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.8),
+                              border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
                               paddingLeft: '12px',
                               gap: 1.5,
                             }}
                           >
                             <PersonIcon
-                              sx={{ color: accentColor, fontSize: 20 }}
+                              sx={{ color: settings.primaryColor || accentColor, fontSize: 20 }}
                             />
                             <Box
                               sx={{
@@ -1183,7 +1219,7 @@ const ItemTable = () => {
                                 variant="body2"
                                 sx={{
                                   fontWeight: 'bold',
-                                  color: accentColor,
+                                  color: settings.textPrimaryColor || accentColor,
                                   fontSize: '14px',
                                   lineHeight: 1.2,
                                 }}
@@ -1193,7 +1229,7 @@ const ItemTable = () => {
                               <Typography
                                 variant="caption"
                                 sx={{
-                                  color: grayColor,
+                                  color: settings.textSecondaryColor || grayColor,
                                   fontSize: '12px',
                                   lineHeight: 1.2,
                                 }}
@@ -1398,12 +1434,12 @@ const ItemTable = () => {
                       startIcon={<AddIcon />}
                       fullWidth
                       sx={{
-                        backgroundColor: accentColor,
-                        color: primaryColor,
                         py: 1.5,
                         fontSize: '1rem',
+                        backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                        color: settings.accentColor || '#FEF9E1',
                         '&:hover': {
-                          backgroundColor: accentDark,
+                          backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
                         },
                       }}
                     >
@@ -1586,7 +1622,7 @@ const ItemTable = () => {
                                 >
                                   {employeeNames[item.employeeID] ||
                                     item.name ||
-                                    'Loading...'}
+                                    `Employee #${item.employeeID || 'N/A'}`}
                                 </Typography>
 
                                 <Typography
@@ -1597,7 +1633,7 @@ const ItemTable = () => {
                                   noWrap
                                   sx={{ flexGrow: 1 }}
                                 >
-                                  {item.item_description || 'No Position'}
+                                  {item.item_description || item.item_code || 'No Position'}
                                 </Typography>
 
                                 {item.salary_grade && (
@@ -1657,44 +1693,35 @@ const ItemTable = () => {
                               </Box>
 
                               <Box sx={{ flexGrow: 1 }}>
-                                <Box
+                                <Typography
+                                  variant="caption"
                                   sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    mb: 0.5,
+                                    color: accentColor,
+                                    fontSize: '0.7rem',
+                                    fontWeight: 'bold',
+                                    display: 'block',
+                                    mb: 0.5
                                   }}
                                 >
-                                  <Typography
-                                    variant="caption"
-                                    sx={{
-                                      color: accentColor,
-                                      px: 0.5,
-                                      py: 0.2,
-                                      borderRadius: 0.5,
-                                      fontSize: '0.7rem',
-                                      fontWeight: 'bold',
-                                      mr: 1,
-                                    }}
-                                  >
-                                    ID: {item.employeeID}
-                                  </Typography>
-                                  <Typography
-                                    variant="body2"
-                                    fontWeight="bold"
-                                    color="#333"
-                                  >
-                                    {employeeNames[item.employeeID] ||
-                                      item.name ||
-                                      'Loading...'}
-                                  </Typography>
-                                </Box>
+                                  ID: {item.employeeID}
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="bold"
+                                  color="#333"
+                                  sx={{ mb: 0.5 }}
+                                >
+                                  {employeeNames[item.employeeID] ||
+                                    item.name ||
+                                    `Employee #${item.employeeID || 'N/A'}`}
+                                </Typography>
 
                                 <Typography
                                   variant="body2"
                                   color={grayColor}
                                   sx={{ mb: 0.5 }}
                                 >
-                                  {item.item_description || 'No Position'}
+                                  {item.item_description || item.item_code || 'No Position'}
                                 </Typography>
 
                                 {item.salary_grade && (
@@ -1764,35 +1791,57 @@ const ItemTable = () => {
           <GlassCard
             sx={{
               width: '90%',
-              maxWidth: '600px',
+              maxWidth: '900px',
               maxHeight: '90vh',
-              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
             }}
           >
             {editItem && (
               <>
                 <Box
                   sx={{
-                    p: 4,
-                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-                    color: accentColor,
+                    p: 3,
+                    background: `linear-gradient(135deg, ${settings.secondaryColor || '#6d2323'} 0%, ${settings.deleteButtonHoverColor || '#a31d1d'} 100%)`,
+                    color: settings.accentColor || '#FEF9E1',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 10,
+                    flexShrink: 0,
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: settings.accentColor || '#FEF9E1' }}>
                     {isEditing ? 'Edit Item Information' : 'Item Details'}
                   </Typography>
                   <IconButton
                     onClick={handleCloseModal}
-                    sx={{ color: accentColor }}
+                    sx={{ color: settings.accentColor || '#FEF9E1' }}
                   >
                     <Close />
                   </IconButton>
                 </Box>
 
-                <Box sx={{ p: 4 }}>
+                <Box sx={{ 
+                  p: 4, 
+                  flexGrow: 1, 
+                  overflowY: 'auto',
+                  minHeight: 0,
+                  '&::-webkit-scrollbar': {
+                    width: '6px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    background: '#f1f1f1',
+                    borderRadius: '3px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: settings.primaryColor || accentColor,
+                    borderRadius: '3px',
+                  },
+                }}>
                   <Box sx={{ mb: 3 }}>
                     <Typography
                       variant="h5"
@@ -1829,6 +1878,7 @@ const ItemTable = () => {
                           required
                           disabled={!isEditing}
                           dropdownDisabled={!isEditing}
+                          settings={settings}
                         />
                         {!isEditing && (
                           <Typography
@@ -1857,14 +1907,15 @@ const ItemTable = () => {
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
-                              backgroundColor: 'rgba(254, 249, 225, 0.8)',
-                              border: '1px solid rgba(109, 35, 35, 0.3)',
+                              backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.8),
+                              border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
+                              padding: '12px',
                               gap: 1.5,
                             }}
                           >
                             <PersonIcon
-                              sx={{ color: accentColor, fontSize: 20 }}
+                              sx={{ color: settings.primaryColor || accentColor, fontSize: 20 }}
                             />
                             <Box
                               sx={{
@@ -1877,7 +1928,7 @@ const ItemTable = () => {
                                 variant="body2"
                                 sx={{
                                   fontWeight: 'bold',
-                                  color: accentColor,
+                                  color: settings.textPrimaryColor || accentColor,
                                   fontSize: '14px',
                                   lineHeight: 1.2,
                                 }}
@@ -1887,7 +1938,7 @@ const ItemTable = () => {
                               <Typography
                                 variant="caption"
                                 sx={{
-                                  color: grayColor,
+                                  color: settings.textSecondaryColor || grayColor,
                                   fontSize: '12px',
                                   lineHeight: 1.2,
                                 }}
@@ -2157,86 +2208,103 @@ const ItemTable = () => {
                     </Grid>
                   </Grid>
 
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      gap: 2,
-                      mt: 4,
-                      justifyContent: 'flex-end',
-                    }}
-                  >
-                    {!isEditing ? (
-                      <>
-                        <ProfessionalButton
-                          onClick={() => handleDelete(editItem.id)}
-                          variant="outlined"
-                          startIcon={<DeleteIcon />}
-                          sx={{
-                            color: '#d32f2f',
-                            borderColor: '#d32f2f',
-                            '&:hover': {
-                              backgroundColor: '#d32f2f',
-                              color: '#fff',
-                            },
-                          }}
-                        >
-                          Delete
-                        </ProfessionalButton>
-                        <ProfessionalButton
-                          onClick={handleStartEdit}
-                          variant="contained"
-                          startIcon={<EditIcon />}
-                          sx={{
-                            backgroundColor: accentColor,
-                            color: primaryColor,
-                            '&:hover': { backgroundColor: accentDark },
-                          }}
-                        >
-                          Edit
-                        </ProfessionalButton>
-                      </>
-                    ) : (
-                      <>
-                        <ProfessionalButton
-                          onClick={handleCancelEdit}
-                          variant="outlined"
-                          startIcon={<CancelIcon />}
-                          sx={{
-                            color: grayColor,
-                            borderColor: grayColor,
-                            '&:hover': {
-                              backgroundColor: 'rgba(108, 117, 125, 0.1)',
-                            },
-                          }}
-                        >
-                          Cancel
-                        </ProfessionalButton>
-                        <ProfessionalButton
-                          onClick={handleUpdate}
-                          variant="contained"
-                          startIcon={<SaveIcon />}
-                          disabled={!hasChanges()}
-                          sx={{
-                            backgroundColor: hasChanges()
-                              ? accentColor
-                              : grayColor,
-                            color: primaryColor,
-                            '&:hover': {
-                              backgroundColor: hasChanges()
-                                ? accentDark
-                                : grayColor,
-                            },
-                            '&:disabled': {
-                              backgroundColor: grayColor,
-                              color: '#999',
-                            },
-                          }}
-                        >
-                          Save
-                        </ProfessionalButton>
-                      </>
-                    )}
-                  </Box>
+                </Box>
+
+                {/* Bottom action bar */}
+                <Box
+                  sx={{
+                    borderTop: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.2)}`,
+                    backgroundColor: '#FFFFFF',
+                    px: 3,
+                    py: 2,
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: 2,
+                    position: 'sticky',
+                    bottom: 0,
+                    zIndex: 10,
+                    flexShrink: 0,
+                  }}
+                >
+                  {!isEditing ? (
+                    <>
+                      <ProfessionalButton
+                        onClick={() => handleDelete(editItem.id)}
+                        variant="outlined"
+                        startIcon={<DeleteIcon />}
+                        sx={{
+                          borderColor: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: alpha(settings.deleteButtonColor || settings.primaryColor || '#6d2323', 0.1),
+                            borderColor: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
+                            color: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
+                          },
+                        }}
+                      >
+                        Delete
+                      </ProfessionalButton>
+                      <ProfessionalButton
+                        onClick={handleStartEdit}
+                        variant="contained"
+                        startIcon={<EditIcon />}
+                        sx={{
+                          backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
+                          },
+                        }}
+                      >
+                        Edit
+                      </ProfessionalButton>
+                    </>
+                  ) : (
+                    <>
+                      <ProfessionalButton
+                        onClick={handleCancelEdit}
+                        variant="outlined"
+                        startIcon={<CancelIcon />}
+                        sx={{
+                          borderColor: settings.cancelButtonColor || '#6c757d',
+                          color: settings.cancelButtonColor || '#6c757d',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: alpha(settings.cancelButtonColor || '#6c757d', 0.1),
+                            borderColor: settings.cancelButtonHoverColor || '#5a6268',
+                            color: settings.cancelButtonHoverColor || '#5a6268',
+                          },
+                        }}
+                      >
+                        Cancel
+                      </ProfessionalButton>
+                      <ProfessionalButton
+                        onClick={handleUpdate}
+                        variant="contained"
+                        startIcon={<SaveIcon />}
+                        disabled={!hasChanges()}
+                        sx={{
+                          backgroundColor: hasChanges() 
+                            ? (settings.updateButtonColor || settings.primaryColor || '#6d2323')
+                            : alpha(settings.primaryColor || '#6d2323', 0.5),
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: hasChanges() 
+                              ? (settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d')
+                              : alpha(settings.primaryColor || '#6d2323', 0.5),
+                          },
+                          '&:disabled': {
+                            color: alpha(settings.accentColor || '#FEF9E1', 0.5),
+                          },
+                        }}
+                      >
+                        Save
+                      </ProfessionalButton>
+                    </>
+                  )}
                 </Box>
               </>
             )}

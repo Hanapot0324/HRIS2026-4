@@ -633,12 +633,12 @@ const DepartmentTable = () => {
                       startIcon={<AddIcon />}
                       fullWidth
                       sx={{
-                        backgroundColor: accentColor,
-                        color: textSecondaryColor,
                         py: 1.5,
                         fontSize: '1rem',
+                        backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                        color: settings.accentColor || '#FEF9E1',
                         '&:hover': {
-                          backgroundColor: accentDark,
+                          backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
                         },
                       }}
                     >
@@ -817,15 +817,16 @@ const DepartmentTable = () => {
                                   fontWeight="bold"
                                   color="#333"
                                   mb={0.5}
-                                  noWrap
+                                  sx={{ wordBreak: 'break-word' }}
                                 >
                                   {department.description || 'No Description'}
                                 </Typography>
 
                                 <Typography
                                   variant="body2"
-                                  color="#666"
-                                  sx={{ flexGrow: 1 }}
+                                  fontWeight="bold"
+                                  color="#333"
+                                  sx={{ flexGrow: 1, wordBreak: 'break-word' }}
                                 >
                                   {department.code}
                                 </Typography>
@@ -860,40 +861,32 @@ const DepartmentTable = () => {
                               </Box>
 
                               <Box sx={{ flexGrow: 1 }}>
-                                <Box
+                                <Typography
+                                  variant="caption"
                                   sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    mb: 0.5,
+                                    color: textPrimaryColor,
+                                    fontSize: '0.7rem',
+                                    fontWeight: 'bold',
+                                    display: 'block',
+                                    mb: 0.5
                                   }}
                                 >
-                                  <Typography
-                                    variant="caption"
-                                    sx={{
-                                      color: textPrimaryColor,
-                                      px: 0.5,
-                                      py: 0.2,
-                                      borderRadius: 0.5,
-                                      fontSize: '0.7rem',
-                                      fontWeight: 'bold',
-                                      mr: 1,
-                                    }}
-                                  >
-                                    ID: {department.id}
-                                  </Typography>
-                                  <Typography
-                                    variant="body2"
-                                    fontWeight="bold"
-                                    color="#333"
-                                  >
-                                    {department.description || 'No Description'}
-                                  </Typography>
-                                </Box>
+                                  ID: {department.id}
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="bold"
+                                  color="#333"
+                                  sx={{ mb: 0.5 }}
+                                >
+                                  {department.description || 'No Description'}
+                                </Typography>
 
                                 <Typography
                                   variant="body2"
-                                  color="#666"
-                                  sx={{ mb: 0.5 }}
+                                  fontWeight="bold"
+                                  color="#333"
+                                  sx={{ mb: 0.5, wordBreak: 'break-word' }}
                                 >
                                   {department.code}
                                 </Typography>
@@ -943,9 +936,11 @@ const DepartmentTable = () => {
           <GlassCard
             sx={{
               width: '90%',
-              maxWidth: '600px',
+              maxWidth: '900px',
               maxHeight: '90vh',
-              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
             }}
           >
             {selectedDepartment && (
@@ -953,25 +948,26 @@ const DepartmentTable = () => {
                 {/* Modal Header */}
                 <Box
                   sx={{
-                    p: 4,
-                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-                    color: textPrimaryColor,
+                    p: 3,
+                    background: `linear-gradient(135deg, ${settings.secondaryColor || '#6d2323'} 0%, ${settings.deleteButtonHoverColor || '#a31d1d'} 100%)`,
+                    color: settings.accentColor || '#FEF9E1',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     position: 'sticky',
                     top: 0,
                     zIndex: 10,
+                    flexShrink: 0,
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: settings.accentColor || '#FEF9E1' }}>
                     {isEditing
                       ? 'Edit Department Information'
                       : 'Department Details'}
                   </Typography>
                   <IconButton
                     onClick={() => setModalOpen(false)}
-                    sx={{ color: textPrimaryColor }}
+                    sx={{ color: settings.accentColor || '#FEF9E1' }}
                   >
                     <Close />
                   </IconButton>
@@ -983,7 +979,7 @@ const DepartmentTable = () => {
                     p: 4,
                     flexGrow: 1,
                     overflowY: 'auto',
-                    maxHeight: 'calc(90vh - 140px)', // Account for header and sticky footer
+                    minHeight: 0,
                     '&::-webkit-scrollbar': {
                       width: '6px',
                     },
@@ -992,7 +988,7 @@ const DepartmentTable = () => {
                       borderRadius: '3px',
                     },
                     '&::-webkit-scrollbar-thumb': {
-                      background: accentColor,
+                      background: settings.primaryColor || accentColor,
                       borderRadius: '3px',
                     },
                   }}
@@ -1102,83 +1098,103 @@ const DepartmentTable = () => {
                       </Grid>
                     </Grid>
                   </Grid>
-                  {/* Sticky Action Buttons */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      gap: 2,
-                      mt: 4,
-                      justifyContent: 'flex-end',
-                    }}
-                  >
-                    {!isEditing ? (
-                      <>
-                        <ProfessionalButton
-                          onClick={() => deleteEntry(selectedDepartment.id)}
-                          variant="outlined"
-                          startIcon={<DeleteIcon />}
-                          sx={{
-                            color: '#d32f2f',
-                            borderColor: '#d32f2f',
-                            '&:hover': {
-                              backgroundColor: '#d32f2f',
-                              color: '#fff',
-                            },
-                          }}
-                        >
-                          Delete
-                        </ProfessionalButton>
-                        <ProfessionalButton
-                          onClick={handleStartEdit}
-                          variant="contained"
-                          startIcon={<EditIcon />}
-                          sx={{
-                            backgroundColor: accentColor,
-                            color: textSecondaryColor,
-                            '&:hover': { backgroundColor: accentDark },
-                          }}
-                        >
-                          Edit
-                        </ProfessionalButton>
-                      </>
-                    ) : (
-                      <>
-                        <ProfessionalButton
-                          onClick={handleCancelEdit}
-                          variant="outlined"
-                          startIcon={<CancelIcon />}
-                          sx={{
-                            color: '#666',
-                            borderColor: '#666',
-                            '&:hover': {
-                              backgroundColor: '#f5f5f5',
-                            },
-                          }}
-                        >
-                          Cancel
-                        </ProfessionalButton>
-                        <ProfessionalButton
-                          onClick={saveEdit}
-                          variant="contained"
-                          startIcon={<SaveIcon />}
-                          disabled={!hasChanges()}
-                          sx={{
-                            backgroundColor: hasChanges() ? accentColor : '#ccc',
-                            color: textSecondaryColor,
-                            '&:hover': {
-                              backgroundColor: hasChanges() ? accentDark : '#ccc',
-                            },
-                            '&:disabled': {
-                              backgroundColor: '#ccc',
-                              color: '#999',
-                            },
-                          }}
-                        >
-                          Save
-                        </ProfessionalButton>
-                      </>
-                    )}
-                  </Box>
+                </Box>
+
+                {/* Bottom action bar */}
+                <Box
+                  sx={{
+                    borderTop: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.2)}`,
+                    backgroundColor: '#FFFFFF',
+                    px: 3,
+                    py: 2,
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: 2,
+                    position: 'sticky',
+                    bottom: 0,
+                    zIndex: 10,
+                    flexShrink: 0,
+                  }}
+                >
+                  {!isEditing ? (
+                    <>
+                      <ProfessionalButton
+                        onClick={() => deleteEntry(selectedDepartment.id)}
+                        variant="outlined"
+                        startIcon={<DeleteIcon />}
+                        sx={{
+                          borderColor: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: alpha(settings.deleteButtonColor || settings.primaryColor || '#6d2323', 0.1),
+                            borderColor: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
+                            color: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
+                          },
+                        }}
+                      >
+                        Delete
+                      </ProfessionalButton>
+                      <ProfessionalButton
+                        onClick={handleStartEdit}
+                        variant="contained"
+                        startIcon={<EditIcon />}
+                        sx={{
+                          backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
+                          },
+                        }}
+                      >
+                        Edit
+                      </ProfessionalButton>
+                    </>
+                  ) : (
+                    <>
+                      <ProfessionalButton
+                        onClick={handleCancelEdit}
+                        variant="outlined"
+                        startIcon={<CancelIcon />}
+                        sx={{
+                          borderColor: settings.cancelButtonColor || '#6c757d',
+                          color: settings.cancelButtonColor || '#6c757d',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: alpha(settings.cancelButtonColor || '#6c757d', 0.1),
+                            borderColor: settings.cancelButtonHoverColor || '#5a6268',
+                            color: settings.cancelButtonHoverColor || '#5a6268',
+                          },
+                        }}
+                      >
+                        Cancel
+                      </ProfessionalButton>
+                      <ProfessionalButton
+                        onClick={saveEdit}
+                        variant="contained"
+                        startIcon={<SaveIcon />}
+                        disabled={!hasChanges()}
+                        sx={{
+                          backgroundColor: hasChanges() 
+                            ? (settings.updateButtonColor || settings.primaryColor || '#6d2323')
+                            : alpha(settings.primaryColor || '#6d2323', 0.5),
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: hasChanges() 
+                              ? (settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d')
+                              : alpha(settings.primaryColor || '#6d2323', 0.5),
+                          },
+                          '&:disabled': {
+                            color: alpha(settings.accentColor || '#FEF9E1', 0.5),
+                          },
+                        }}
+                      >
+                        Save
+                      </ProfessionalButton>
+                    </>
+                  )}
                 </Box>
               </>
             )}

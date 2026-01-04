@@ -44,8 +44,8 @@ const SubjectStillToBeTaken= () => {
                 <b>Sir:</b><br />
                 <br />
                 &nbsp;&nbsp;&nbsp;&nbsp;
-                I have the honor to request permission to study in _______________________________________<br />
-                __________________________ beginning _________________________ outside of my Official time.<br />
+                I have the honor to request permission to study in <span style={{borderBottom: '1px solid black', minWidth: '250px', display: 'inline-block', margin: '0 4px'}}></span><br />
+                <span style={{borderBottom: '1px solid black', minWidth: '200px', display: 'inline-block', margin: '0 4px'}}></span> beginning <span style={{borderBottom: '1px solid black', minWidth: '180px', display: 'inline-block', margin: '0 4px'}}></span> outside of my Official time.<br />
                 <br />
             </div>
             <br/>
@@ -57,7 +57,7 @@ const SubjectStillToBeTaken= () => {
                 <tbody>
                     <tr>
                         <td colSpan="35" style={{ height: '0.25in', textAlign: 'center' }}>
-                            <b>COURSE:</b> __________________________
+                            <b>COURSE:</b> <span style={{borderBottom: '1px solid black', minWidth: '200px', display: 'inline-block', margin: '0 4px'}}></span>
                         </td>
                     </tr>
                     <tr>
@@ -75,33 +75,33 @@ const SubjectStillToBeTaken= () => {
                         <td colSpan="10" style={{ height: '0.25in', textAlign: 'center' }}>
                             <u>Subjects</u>
                             <br />
-                            ____________________<br />
-                            ____________________<br />
-                            ____________________<br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '150px', display: 'inline-block', margin: '4px 0'}}></span><br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '150px', display: 'inline-block', margin: '4px 0'}}></span><br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '150px', display: 'inline-block', margin: '4px 0'}}></span><br />
                             <br />
                         </td>
                         <td colSpan="10" style={{ height: '0.25in', textAlign: 'center' }}>
                             <u>Units</u>
                             <br />
-                            ______<br />
-                            ______<br />
-                            ______<br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '60px', display: 'inline-block', margin: '4px 0'}}></span><br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '60px', display: 'inline-block', margin: '4px 0'}}></span><br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '60px', display: 'inline-block', margin: '4px 0'}}></span><br />
                             <br />
                         </td>
                         <td colSpan="10" style={{ height: '0.25in', textAlign: 'center' }}>
                             <u>Subjects</u>
                             <br />
-                            ____________________<br />
-                            ____________________<br />
-                            ____________________<br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '150px', display: 'inline-block', margin: '4px 0'}}></span><br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '150px', display: 'inline-block', margin: '4px 0'}}></span><br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '150px', display: 'inline-block', margin: '4px 0'}}></span><br />
                             <br />
                         </td>
                         <td colSpan="7" style={{ height: '0.25in', textAlign: 'center' }}>
                             <u>Units</u>
                             <br />
-                            ______<br />
-                            ______<br />
-                            ______<br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '60px', display: 'inline-block', margin: '4px 0'}}></span><br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '60px', display: 'inline-block', margin: '4px 0'}}></span><br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '60px', display: 'inline-block', margin: '4px 0'}}></span><br />
                             <br />
                         </td>
                     </tr>
@@ -119,10 +119,10 @@ const SubjectStillToBeTaken= () => {
                             &nbsp;
                         </td>
                         <td colSpan="15" style={{ height: '0.5in', textAlign: 'center' }}>
-                            __________________________<br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '200px', display: 'inline-block', margin: '4px 0'}}></span><br />
                             Signature Over Printed Name<br />
                             <br />
-                            __________________________<br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '200px', display: 'inline-block', margin: '4px 0'}}></span><br />
                             Position<br />
                             <br />
                         </td>
@@ -138,7 +138,7 @@ const SubjectStillToBeTaken= () => {
                     </tr>
                     <tr>
                         <td colSpan="15" style={{ height: '0.5in', textAlign: 'center' }}>
-                            ______________________________<br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '200px', display: 'inline-block', margin: '4px 0'}}></span><br />
                             Department Head/Area Chairman<br />
                             <br />
                         </td>
@@ -156,7 +156,7 @@ const SubjectStillToBeTaken= () => {
                     </tr>
                     <tr>
                         <td colSpan="15" style={{ height: '0.5in', textAlign: 'center' }}>
-                            ______________________________<br />
+                            <span style={{borderBottom: '1px solid black', minWidth: '200px', display: 'inline-block', margin: '4px 0'}}></span><br />
                             Dean<br />
                             <br />
                         </td>

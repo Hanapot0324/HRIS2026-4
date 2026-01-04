@@ -46,6 +46,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Refresh,
+  CalendarToday,
 } from '@mui/icons-material';
 import {
   Select,
@@ -61,6 +62,7 @@ import AccessDenied from '../AccessDenied';
 import usePageAccess from '../../hooks/usePageAccess';
 import { useNavigate } from 'react-router-dom';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
+import { useCRUDButtonStyles, useCRUDButtonStylesOutlined } from '../../hooks/useCRUDButtonStyles';
 import {
   createThemedCard,
   createThemedButton,
@@ -295,15 +297,15 @@ const EmployeeAutocomplete = ({
                   onClick={() => handleEmployeeSelect(employee)}
                   sx={{
                     '&:hover': {
-                      backgroundColor: '#f5f5f5',
+                      backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.3),
                     },
                   }}
                 >
                   <ListItemText
                     primary={employee.name}
                     secondary={`#${employee.employeeNumber}`}
-                    primaryTypographyProps={{ fontWeight: 'bold' }}
-                    secondaryTypographyProps={{ color: '#666' }}
+                    primaryTypographyProps={{ fontWeight: 'bold', color: settings.textPrimaryColor || '#6D2323' }}
+                    secondaryTypographyProps={{ color: settings.textSecondaryColor || '#666' }}
                   />
                 </ListItem>
               ))}
@@ -857,8 +859,8 @@ const WorkExperience = () => {
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
-                              backgroundColor: 'rgba(254, 249, 225, 0.8)',
-                              border: '1px solid rgba(109, 35, 35, 0.3)',
+                              backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.8),
+                              border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
                               paddingLeft: '10px',
                               gap: 1.5,
@@ -1067,12 +1069,12 @@ const WorkExperience = () => {
                       startIcon={<AddIcon />}
                       fullWidth
                       sx={{
-                        backgroundColor: accentColor,
-                        color: primaryColor,
                         py: 1.5,
                         fontSize: '1rem',
-                        "&:hover": { 
-                          backgroundColor: accentDark,
+                        backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                        color: settings.accentColor || '#FEF9E1',
+                        '&:hover': {
+                          backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
                         },
                       }}
                     >
@@ -1219,9 +1221,23 @@ const WorkExperience = () => {
                                   {employeeNames[workExp.person_id] || 'Loading...'}
                                 </Typography>
                                 
-                                <Typography variant="body2" fontWeight="bold" color="#333" mb={1} noWrap sx={{ flexGrow: 1 }}>
+                                <Typography variant="body2" fontWeight="bold" color="#333" mb={0.5} sx={{ flexGrow: 1, wordBreak: 'break-word' }}>
                                   {workExp.workCompany || 'No Company'}
                                 </Typography>
+                                
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexWrap: 'nowrap', overflow: 'hidden', mb: 0.5 }}>
+                                  <CalendarToday sx={{ fontSize: 12, color: '#000', flexShrink: 0 }} />
+                                  <Typography variant="caption" color="#000" fontSize="0.7rem" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1 }}>
+                                    {workExp.workDateFrom?.split('T')[0] || '----'}
+                                  </Typography>
+                                  <Typography variant="caption" color="#000" fontSize="0.7rem" sx={{ mx: 0.25, flexShrink: 0 }}>
+                                    to
+                                  </Typography>
+                                  <CalendarToday sx={{ fontSize: 12, color: '#000', flexShrink: 0 }} />
+                                  <Typography variant="caption" color="#000" fontSize="0.7rem" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1 }}>
+                                    {workExp.workDateTo?.split('T')[0] || '----'}
+                                  </Typography>
+                                </Box>
                                 
                                 {workExp.workPositionTitle && (
                                   <Box
@@ -1271,23 +1287,36 @@ const WorkExperience = () => {
                               </Box>
                               
                               <Box sx={{ flexGrow: 1 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                                  <Typography variant="caption" sx={{ 
-                                    color: textPrimaryColor,
-                                    fontSize: '0.7rem',
-                                    fontWeight: 'bold',
-                                    mr: 1
-                                  }}>
-                                    ID: {workExp.person_id}
-                                  </Typography>
-                                  <Typography variant="body2" fontWeight="bold" color="#333">
-                                    {employeeNames[workExp.person_id] || 'Loading...'}
-                                  </Typography>
-                                </Box>
+                                <Typography variant="caption" sx={{ 
+                                  color: textPrimaryColor,
+                                  fontSize: '0.7rem',
+                                  fontWeight: 'bold',
+                                  display: 'block',
+                                  mb: 0.5
+                                }}>
+                                  ID: {workExp.person_id}
+                                </Typography>
+                                <Typography variant="body2" fontWeight="bold" color="#333" sx={{ mb: 0.5 }}>
+                                  {employeeNames[workExp.person_id] || 'Loading...'}
+                                </Typography>
                                 
-                                <Typography variant="body2" color="#666" sx={{ mb: 0.5 }}>
+                                <Typography variant="body2" fontWeight="bold" color="#333" sx={{ mb: 0.5, wordBreak: 'break-word' }}>
                                   {workExp.workCompany || 'No Company'}
                                 </Typography>
+                                
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                                  <CalendarToday sx={{ fontSize: 14, color: '#000', flexShrink: 0 }} />
+                                  <Typography variant="caption" color="#000" fontSize="0.75rem" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {workExp.workDateFrom?.split('T')[0] || '----'}
+                                  </Typography>
+                                  <Typography variant="caption" color="#000" fontSize="0.75rem" sx={{ flexShrink: 0 }}>
+                                    to
+                                  </Typography>
+                                  <CalendarToday sx={{ fontSize: 14, color: '#000', flexShrink: 0 }} />
+                                  <Typography variant="caption" color="#000" fontSize="0.75rem" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {workExp.workDateTo?.split('T')[0] || '----'}
+                                  </Typography>
+                                </Box>
                                 
                                 {workExp.workPositionTitle && (
                                   <Box
@@ -1346,34 +1375,56 @@ const WorkExperience = () => {
           <GlassCard
             sx={{
               width: "90%",
-              maxWidth: "600px",
+              maxWidth: "900px",
               maxHeight: "90vh",
-              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
             }}
           >
             {editWorkExperience && (
               <>
                 <Box
                   sx={{
-                    p: 4,
-                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-                    color: textPrimaryColor,
+                    p: 3,
+                    background: `linear-gradient(135deg, ${settings.secondaryColor || '#6d2323'} 0%, ${settings.deleteButtonHoverColor || '#a31d1d'} 100%)`,
+                    color: settings.accentColor || '#FEF9E1',
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 10,
+                    flexShrink: 0,
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: settings.accentColor || '#FEF9E1' }}>
                     {isEditing
                       ? "Edit Work Experience Information"
                       : "Work Experience Details"}
                   </Typography>
-                  <IconButton onClick={handleCloseModal} sx={{ color: accentColor }}>
+                  <IconButton onClick={handleCloseModal} sx={{ color: settings.accentColor || '#FEF9E1' }}>
                     <Close />
                   </IconButton>
                 </Box>
 
-                <Box sx={{ p: 4 }}>
+                <Box sx={{ 
+                  p: 4, 
+                  flexGrow: 1, 
+                  overflowY: 'auto',
+                  minHeight: 0,
+                  '&::-webkit-scrollbar': {
+                    width: '6px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    background: '#f1f1f1',
+                    borderRadius: '3px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: settings.primaryColor || accentColor,
+                    borderRadius: '3px',
+                  },
+                }}>
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="h5" sx={{ fontWeight: 600, mb: 2, color: accentColor, display: 'flex', alignItems: 'center' }}>
                       <PersonIcon sx={{ mr: 2, fontSize: 24 }} />
@@ -1424,8 +1475,8 @@ const WorkExperience = () => {
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
-                              backgroundColor: 'rgba(254, 249, 225, 0.8)',
-                              border: '1px solid rgba(109, 35, 35, 0.3)',
+                              backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.8),
+                              border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
                               padding: '12px',
                               gap: 1.5,
@@ -1722,75 +1773,103 @@ const WorkExperience = () => {
                     </Grid>
                   </Grid>
 
-                  <Box sx={{ display: 'flex', gap: 2, mt: 4, justifyContent: 'flex-end' }}>
-                    {!isEditing ? (
-                      <>
-                        <ProfessionalButton
-                          onClick={() => handleDelete(editWorkExperience.id)}
-                          variant="outlined"
-                          startIcon={<DeleteIcon />}
-                          sx={{
-                            color: "#d32f2f",
-                            borderColor: "#d32f2f",
-                            "&:hover": {
-                              backgroundColor: "#d32f2f",
-                              color: "#fff"
-                            }
-                          }}
-                        >
-                          Delete
-                        </ProfessionalButton>
-                        <ProfessionalButton
-                          onClick={handleStartEdit}
-                          variant="contained"
-                          startIcon={<EditIcon />}
-                          sx={{ 
-                            backgroundColor: accentColor, 
-                            color: primaryColor,
-                            "&:hover": { backgroundColor: accentDark }
-                          }}
-                        >
-                          Edit
-                        </ProfessionalButton>
-                      </>
-                    ) : (
-                      <>
-                        <ProfessionalButton
-                          onClick={handleCancelEdit}
-                          variant="outlined"
-                          startIcon={<CancelIcon />}
-                          sx={{
-                            color: grayColor,
-                            borderColor: grayColor,
-                            "&:hover": {
-                              backgroundColor: 'rgba(108, 117, 125, 0.1)'
-                            }
-                          }}
-                        >
-                          Cancel
-                        </ProfessionalButton>
-                        <ProfessionalButton
-                          onClick={handleUpdate}
-                          variant="contained"
-                          startIcon={<SaveIcon />}
-                          disabled={!hasChanges()}
-                          sx={{ 
-                            backgroundColor: hasChanges() ? accentColor : grayColor, 
-                            color: primaryColor,
-                            "&:hover": { 
-                              backgroundColor: hasChanges() ? accentDark : grayColor
-                            },
-                            "&:disabled": {
-                              backgroundColor: grayColor,
-                              color: "#999"
-                            }
-                          }}
-                        >
-                          Save
-                        </ProfessionalButton>
-                      </>
-                    )}
-                  </Box>
+                </Box>
+
+                {/* Bottom action bar */}
+                <Box
+                  sx={{
+                    borderTop: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.2)}`,
+                    backgroundColor: '#FFFFFF',
+                    px: 3,
+                    py: 2,
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: 2,
+                    position: 'sticky',
+                    bottom: 0,
+                    zIndex: 10,
+                    flexShrink: 0,
+                  }}
+                >
+                  {!isEditing ? (
+                    <>
+                      <ProfessionalButton
+                        onClick={() => handleDelete(editWorkExperience.id)}
+                        variant="outlined"
+                        startIcon={<DeleteIcon />}
+                        sx={{
+                          borderColor: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: alpha(settings.deleteButtonColor || settings.primaryColor || '#6d2323', 0.1),
+                            borderColor: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
+                            color: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
+                          },
+                        }}
+                      >
+                        Delete
+                      </ProfessionalButton>
+                      <ProfessionalButton
+                        onClick={handleStartEdit}
+                        variant="contained"
+                        startIcon={<EditIcon />}
+                        sx={{
+                          backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
+                          },
+                        }}
+                      >
+                        Edit
+                      </ProfessionalButton>
+                    </>
+                  ) : (
+                    <>
+                      <ProfessionalButton
+                        onClick={handleCancelEdit}
+                        variant="outlined"
+                        startIcon={<CancelIcon />}
+                        sx={{
+                          borderColor: settings.cancelButtonColor || '#6c757d',
+                          color: settings.cancelButtonColor || '#6c757d',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: alpha(settings.cancelButtonColor || '#6c757d', 0.1),
+                            borderColor: settings.cancelButtonHoverColor || '#5a6268',
+                            color: settings.cancelButtonHoverColor || '#5a6268',
+                          },
+                        }}
+                      >
+                        Cancel
+                      </ProfessionalButton>
+                      <ProfessionalButton
+                        onClick={handleUpdate}
+                        variant="contained"
+                        startIcon={<SaveIcon />}
+                        disabled={!hasChanges()}
+                        sx={{
+                          backgroundColor: hasChanges() 
+                            ? (settings.updateButtonColor || settings.primaryColor || '#6d2323')
+                            : alpha(settings.primaryColor || '#6d2323', 0.5),
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: hasChanges() 
+                              ? (settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d')
+                              : alpha(settings.primaryColor || '#6d2323', 0.5),
+                          },
+                          '&:disabled': {
+                            color: alpha(settings.accentColor || '#FEF9E1', 0.5),
+                          },
+                        }}
+                      >
+                        Save
+                      </ProfessionalButton>
+                    </>
+                  )}
                 </Box>
               </>
             )}

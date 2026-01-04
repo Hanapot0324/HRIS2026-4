@@ -73,6 +73,7 @@ import {
   ContactPage,
   PointOfSale,
   LibraryBooks,
+  Calculate as CalculateIcon,
 } from "@mui/icons-material";
 import {
   AccessAlarm,
@@ -380,6 +381,8 @@ const Sidebar = ({
       setSelectedItem("payroll-jo");
     } else if (currentPath === "/payroll-processed") {
       setSelectedItem("payroll-processed");
+    } else if (currentPath === "/payroll-processed-jo") {
+      setSelectedItem("payroll-processed-jo");
     } else if (currentPath === "/payroll-released") {
       setSelectedItem("payroll-released");
     } else if (currentPath === "/distribution-payslip") {
@@ -523,7 +526,9 @@ const Sidebar = ({
 
     const payrollManagementItems = [
       "payroll-table",
+      "payroll-jo",
       "payroll-processed",
+      "payroll-processed-jo",
       "payroll-released",
       "distribution-payslip",
       "overall-payslip",
@@ -561,6 +566,7 @@ const Sidebar = ({
       "system-settings",
       "registration",
       "reset-password",
+      "payroll-formulas",
     ];
 
     if (informationManagementItems.includes(item) && !open) {
@@ -1736,6 +1742,58 @@ const Sidebar = ({
                       </ListItemIcon>
                       <ListItemText
                         primary="Password Management"
+                        sx={{ marginLeft: "-10px" }}
+                      />
+                    </ListItem>
+
+                    {/* Payroll Formulas */}
+                    <ListItem
+                      button
+                      component={Link}
+                      to="/payroll-formulas"
+                      onClick={() => handleItemClick("payroll-formulas")}
+                      sx={{
+                        bgcolor:
+                          selectedItem === "payroll-formulas"
+                            ? settings.accentColor || "#FEF9E1"
+                            : "inherit",
+                        color:
+                          selectedItem === "payroll-formulas"
+                            ? settings.textPrimaryColor
+                            : settings.textSecondaryColor,
+                        "& .MuiListItemIcon-root": {
+                          color:
+                            selectedItem === "payroll-formulas"
+                              ? settings.textPrimaryColor
+                              : settings.textSecondaryColor,
+                        },
+                        "& .MuiListItemText-primary": {
+                          color:
+                            selectedItem === "payroll-formulas"
+                              ? settings.textPrimaryColor
+                              : settings.textSecondaryColor,
+                        },
+                        "&:hover": {
+                          bgcolor: settings.hoverColor || "#6D2323",
+                          color: settings.textSecondaryColor,
+                          "& .MuiListItemIcon-root": {
+                            color: settings.textSecondaryColor,
+                          },
+                          "& .MuiListItemText-primary": {
+                            color: settings.textSecondaryColor,
+                          },
+                        },
+                        borderTopRightRadius:
+                          selectedItem === "payroll-formulas" ? "15px" : 0,
+                        borderBottomRightRadius:
+                          selectedItem === "payroll-formulas" ? "15px" : 0,
+                      }}
+                    >
+                      <ListItemIcon sx={{ marginRight: "-1rem" }}>
+                        <CalculateIcon />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary="Payroll Formulas"
                         sx={{ marginLeft: "-10px" }}
                       />
                     </ListItem>
@@ -3080,7 +3138,54 @@ const Sidebar = ({
                         <PaymentsIcon />
                       </ListItemIcon>
                       <ListItemText
-                        primary="Payroll | Processed"
+                        primary="Payroll Processed | Regular"
+                        sx={{ marginLeft: "-10px" }}
+                      />
+                    </ListItem>
+
+                    <ListItem
+                      button
+                      component={Link}
+                      to="/payroll-processed-jo"
+                      sx={{
+                        color:
+                          selectedItem === "payroll-processed-jo"
+                            ? settings.textPrimaryColor
+                            : settings.textSecondaryColor,
+                        bgcolor:
+                          selectedItem === "payroll-processed-jo"
+                            ? settings.accentColor || "#FEF9E1"
+                            : "inherit",
+                        "&:hover": {
+                          bgcolor: settings.hoverColor || "#6D2323",
+                          color: settings.textSecondaryColor,
+                          borderTopRightRadius: "15px",
+                          borderBottomRightRadius: "15px",
+                          "& .MuiListItemIcon-root": {
+                            color: settings.textSecondaryColor,
+                          },
+                        },
+                        borderTopRightRadius:
+                          selectedItem === "payroll-processed-jo" ? "15px" : 0,
+                        borderBottomRightRadius:
+                          selectedItem === "payroll-processed-jo" ? "15px" : 0,
+                      }}
+                      onClick={() => handleItemClick("payroll-processed-jo")}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          marginRight: "-1rem",
+                          color:
+                            selectedItem === "payroll-processed-jo"
+                              ? settings.textPrimaryColor
+                              : settings.textSecondaryColor,
+                          "&:hover": { color: settings.textSecondaryColor },
+                        }}
+                      >
+                        <PaymentsIcon />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary="Payroll Processed | JO"
                         sx={{ marginLeft: "-10px" }}
                       />
                     </ListItem>

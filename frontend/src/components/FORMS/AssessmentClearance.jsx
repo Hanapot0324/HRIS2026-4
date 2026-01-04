@@ -7,50 +7,44 @@ const AssesmentClearance = () => {
  <div
       style={{
         border: "1px solid black",
-        padding: "0.25in",
-        width: "8in",
+        padding: "0.2in",
+        width: "8.27in",
+        minHeight: "11.69in",
         fontFamily: "Poppins, sans-serif",
         alignContent:'center',
         margin: 'auto',
-        marginTop: '50px',
+        marginTop: '20px',
+        marginBottom: '20px',
         backgroundColor: '#ffffff',
+        boxSizing: 'border-box',
       }}
     >        {/* start div*/}
         <div style={{width: '5.25in',  margin: 'auto'}}>
         <br />
         <br />
-            <div style={{ width: "5.25in", margin: "auto" }}>
-                    <div style={{ position: "relative", top: "10px", float: "left" }}>
-                    <img src= {logo} alt="Logo" height="90px" />
+            <div style={{ width: "5.25in", margin: "auto", textAlign: 'center' }}>
+                    <img src= {logo} alt="Logo" height="90px" style={{display: 'block', margin: '0 auto 10px auto'}} />
+                    <div style={{textAlign: 'center'}}>
+                        <font size="3">Republic of the Philippines</font><br />
+                        <b><font size="4">EULOGIO "AMANG" RODRIGUEZ</font></b><br />
+                        <b><font size="4">INSTITUTE OF SCIENCE AND TECHNOLOGY</font></b><br />
+                        <font size="3">Nagtahan, Sampaloc, Manila</font>
+                    </div>
             </div>
-                <div style={{position: 'relative',  top: '20px',textAlign: 'center', float: 'right'}}>
-                    <font size="3">Republic of the Philippines</font><br />
-                    <b><font size="4">EULOGIO "AMANG" RODRIGUEZ</font></b><br />
-                    <b><font size="4">INSTITUTE OF SCIENCE AND TECHNOLOGY</font></b><br />
-                    <font size="3">Nagtahan, Sampaloc, Manila</font>
-                </div>
-            </div>
-            <div style={{position: 'relative', top: '75px', left: '150px', textAlign: 'center'}}>
+            <div style={{textAlign: 'center', marginTop: '10px'}}>
                 __________________<br />
                 Date
             </div>
-                <div style={{position: 'relative', top: '100px', textAlign: 'center', margin: 'auto'}}>
+                <div style={{textAlign: 'center', marginTop: '15px'}}>
             <b><i><font size="4">ASSESSMENT CLEARANCE FOR PART-TIME FACULTY</font></i></b><br />
             <br />
             1<sup>ST</sup> ____ 2<sup>ND</sup> ____ Semester/School year _____ - ______<br />
-            <br />
-            <br />
             </div>
            
         </div>
         {/*end div*/}
         <br />
-        <br />
-        <br />
-        <br />
-        <br />
-        <br />
-        <table style={{border: '0px', borderCollapse: 'collapse', width: '7.5in', tableLayout: 'fixed', margin: 'auto'}}>
+        <table style={{border: '0px', borderCollapse: 'collapse', width: '7.75in', tableLayout: 'fixed', margin: 'auto'}}>
         <tr>
             <td colSpan="12" style={{height: '0.25in', textAlign: 'center'}}>
                 ________________________
@@ -89,7 +83,7 @@ const AssesmentClearance = () => {
     <br />
     <br />
     <thead>
-    <table style={{borderCollapse: 'collapse', width: '7.5in', tableLayout: 'fixed', margin: 'auto'}}>
+    <table style={{borderCollapse: 'collapse', width: '7.75in', tableLayout: 'fixed', margin: 'auto'}}>
         <tr>
             <td colSpan="13" style={{border: '1px solid black', height: '0.3in', fontSize: '90%', textAlign: 'center'}}>
                 &nbsp;
@@ -102,72 +96,55 @@ const AssesmentClearance = () => {
             </td>
         </tr>
         <tr>
-            <td colSpan="13" style={{border: '1px solid black', height: '0.5in', fontSize: '90%', verticalAlign:'top'}}>
+            <td colSpan="13" style={{border: '1px solid black', height: '0.45in', fontSize: '85%', verticalAlign:'top', padding: '5px'}}>
                 <b>1.&nbsp;&nbsp;&nbsp;As to Area/College requirements.<br />
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 NBC 461/Research/Grade Sheets/<br />
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 MR/SALN&PDS/Liquidation</b>
-                <br />
-                <br />
-                <br />
             </td>
-            <td colSpan="17" style={{border: '1px solid black', height: '0.5in', fontSize: '90%', textAlign: 'center'}}>
-                <br />
-                <br />
+            <td colSpan="17" style={{border: '1px solid black', height: '0.45in', fontSize: '85%', textAlign: 'center', padding: '5px'}}>
                 <br />
                 _________________________________________<br />
                 <b>COLLEGE DEAN</b> (for Faculty Assigned in Colleges)<br />
                 <b>DIRECTOR OF INSTRUCTION</b> (for Gen. Ed. Faculty)<br />
                 <b>ECC ADMINISTRATOR</b> (for ECC Faculty)
             </td>
-            <td colSpan="5" style={{border: '1px solid black', height: '0.5in', textAlign: 'center'}}>
+            <td colSpan="5" style={{border: '1px solid black', height: '0.45in', textAlign: 'center'}}>
                     &nbsp;
             </td>
         </tr>
         <tr>
-            <td colSpan="13" style={{border: '1px solid black', height: '0.5in', fontSize: '90%', verticalAlign:'top'}}>
+            <td colSpan="13" style={{border: '1px solid black', height: '0.45in', fontSize: '85%', verticalAlign:'top', padding: '5px'}}>
                 <b />2.&nbsp;&nbsp;&nbsp;Recommending Approval<br />
-                <br />
-                <br />
-                <br />
-                <br />
             </td>
-            <td colSpan="17" style={{border: '1px solid black', height: '0.5in', fontSize: '90%', textAlign: 'center'}}>
-                <br />
-                <br />
+            <td colSpan="17" style={{border: '1px solid black', height: '0.45in', fontSize: '85%', textAlign: 'center', padding: '5px'}}>
                 <br />
                 _________________________________________<br />
                 <b>DR. ERIC C. MENDOZA</b><br />
                 Vice President for Academic Affairs
             </td>
-            <td colSpan="5" style={{border: '1px solid black', height: '0.5in', textAlign:'center'}}>          
+            <td colSpan="5" style={{border: '1px solid black', height: '0.45in', textAlign:'center'}}>          
             &nbsp;
             </td>
         </tr>
         <tr>
-            <td colSpan="13" style={{border: '1px solid black', height: '0.5in', fontSize: '90%', verticalAlign:'top'}}>
+            <td colSpan="13" style={{border: '1px solid black', height: '0.45in', fontSize: '85%', verticalAlign:'top', padding: '5px'}}>
                 <b />3.&nbsp;&nbsp;&nbsp;Approved<br />
-                <br />
-                <br />
-                <br />
-                <br />
             </td>
-            <td colSpan="17" style={{border: '1px solid black', height: '0.5in', fontSize: '90%', textAlign: 'center'}}>
-                <br />
-                <br />
+            <td colSpan="17" style={{border: '1px solid black', height: '0.45in', fontSize: '85%', textAlign: 'center', padding: '5px'}}>
                 <br />
                 _________________________________________<br />
                 <b>Engr. ROGELIO T. MAMARADLO</b><br />
                 President
             </td>
-            <td colSpan="5" style={{border: '1px solid black', height: '0.5in', textSlign:' center'}}>
+            <td colSpan="5" style={{border: '1px solid black', height: '0.45in', textAlign:'center'}}>
                         &nbsp;
             </td>
         </tr>
     </table>
     <br />
-    <table style={{border: '0px', borderCollapse: 'collapse', width: '7.5in', tableLayout: 'fixed', margin: 'auto'}}>
+    <table style={{border: '0px', borderCollapse: 'collapse', width: '7.75in', tableLayout: 'fixed', margin: 'auto'}}>
         <tr>
             <td colSpan="32" style={{backgroundColor:'gray', height: '0.25in'}}>
                 &nbsp;
@@ -206,15 +183,15 @@ const AssesmentClearance = () => {
             </td>
         </tr>
         <tr>
-            <td colSpan="32" style={{height: '0.4in'}}>
+            <td colSpan="32" style={{height: '0.35in', fontSize: '90%'}}>
                 <b>DEADLINE OF SUBMISSION: ______________________________ </b>
             </td>
         </tr>
         <tr>
-            <td colSpan="2" style={{height: '0.4in'}}>
+            <td colSpan="2" style={{height: '0.3in'}}>
                 &nbsp;
             </td>
-            <td colSpan="30" style={{height: '0.4in'}}>
+            <td colSpan="30" style={{height: '0.3in', fontSize: '85%'}}>
                 : Faculty<br />
                 : HRMS<br />
                 : FMS (2 copies) 1 photocopy

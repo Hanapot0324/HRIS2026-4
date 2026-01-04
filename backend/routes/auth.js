@@ -214,6 +214,100 @@ router.post('/complete-2fa-login', (req, res) => {
       { expiresIn: '10h' }
     );
 
+    // Get IP address and user agent for session tracking
+    // Handle proxy headers (x-forwarded-for can contain multiple IPs, take the first one)
+    let ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress || 'unknown';
+    if (ipAddress.includes(',')) {
+      ipAddress = ipAddress.split(',')[0].trim();
+    }
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    
+    // Calculate token expiration time (10 hours from now)
+    const tokenExpiresAt = new Date();
+    tokenExpiresAt.setHours(tokenExpiresAt.getHours() + 10);
+
+    // Insert session into auth_sessions table
+    // First ensure the table exists
+    const ensureTableQuery = `
+      CREATE TABLE IF NOT EXISTS auth_sessions (
+        id INT(11) NOT NULL AUTO_INCREMENT,
+        employee_number VARCHAR(64) NOT NULL COMMENT 'Employee number of the user',
+        email VARCHAR(255) NOT NULL COMMENT 'Email address of the user',
+        ip_address VARCHAR(45) NULL DEFAULT NULL COMMENT 'IP address from which the user logged in',
+        user_agent TEXT NULL DEFAULT NULL COMMENT 'User agent/browser information',
+        login_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'When the user logged in',
+        logout_time DATETIME NULL DEFAULT NULL COMMENT 'When the user logged out (NULL if still active)',
+        is_active TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Whether the session is still active (1 = active, 0 = logged out)',
+        token_expires_at DATETIME NULL DEFAULT NULL COMMENT 'When the JWT token expires',
+        PRIMARY KEY (id),
+        INDEX idx_employee_number (employee_number),
+        INDEX idx_email (email),
+        INDEX idx_login_time (login_time),
+        INDEX idx_is_active (is_active)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Stores user authentication sessions for login tracking';
+    `;
+
+    // Insert session into auth_sessions table
+    // First check table structure, then insert
+    console.log('=== AUTH SESSION INSERT ATTEMPT ===');
+    console.log('User data:', {
+      employeeNumber: user.employeeNumber,
+      email: user.email,
+      ipAddress,
+      tokenExpiresAt: tokenExpiresAt.toISOString()
+    });
+
+    // First, check if table exists and get its structure
+    db.query('DESCRIBE auth_sessions', (describeErr, columns) => {
+      if (describeErr) {
+        // Table doesn't exist, create it
+        console.log('Table does not exist, creating...');
+        db.query(ensureTableQuery, (tableErr) => {
+          if (tableErr) {
+            console.error('Error creating auth_sessions table:', tableErr);
+          } else {
+            console.log('Table created successfully, now inserting...');
+            insertSession();
+          }
+        });
+      } else {
+        // Table exists, check column names and insert
+        console.log('Table exists with columns:', columns.map(c => c.Field).join(', '));
+        insertSession();
+      }
+    });
+
+    function insertSession() {
+      // Match the actual table structure: id, session_token, employee_number, ip_address, user_agent, created_at, expires_at, last_activity, is_active
+      const sessionQuery = `
+        INSERT INTO auth_sessions (session_token, employee_number, ip_address, user_agent, created_at, expires_at, last_activity, is_active)
+        VALUES (?, ?, ?, ?, NOW(), ?, NOW(), 1)
+      `;
+
+      console.log('Inserting with actual table structure...');
+
+      db.query(
+        sessionQuery,
+        [token, user.employeeNumber, ipAddress, userAgent, tokenExpiresAt],
+        (sessionErr, sessionResult) => {
+          if (sessionErr) {
+            console.error('=== AUTH SESSION INSERT ERROR ===');
+            console.error('Error inserting auth session:', sessionErr);
+            console.error('Error details:', {
+              code: sessionErr.code,
+              errno: sessionErr.errno,
+              sqlMessage: sessionErr.sqlMessage,
+              sqlState: sessionErr.sqlState
+            });
+          } else {
+            console.log('=== AUTH SESSION INSERT SUCCESS ===');
+            console.log('Auth session created successfully for:', user.employeeNumber);
+            console.log('Session ID:', sessionResult.insertId);
+          }
+        }
+      );
+    }
+
     res.json({
       token,
       role: user.role,

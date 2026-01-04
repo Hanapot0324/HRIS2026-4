@@ -52,6 +52,7 @@ import {
   ExpandLess as ExpandLessIcon,
   ArrowDropDown as ArrowDropDownIcon,
   Refresh,
+  CalendarToday,
 } from '@mui/icons-material';
 
 import ReorderIcon from '@mui/icons-material/Reorder';
@@ -61,6 +62,7 @@ import AccessDenied from '../AccessDenied';
 import usePageAccess from '../../hooks/usePageAccess';
 import { useNavigate } from 'react-router-dom';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
+import { useCRUDButtonStyles, useCRUDButtonStylesOutlined } from '../../hooks/useCRUDButtonStyles';
 import {
   createThemedCard,
   createThemedButton,
@@ -350,13 +352,13 @@ const EmployeeAutocomplete = ({
         autoComplete="off"
         size="small"
         InputProps={{
-          startAdornment: <PersonIcon sx={{ color: '#6D2323', mr: 1 }} />,
+          startAdornment: <PersonIcon sx={{ color: settings.textPrimaryColor || settings.primaryColor || '#6D2323', mr: 1 }} />,
           endAdornment: (
             <IconButton
               onClick={dropdownDisabled ? undefined : handleDropdownClick}
               size="small"
               disabled={dropdownDisabled}
-              sx={{ color: '#6D2323' }}
+              sx={{ color: settings.textPrimaryColor || settings.primaryColor || '#6D2323' }}
             >
               {showDropdown ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
@@ -395,15 +397,15 @@ const EmployeeAutocomplete = ({
                   onClick={() => handleEmployeeSelect(employee)}
                   sx={{
                     '&:hover': {
-                      backgroundColor: '#f5f5f5',
+                      backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.3),
                     },
                   }}
                 >
                   <ListItemText
                     primary={employee.name}
                     secondary={`#${employee.employeeNumber}`}
-                    primaryTypographyProps={{ fontWeight: 'bold' }}
-                    secondaryTypographyProps={{ color: '#666' }}
+                    primaryTypographyProps={{ fontWeight: 'bold', color: settings.textPrimaryColor || '#6D2323' }}
+                    secondaryTypographyProps={{ color: settings.textSecondaryColor || '#666' }}
                   />
                 </ListItem>
               ))}
@@ -469,6 +471,10 @@ const Vocational = () => {
   
   // Color scheme
   const { settings } = useSystemSettings();
+  const addButtonStyles = useCRUDButtonStyles('create');
+  const editButtonStyles = useCRUDButtonStyles('edit');
+  const deleteButtonStyles = useCRUDButtonStylesOutlined('delete');
+  const saveButtonStyles = useCRUDButtonStyles('save');
   
   // Create themed styled components using system settings
   const GlassCard = styled(Card)(() => createThemedCard(settings));
@@ -949,8 +955,8 @@ const Vocational = () => {
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
-                              backgroundColor: 'rgba(254, 249, 225, 0.8)',
-                              border: '1px solid rgba(109, 35, 35, 0.3)',
+                              backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.8),
+                              border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
                               paddingLeft: '10px',
                               gap: 1.5,
@@ -1110,13 +1116,9 @@ const Vocational = () => {
                       startIcon={<AddIcon />}
                       fullWidth
                       sx={{
-                        backgroundColor: accentColor,
-                        color: primaryColor,
                         py: 1.5,
                         fontSize: '1rem',
-                        "&:hover": { 
-                          backgroundColor: accentDark,
-                        },
+                        ...addButtonStyles
                       }}
                     >
                       Add Vocational Record
@@ -1262,35 +1264,31 @@ const Vocational = () => {
                                   {employeeNames[vocational.person_id] || 'Loading...'}
                                 </Typography>
                                 
-                                <Typography variant="body2" fontWeight="bold" color="#333" mb={1} noWrap sx={{ flexGrow: 1 }}>
+                                <Typography variant="body2" fontWeight="bold" color="#333" mb={1} sx={{ flexGrow: 1, wordBreak: 'break-word' }}>
                                   {vocational.vocationalNameOfSchool || 'No School'}
                                 </Typography>
                                 
-                                <Typography variant="body2" fontWeight="bold" color="#333" mb={1} noWrap sx={{ flexGrow: 1 }}>
+                                <Typography variant="body2" fontWeight="bold" color="#333" mb={1} sx={{ flexGrow: 1, wordBreak: 'break-word' }}>
                                   {vocational.vocationalDegree || 'No Degree'}
                                 </Typography>
                                 
-                                {vocational.vocationalDegree && (
-                                  <Box
-                                    sx={{
-                                      display: 'inline-block',
-                                      px: 1,
-                                      py: 0.3,
-                                      borderRadius: 0.5,
-                                      backgroundColor: 'rgba(109, 35, 35, 0.1)',
-                                      border: '1px solid rgba(109, 35, 35, 0.2)',
-                                      alignSelf: 'flex-start'
-                                    }}
-                                  >
-                                    <Typography variant="caption" sx={{ 
-                                      color: accentColor,
-                                      fontSize: '0.7rem',
-                                      fontWeight: 'bold'
-                                    }}>
-                                      {vocational.vocationalDegree}
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <CalendarToday sx={{ fontSize: 14, color: '#000', mr: 0.5 }} />
+                                    <Typography variant="caption" color="#000" fontSize="0.75rem">
+                                      {vocational.vocationalPeriodFrom || '----'}
                                     </Typography>
                                   </Box>
-                                )}
+                                  <Typography variant="caption" color="#000" fontSize="0.75rem">
+                                    to
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <CalendarToday sx={{ fontSize: 14, color: '#000', mr: 0.5 }} />
+                                    <Typography variant="caption" color="#000" fontSize="0.75rem">
+                                      {vocational.vocationalPeriodTo || '----'}
+                                    </Typography>
+                                  </Box>
+                                </Box>
                               </CardContent>
                             </Card>
                           </Grid>
@@ -1318,27 +1316,40 @@ const Vocational = () => {
                               </Box>
                               
                               <Box sx={{ flexGrow: 1 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                                  <Typography variant="caption" sx={{ 
-                                    color: accentColor,
-                                    fontSize: '0.7rem',
-                                    fontWeight: 'bold',
-                                    mr: 1
-                                  }}>
-                                    ID: {vocational.person_id}
-                                  </Typography>
-                                  <Typography variant="body2" fontWeight="bold" color="#333">
-                                    {employeeNames[vocational.person_id] || 'Loading...'}
-                                  </Typography>
-                                </Box>
+                                <Typography variant="caption" sx={{ 
+                                  color: accentColor,
+                                  fontSize: '0.7rem',
+                                  fontWeight: 'bold',
+                                  display: 'block',
+                                  mb: 0.5
+                                }}>
+                                  ID: {vocational.person_id}
+                                </Typography>
+                                <Typography variant="body2" fontWeight="bold" color="#333" sx={{ mb: 0.5 }}>
+                                  {employeeNames[vocational.person_id] || 'Loading...'}
+                                </Typography>
                                 
-                                <Typography variant="body2" color="#666" sx={{ mb: 0.5 }}>
+                                <Typography variant="body2" fontWeight="bold" color="#333" sx={{ mb: 0.5, wordBreak: 'break-word' }}>
                                   {vocational.vocationalNameOfSchool || 'No School'}
                                 </Typography>
                                 
-                                <Typography variant="body2" color="#666" sx={{ mb: 0.5 }}>
+                                <Typography variant="body2" fontWeight="bold" color="#333" sx={{ mb: 0.5, wordBreak: 'break-word' }}>
                                   {vocational.vocationalDegree || 'No Degree'}
                                 </Typography>
+                                
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <CalendarToday sx={{ fontSize: 14, color: '#000', mr: 0.25 }} />
+                                  <Typography variant="caption" color="#000" fontSize="0.75rem">
+                                    {vocational.vocationalPeriodFrom || '----'}
+                                  </Typography>
+                                  <Typography variant="caption" color="#000" fontSize="0.75rem" sx={{ mx: 0.25 }}>
+                                    to
+                                  </Typography>
+                                  <CalendarToday sx={{ fontSize: 14, color: '#000', mr: 0.25 }} />
+                                  <Typography variant="caption" color="#000" fontSize="0.75rem">
+                                    {vocational.vocationalPeriodTo || '----'}
+                                  </Typography>
+                                </Box>
                               </Box>
                             </Box>
                           </Box>
@@ -1376,32 +1387,54 @@ const Vocational = () => {
           <GlassCard
             sx={{
               width: "90%",
-              maxWidth: "600px",
+              maxWidth: "900px",
               maxHeight: "90vh",
-              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
             }}
           >
             {editVocational && (
               <>
                 <Box
                   sx={{
-                    p: 4,
-                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-                    color: accentColor,
+                    p: 3,
+                    background: `linear-gradient(135deg, ${settings.secondaryColor || '#6d2323'} 0%, ${settings.deleteButtonHoverColor || '#a31d1d'} 100%)`,
+                    color: settings.accentColor || '#FEF9E1',
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 10,
+                    flexShrink: 0,
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: settings.accentColor || '#FEF9E1' }}>
                     {isEditing ? "Edit Vocational Information" : "Vocational Details"}
                   </Typography>
-                  <IconButton onClick={handleCloseModal} sx={{ color: accentColor }}>
+                  <IconButton onClick={handleCloseModal} sx={{ color: settings.accentColor || '#FEF9E1' }}>
                     <Close />
                   </IconButton>
                 </Box>
 
-                <Box sx={{ p: 4 }}>
+                <Box sx={{ 
+                  p: 4, 
+                  flexGrow: 1, 
+                  overflowY: 'auto',
+                  minHeight: 0,
+                  '&::-webkit-scrollbar': {
+                    width: '6px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    background: '#f1f1f1',
+                    borderRadius: '3px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: settings.primaryColor || accentColor,
+                    borderRadius: '3px',
+                  },
+                }}>
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="h5" sx={{ fontWeight: 600, mb: 2, color: accentColor, display: 'flex', alignItems: 'center' }}>
                       <PersonIcon sx={{ mr: 2, fontSize: 24 }} />
@@ -1448,8 +1481,8 @@ const Vocational = () => {
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
-                              backgroundColor: 'rgba(254, 249, 225, 0.8)',
-                              border: '1px solid rgba(109, 35, 35, 0.3)',
+                              backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.8),
+                              border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
                               padding: '12px',
                               gap: 1.5,
@@ -1701,75 +1734,103 @@ const Vocational = () => {
                     </Grid>
                   </Grid>
 
-                  <Box sx={{ display: 'flex', gap: 2, mt: 4, justifyContent: 'flex-end' }}>
-                    {!isEditing ? (
-                      <>
-                        <ProfessionalButton
-                          onClick={() => handleDelete(editVocational.id)}
-                          variant="outlined"
-                          startIcon={<DeleteIcon />}
-                          sx={{
-                            color: "#d32f2f",
-                            borderColor: "#d32f2f",
-                            "&:hover": {
-                              backgroundColor: "#d32f2f",
-                              color: "#fff"
-                            }
-                          }}
-                        >
-                          Delete
-                        </ProfessionalButton>
-                        <ProfessionalButton
-                          onClick={handleStartEdit}
-                          variant="contained"
-                          startIcon={<EditIcon />}
-                          sx={{ 
-                            backgroundColor: accentColor, 
-                            color: primaryColor,
-                            "&:hover": { backgroundColor: accentDark }
-                          }}
-                        >
-                          Edit
-                        </ProfessionalButton>
-                      </>
-                    ) : (
-                      <>
-                        <ProfessionalButton
-                          onClick={handleCancelEdit}
-                          variant="outlined"
-                          startIcon={<CancelIcon />}
-                          sx={{
-                            color: grayColor,
-                            borderColor: grayColor,
-                            "&:hover": {
-                              backgroundColor: 'rgba(108, 117, 125, 0.1)'
-                            }
-                          }}
-                        >
-                          Cancel
-                        </ProfessionalButton>
-                        <ProfessionalButton
-                          onClick={handleUpdate}
-                          variant="contained"
-                          startIcon={<SaveIcon />}
-                          disabled={!hasChanges()}
-                          sx={{ 
-                            backgroundColor: hasChanges() ? accentColor : grayColor, 
-                            color: primaryColor,
-                            "&:hover": { 
-                              backgroundColor: hasChanges() ? accentDark : grayColor
-                            },
-                            "&:disabled": {
-                              backgroundColor: grayColor,
-                              color: "#999"
-                            }
-                          }}
-                        >
-                          Save
-                        </ProfessionalButton>
-                      </>
-                    )}
-                  </Box>
+                </Box>
+
+                {/* Bottom action bar */}
+                <Box
+                  sx={{
+                    borderTop: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.2)}`,
+                    backgroundColor: '#FFFFFF',
+                    px: 3,
+                    py: 2,
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: 2,
+                    position: 'sticky',
+                    bottom: 0,
+                    zIndex: 10,
+                    flexShrink: 0,
+                  }}
+                >
+                  {!isEditing ? (
+                    <>
+                      <ProfessionalButton
+                        onClick={() => handleDelete(editVocational.id)}
+                        variant="outlined"
+                        startIcon={<DeleteIcon />}
+                        sx={{
+                          borderColor: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: alpha(settings.deleteButtonColor || settings.primaryColor || '#6d2323', 0.1),
+                            borderColor: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
+                            color: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
+                          },
+                        }}
+                      >
+                        Delete
+                      </ProfessionalButton>
+                      <ProfessionalButton
+                        onClick={handleStartEdit}
+                        variant="contained"
+                        startIcon={<EditIcon />}
+                        sx={{
+                          backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
+                          },
+                        }}
+                      >
+                        Edit
+                      </ProfessionalButton>
+                    </>
+                  ) : (
+                    <>
+                      <ProfessionalButton
+                        onClick={handleCancelEdit}
+                        variant="outlined"
+                        startIcon={<CancelIcon />}
+                        sx={{
+                          borderColor: settings.cancelButtonColor || '#6c757d',
+                          color: settings.cancelButtonColor || '#6c757d',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: alpha(settings.cancelButtonColor || '#6c757d', 0.1),
+                            borderColor: settings.cancelButtonHoverColor || '#5a6268',
+                            color: settings.cancelButtonHoverColor || '#5a6268',
+                          },
+                        }}
+                      >
+                        Cancel
+                      </ProfessionalButton>
+                      <ProfessionalButton
+                        onClick={handleUpdate}
+                        variant="contained"
+                        startIcon={<SaveIcon />}
+                        disabled={!hasChanges()}
+                        sx={{
+                          backgroundColor: hasChanges() 
+                            ? (settings.updateButtonColor || settings.primaryColor || '#6d2323')
+                            : alpha(settings.primaryColor || '#6d2323', 0.5),
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: hasChanges() 
+                              ? (settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d')
+                              : alpha(settings.primaryColor || '#6d2323', 0.5),
+                          },
+                          '&:disabled': {
+                            color: alpha(settings.accentColor || '#FEF9E1', 0.5),
+                          },
+                        }}
+                      >
+                        Save
+                      </ProfessionalButton>
+                    </>
+                  )}
                 </Box>
               </>
             )}

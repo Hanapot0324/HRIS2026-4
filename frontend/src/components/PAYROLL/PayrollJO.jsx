@@ -233,6 +233,14 @@ const PayrollJO = () => {
     totalGrossAmount: 0,
     totalNetAmount: 0,
   });
+  const [editContributionsOpen, setEditContributionsOpen] = useState(false);
+  const [editingRow, setEditingRow] = useState(null);
+  const [editContributions, setEditContributions] = useState({
+    sssContribution: '',
+    pagibigContribution: '',
+  });
+  const [isUpdatingContributions, setIsUpdatingContributions] = useState(false);
+  const [confirmChecked, setConfirmChecked] = useState(false);
 
   // Month options
   const monthOptions = [
@@ -360,6 +368,7 @@ const PayrollJO = () => {
               numberOfDays: 0,
               officialTime: '—',
               status: row.status || 0, // Include status here too
+              pagibigContribution: row.pagibigContribution || 0, // Include pagibigContribution
             };
           }
         })
@@ -388,7 +397,8 @@ const PayrollJO = () => {
               item.ratePerDay,
               item.h,
               item.m,
-              item.sssContribution
+              item.sssContribution,
+              item.pagibigContribution
             ) || 0
           ),
         0
@@ -478,29 +488,47 @@ const PayrollJO = () => {
       );
 
       // This single request now handles both insert AND status update
-      await axios.post(
-        `${API_BASE_URL}/PayrollJORoutes/export-to-finalized`,
-        selectedData.map((row) => ({
+      const payload = selectedData.map((row) => {
+        const grossAmount = parseFloat(row.grossAmount) || 0;
+        const h = parseInt(row.h) || 0;
+        const m = parseInt(row.m) || 0;
+        const s = parseInt(row.s) || 0;
+        const sssContribution = parseFloat(row.sssContribution) || 0;
+        const pagibigContribution = parseFloat(row.pagibigContribution) || 0;
+        const rh = parseFloat(row.rh) || 0;
+        const ratePerDay = parseFloat(row.ratePerDay) || 0;
+        
+        return {
           employeeNumber: row.employeeNumber,
-          department: row.department,
+          department: row.department || '',
           startDate: row.startDate,
           endDate: row.endDate,
-          name: row.name,
-          position: row.position,
-          grossAmount: row.grossAmount,
-          h: row.h,
-          m: row.m,
+          name: row.name || '',
+          position: row.position || '',
+          grossAmount: grossAmount,
+          grossSalary: grossAmount, // Also send as grossSalary for backend compatibility
+          h: h,
+          m: m,
+          s: s,
           netSalary: computeNetAmount(
-            row.grossAmount,
-            row.ratePerDay,
-            row.h,
-            row.m,
-            row.sssContribution
+            grossAmount,
+            ratePerDay,
+            h,
+            m,
+            sssContribution,
+            pagibigContribution
           ),
-          sssContribution: row.sssContribution || 0,
-          rh: row.rh || 0,
-          abs: computeTotalDeduction(row.ratePerDay, row.h, row.m),
-        })),
+          sssContribution: sssContribution,
+          sss: sssContribution, // Also send as sss for backend compatibility
+          pagibigContribution: pagibigContribution,
+          rh: rh,
+          abs: computeTotalDeduction(ratePerDay, h, m),
+        };
+      });
+
+      await axios.post(
+        `${API_BASE_URL}/PayrollJORoutes/export-to-finalized`,
+        payload,
         getAuthHeaders()
       );
 
@@ -520,7 +548,11 @@ const PayrollJO = () => {
     } catch (error) {
       console.error('Error exporting payroll:', error);
       setLoadingOverlay(false);
-      alert('Failed to process payroll. Please try again.');
+      const errorMessage = error.response?.data?.details || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          'Failed to process payroll. Please try again.';
+      alert(`Error: ${errorMessage}`);
     } finally {
       setProcessing(false);
       setOpenConfirm(false);
@@ -554,12 +586,13 @@ const PayrollJO = () => {
     return hourDeduction + minuteDeduction;
   };
 
-  const computeNetAmount = (grossAmount, ratePerDay, hours, minutes, sss) => {
+  const computeNetAmount = (grossAmount, ratePerDay, hours, minutes, sss, pagibig) => {
     const totalDeduction = computeTotalDeduction(ratePerDay, hours, minutes);
     const sssContribution = parseFloat(sss) || 0;
+    const pagibigContribution = parseFloat(pagibig) || 0;
     const gross = parseFloat(grossAmount) || 0;
 
-    return gross - totalDeduction - sssContribution;
+    return gross - totalDeduction - sssContribution - pagibigContribution;
   };
 
   const formatDate = (dateString) => {
@@ -572,6 +605,10 @@ const PayrollJO = () => {
   };
 
   const handleDeleteClick = (row) => {
+    // Prevent deleting if status is processed
+    if (row.status === 1) {
+      return;
+    }
     console.log('Delete button clicked for:', row);
     setRecordToDelete(row);
     setDeleteDialogOpen(true);
@@ -601,6 +638,57 @@ const PayrollJO = () => {
   const handleDeleteCancel = () => {
     setDeleteDialogOpen(false);
     setRecordToDelete(null);
+  };
+
+  const handleEditContributionsClick = (row) => {
+    // Prevent editing if status is processed
+    if (row.status === 1) {
+      return;
+    }
+    setEditingRow(row);
+    setEditContributions({
+      sssContribution: row.sssContribution || '',
+      pagibigContribution: row.pagibigContribution || '',
+    });
+    setEditContributionsOpen(true);
+  };
+
+  const handleEditContributionsClose = () => {
+    setEditContributionsOpen(false);
+    setEditingRow(null);
+    setEditContributions({
+      sssContribution: '',
+      pagibigContribution: '',
+    });
+  };
+
+  const handleUpdateContributions = async () => {
+    if (!editingRow) return;
+
+    setIsUpdatingContributions(true);
+    try {
+      await axios.put(
+        `${API_BASE_URL}/PayrollJORoutes/payroll-jo/${editingRow.id}/contributions`,
+        {
+          employeeNumber: editingRow.employeeNumber,
+          sssContribution: parseFloat(editContributions.sssContribution) || 0,
+          pagibigContribution: parseFloat(editContributions.pagibigContribution) || 0,
+        },
+        getAuthHeaders()
+      );
+
+      // Refresh payroll data to get updated values
+      await fetchPayrollData();
+      handleEditContributionsClose();
+      setSuccessAction('updating contributions');
+      setSuccessOpen(true);
+      setTimeout(() => setSuccessOpen(false), 2000);
+    } catch (err) {
+      console.error('Error updating contributions:', err);
+      alert('Failed to update contributions. Please try again.');
+    } finally {
+      setIsUpdatingContributions(false);
+    }
   };
 
   const handleOpenConfirm = () => {
@@ -645,12 +733,14 @@ const PayrollJO = () => {
       'Deduction (Mins)': row.m || 0,
       'Total Deduction': computeTotalDeduction(row.ratePerDay, row.h, row.m),
       'SSS Contribution': row.sssContribution || 0,
+      'PAGIBIG Contribution': row.pagibigContribution || 0,
       'Net Amount': computeNetAmount(
         row.grossAmount,
         row.ratePerDay,
         row.h,
         row.m,
-        row.sssContribution
+        row.sssContribution,
+        row.pagibigContribution
       ),
     }));
 
@@ -1653,6 +1743,13 @@ const PayrollJO = () => {
                           isHeader
                           sx={{ color: textPrimaryColor }}
                         >
+                          PAGIBIG
+                        </PremiumTableCell>
+                        <PremiumTableCell
+                          rowSpan={2}
+                          isHeader
+                          sx={{ color: textPrimaryColor }}
+                        >
                           Net Amount
                         </PremiumTableCell>
                       </TableRow>
@@ -1787,6 +1884,11 @@ const PayrollJO = () => {
                                   ? formatCurrency(row.sssContribution)
                                   : '—'}
                               </TableCell>
+                              <TableCell>
+                                {row.pagibigContribution
+                                  ? formatCurrency(row.pagibigContribution)
+                                  : '—'}
+                              </TableCell>
                               <TableCell
                                 sx={{ fontWeight: 'bold', color: '#6D2323' }}
                               >
@@ -1796,7 +1898,8 @@ const PayrollJO = () => {
                                     row.ratePerDay,
                                     row.h,
                                     row.m,
-                                    row.sssContribution
+                                    row.sssContribution,
+                                    row.pagibigContribution
                                   )
                                 )}
                               </TableCell>
@@ -1804,7 +1907,7 @@ const PayrollJO = () => {
                           ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={21} align="center" sx={{ py: 4 }}>
+                          <TableCell colSpan={22} align="center" sx={{ py: 4 }}>
                             {searchTerm
                               ? 'No matching records found.'
                               : 'No payroll records available.'}
@@ -2031,9 +2134,37 @@ const PayrollJO = () => {
                                     gap: 0.5,
                                   }}
                                 >
-                                  <Tooltip title="Delete">
+                                  <Tooltip title={row.status === 1 ? "Cannot edit processed records" : "Edit Contributions"}>
                                     <IconButton
                                       size="small"
+                                      disabled={row.status === 1}
+                                      sx={{
+                                        color:
+                                          row.status === 1 ? '#ccc' : accentColor,
+                                        backgroundColor:
+                                          row.status === 1
+                                            ? '#f5f5f5'
+                                            : 'white',
+                                        border: `1px solid ${
+                                          row.status === 1 ? '#ccc' : accentColor
+                                        }`,
+                                        '&:hover': {
+                                          backgroundColor:
+                                            row.status === 1
+                                              ? '#f5f5f5'
+                                              : alpha(accentColor, 0.1),
+                                        },
+                                        padding: '4px',
+                                      }}
+                                      onClick={() => handleEditContributionsClick(row)}
+                                    >
+                                      <EditIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title={row.status === 1 ? "Cannot delete processed records" : "Delete"}>
+                                    <IconButton
+                                      size="small"
+                                      disabled={row.status === 1}
                                       sx={{
                                         color:
                                           row.status === 1 ? '#ccc' : '#d32f2f',
@@ -2274,15 +2405,147 @@ const PayrollJO = () => {
           </DialogActions>
         </Dialog>
 
+        {/* Edit Contributions Dialog */}
+        <Dialog
+          open={editContributionsOpen}
+          onClose={handleEditContributionsClose}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 3,
+              border: `2px solid ${accentColor}`,
+            },
+          }}
+        >
+          <Box
+            sx={{
+              p: 3,
+              bgcolor: 'white',
+              borderBottom: `3px solid ${accentColor}`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+            }}
+          >
+            <Avatar
+              sx={{
+                bgcolor: alpha(accentColor, 0.1),
+                color: accentColor,
+                width: 56,
+                height: 56,
+              }}
+            >
+              <EditIcon sx={{ fontSize: 28 }} />
+            </Avatar>
+            <Box>
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: 'bold', color: '#333' }}
+              >
+                Edit Contributions
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#666' }}>
+                {editingRow?.name} (Employee #{editingRow?.employeeNumber})
+              </Typography>
+            </Box>
+          </Box>
+          <DialogContent sx={{ p: 4 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 500, mb: 1, color: accentColor }}
+                >
+                  SSS Contribution
+                </Typography>
+                <ModernTextField
+                  type="number"
+                  fullWidth
+                  value={editContributions.sssContribution}
+                  onChange={(e) =>
+                    setEditContributions({
+                      ...editContributions,
+                      sssContribution: e.target.value,
+                    })
+                  }
+                  inputProps={{ step: '0.01', min: '0' }}
+                  placeholder="Enter SSS contribution"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 500, mb: 1, color: accentColor }}
+                >
+                  PAGIBIG Contribution
+                </Typography>
+                <ModernTextField
+                  type="number"
+                  fullWidth
+                  value={editContributions.pagibigContribution}
+                  onChange={(e) =>
+                    setEditContributions({
+                      ...editContributions,
+                      pagibigContribution: e.target.value,
+                    })
+                  }
+                  inputProps={{ step: '0.01', min: '0' }}
+                  placeholder="Enter PAGIBIG contribution"
+                />
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 3 }}>
+            <Button
+              onClick={handleEditContributionsClose}
+              variant="outlined"
+              sx={{
+                color: '#666',
+                borderColor: '#666',
+                '&:hover': {
+                  borderColor: '#444',
+                  bgcolor: '#f5f5f5',
+                },
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateContributions}
+              disabled={isUpdatingContributions}
+              variant="contained"
+              sx={{
+                bgcolor: accentColor,
+                '&:hover': { bgcolor: accentDark },
+              }}
+              startIcon={
+                isUpdatingContributions ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <SaveIcon />
+                )
+              }
+            >
+              {isUpdatingContributions ? 'Updating...' : 'Save'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
         {/* Confirmation Dialog */}
         <Dialog
           open={openConfirm}
-          onClose={() => setOpenConfirm(false)}
+          onClose={() => {
+            setOpenConfirm(false);
+            setConfirmChecked(false);
+          }}
           PaperProps={{
             sx: {
               minWidth: '400px',
+              maxWidth: 600,
               borderRadius: 3,
               border: `2px solid ${accentColor}`,
+              overflow: 'hidden',
             },
           }}
         >
@@ -2311,27 +2574,99 @@ const PayrollJO = () => {
                 variant="h5"
                 sx={{ fontWeight: 'bold', color: '#333' }}
               >
-                Process Payroll Records
+                Confirm Payroll Export
               </Typography>
               <Typography variant="body2" sx={{ color: '#666' }}>
-                Confirm processing action
+                Final confirmation required
               </Typography>
             </Box>
           </Box>
-          <DialogContent sx={{ p: 4 }}>
-            <Typography>
-              Are you sure you want to process <b>{selectedRows.length}</b>{' '}
-              selected payroll record
-              {selectedRows.length > 1 ? 's' : ''}?
-            </Typography>
+          <DialogContent sx={{ p: 4, bgcolor: 'white' }}>
+            <Alert
+              severity="info"
+              icon={<Info />}
+              sx={{
+                mb: 3,
+                borderRadius: 2,
+                bgcolor: alpha(accentColor, 0.05),
+                border: `1px solid ${alpha(accentColor, 0.2)}`,
+                '& .MuiAlert-icon': {
+                  color: accentColor,
+                  fontSize: 28,
+                },
+              }}
+            >
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 600, mb: 1, color: '#333' }}
+              >
+                Export {selectedRows.length} Payroll Record(s)
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#666' }}>
+                Please review all selected payroll records before proceeding.
+                This action will finalize and export the payroll data.
+              </Typography>
+            </Alert>
+
+            {/* Confirmation Checkbox */}
+            <Box
+              sx={{
+                p: 2.5,
+                bgcolor: '#f9f9f9',
+                borderRadius: 2,
+                border: `2px solid ${
+                  confirmChecked ? accentColor : '#e0e0e0'
+                }`,
+                mb: 3,
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 2,
+                transition: 'all 0.2s ease',
+                ...(confirmChecked && {
+                  bgcolor: alpha(accentColor, 0.05),
+                }),
+              }}
+            >
+              <Checkbox
+                checked={confirmChecked}
+                onChange={(e) => setConfirmChecked(e.target.checked)}
+                sx={{
+                  color: accentColor,
+                  '&.Mui-checked': {
+                    color: accentColor,
+                  },
+                  mt: -0.5,
+                }}
+              />
+              <Box sx={{ flex: 1 }}>
+                <Typography
+                  variant="body1"
+                  sx={{ fontWeight: 600, color: '#333', mb: 0.5 }}
+                >
+                  I confirm that I have reviewed all payroll records
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#666' }}>
+                  All information is accurate and ready for export. I
+                  understand this action cannot be undone.
+                </Typography>
+              </Box>
+            </Box>
           </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 3 }}>
+          <DialogActions sx={{ px: 3, pb: 3, bgcolor: 'white' }}>
             <Button
-              onClick={() => setOpenConfirm(false)}
+              onClick={() => {
+                setOpenConfirm(false);
+                setConfirmChecked(false);
+              }}
               variant="outlined"
               sx={{
                 color: accentColor,
                 borderColor: accentColor,
+                px: 3,
+                py: 1.2,
+                fontWeight: 600,
+                textTransform: 'none',
+                borderRadius: 2,
                 '&:hover': {
                   borderColor: accentDark,
                   backgroundColor: alpha(accentColor, 0.08),
@@ -2341,24 +2676,44 @@ const PayrollJO = () => {
               Cancel
             </Button>
             <Button
-              onClick={handleExportToFinalized}
-              sx={{
-                bgcolor: accentColor,
-                '&:hover': { bgcolor: accentDark },
+              onClick={() => {
+                setOpenConfirm(false);
+                setConfirmChecked(false);
+                handleExportToFinalized();
               }}
+              disabled={!confirmChecked}
               variant="contained"
+              sx={{
+                backgroundColor: accentColor,
+                color: 'white',
+                px: 4,
+                py: 1.2,
+                fontWeight: 600,
+                textTransform: 'none',
+                borderRadius: 2,
+                minWidth: 140,
+                '&:hover': {
+                  backgroundColor: accentDark,
+                },
+                '&:disabled': {
+                  backgroundColor: '#e0e0e0',
+                  color: '#9e9e9e',
+                },
+              }}
             >
-              Confirm
+              Confirm & Export
             </Button>
           </DialogActions>
         </Dialog>
 
         {/* Loading Overlay */}
         <LoadingOverlay
-          open={loadingOverlay || isProcessingDelete}
+          open={loadingOverlay || isProcessingDelete || isUpdatingContributions}
           message={
             isProcessingDelete
               ? 'Deleting payroll record...'
+              : isUpdatingContributions
+              ? 'Updating contributions...'
               : 'Processing payroll records...'
           }
         />

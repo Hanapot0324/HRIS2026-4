@@ -55,6 +55,7 @@ import SuccessfulOverlay from '../SuccessfulOverlay';
 import AccessDenied from '../AccessDenied';
 import { useNavigate } from "react-router-dom";
 import { useSystemSettings } from '../../hooks/useSystemSettings';
+import { useCRUDButtonStyles, useCRUDButtonStylesOutlined } from '../../hooks/useCRUDButtonStyles';
 import usePageAccess from '../../hooks/usePageAccess';
 import {
   createThemedCard,
@@ -1380,32 +1381,54 @@ const Children = () => {
           <GlassCard
             sx={{
               width: "90%",
-              maxWidth: "600px",
+              maxWidth: "900px",
               maxHeight: "90vh",
-              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
             }}
           >
             {editChild && (
               <>
                 <Box
                   sx={{
-                    p: 4,
-                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-                    color: accentColor,
+                    p: 3,
+                    background: `linear-gradient(135deg, ${settings.secondaryColor || '#6d2323'} 0%, ${settings.deleteButtonHoverColor || '#a31d1d'} 100%)`,
+                    color: settings.accentColor || '#FEF9E1',
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 10,
+                    flexShrink: 0,
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: settings.accentColor || '#FEF9E1' }}>
                     {isEditing ? "Edit Child Information" : "Child Details"}
                   </Typography>
-                  <IconButton onClick={handleCloseModal} sx={{ color: accentColor }}>
+                  <IconButton onClick={handleCloseModal} sx={{ color: settings.accentColor || '#FEF9E1' }}>
                     <Close />
                   </IconButton>
                 </Box>
 
-                <Box sx={{ p: 4 }}>
+                <Box sx={{ 
+                  p: 4, 
+                  flexGrow: 1, 
+                  overflowY: 'auto',
+                  minHeight: 0,
+                  '&::-webkit-scrollbar': {
+                    width: '6px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    background: '#f1f1f1',
+                    borderRadius: '3px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: settings.primaryColor || accentColor,
+                    borderRadius: '3px',
+                  },
+                }}>
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="h5" sx={{ fontWeight: 600, mb: 2, color: accentColor, display: 'flex', alignItems: 'center' }}>
                       <PersonIcon sx={{ mr: 2, fontSize: 24 }} />
@@ -1648,75 +1671,103 @@ const Children = () => {
                     </Grid>
                   </Grid>
 
-                  <Box sx={{ display: 'flex', gap: 2, mt: 4, justifyContent: 'flex-end' }}>
-                    {!isEditing ? (
-                      <>
-                        <ProfessionalButton
-                          onClick={() => handleDelete(editChild.id)}
-                          variant="outlined"
-                          startIcon={<DeleteIcon />}
-                          sx={{
-                            color: "#d32f2f",
-                            borderColor: "#d32f2f",
-                            "&:hover": {
-                              backgroundColor: "#d32f2f",
-                              color: "#fff"
-                            }
-                          }}
-                        >
-                          Delete
-                        </ProfessionalButton>
-                        <ProfessionalButton
-                          onClick={handleStartEdit}
-                          variant="contained"
-                          startIcon={<EditIcon />}
-                          sx={{ 
-                            backgroundColor: accentColor, 
-                            color: primaryColor,
-                            "&:hover": { backgroundColor: accentDark }
-                          }}
-                        >
-                          Edit
-                        </ProfessionalButton>
-                      </>
-                    ) : (
-                      <>
-                        <ProfessionalButton
-                          onClick={handleCancelEdit}
-                          variant="outlined"
-                          startIcon={<CancelIcon />}
-                          sx={{
-                            color: grayColor,
-                            borderColor: grayColor,
-                            "&:hover": {
-                              backgroundColor: 'rgba(108, 117, 125, 0.1)'
-                            }
-                          }}
-                        >
-                          Cancel
-                        </ProfessionalButton>
-                        <ProfessionalButton
-                          onClick={handleUpdate}
-                          variant="contained"
-                          startIcon={<SaveIcon />}
-                          disabled={!hasChanges()}
-                          sx={{ 
-                            backgroundColor: hasChanges() ? accentColor : grayColor, 
-                            color: primaryColor,
-                            "&:hover": { 
-                              backgroundColor: hasChanges() ? accentDark : grayColor
-                            },
-                            "&:disabled": {
-                              backgroundColor: grayColor,
-                              color: "#999"
-                            }
-                          }}
-                        >
-                          Save
-                        </ProfessionalButton>
-                      </>
-                    )}
-                  </Box>
+                </Box>
+
+                {/* Bottom action bar */}
+                <Box
+                  sx={{
+                    borderTop: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.2)}`,
+                    backgroundColor: '#FFFFFF',
+                    px: 3,
+                    py: 2,
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: 2,
+                    position: 'sticky',
+                    bottom: 0,
+                    zIndex: 10,
+                    flexShrink: 0,
+                  }}
+                >
+                  {!isEditing ? (
+                    <>
+                      <ProfessionalButton
+                        onClick={() => handleDelete(editChild.id)}
+                        variant="outlined"
+                        startIcon={<DeleteIcon />}
+                        sx={{
+                          borderColor: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: alpha(settings.deleteButtonColor || settings.primaryColor || '#6d2323', 0.1),
+                            borderColor: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
+                            color: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
+                          },
+                        }}
+                      >
+                        Delete
+                      </ProfessionalButton>
+                      <ProfessionalButton
+                        onClick={handleStartEdit}
+                        variant="contained"
+                        startIcon={<EditIcon />}
+                        sx={{
+                          backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
+                          },
+                        }}
+                      >
+                        Edit
+                      </ProfessionalButton>
+                    </>
+                  ) : (
+                    <>
+                      <ProfessionalButton
+                        onClick={handleCancelEdit}
+                        variant="outlined"
+                        startIcon={<CancelIcon />}
+                        sx={{
+                          borderColor: settings.cancelButtonColor || '#6c757d',
+                          color: settings.cancelButtonColor || '#6c757d',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: alpha(settings.cancelButtonColor || '#6c757d', 0.1),
+                            borderColor: settings.cancelButtonHoverColor || '#5a6268',
+                            color: settings.cancelButtonHoverColor || '#5a6268',
+                          },
+                        }}
+                      >
+                        Cancel
+                      </ProfessionalButton>
+                      <ProfessionalButton
+                        onClick={handleUpdate}
+                        variant="contained"
+                        startIcon={<SaveIcon />}
+                        disabled={!hasChanges()}
+                        sx={{
+                          backgroundColor: hasChanges() 
+                            ? (settings.updateButtonColor || settings.primaryColor || '#6d2323')
+                            : alpha(settings.primaryColor || '#6d2323', 0.5),
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: hasChanges() 
+                              ? (settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d')
+                              : alpha(settings.primaryColor || '#6d2323', 0.5),
+                          },
+                          '&:disabled': {
+                            color: alpha(settings.accentColor || '#FEF9E1', 0.5),
+                          },
+                        }}
+                      >
+                        Save
+                      </ProfessionalButton>
+                    </>
+                  )}
                 </Box>
               </>
             )}

@@ -141,6 +141,7 @@ const EmployeeAutocomplete = ({
   selectedEmployee,
   onEmployeeSelect,
   dropdownDisabled = false,
+  settings = {},
 }) => {
   const [query, setQuery] = useState('');
   const [employees, setEmployees] = useState([]);
@@ -299,13 +300,13 @@ const EmployeeAutocomplete = ({
         autoComplete="off"
         size="small"
         InputProps={{
-          startAdornment: <PersonIcon sx={{ color: '#6D2323', mr: 1 }} />,
+          startAdornment: <PersonIcon sx={{ color: settings?.textPrimaryColor || settings?.primaryColor || '#6D2323', mr: 1 }} />,
           endAdornment: (
             <IconButton
               onClick={dropdownDisabled ? undefined : handleDropdownClick}
               size="small"
               disabled={dropdownDisabled}
-              sx={{ color: 'primary.main' }}
+              sx={{ color: settings?.textPrimaryColor || settings?.primaryColor || '#6D2323' }}
             >
               {showDropdown ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
@@ -344,15 +345,15 @@ const EmployeeAutocomplete = ({
                   onClick={() => handleEmployeeSelect(employee)}
                   sx={{
                     '&:hover': {
-                      backgroundColor: '#f5f5f5',
+                      backgroundColor: alpha(settings?.accentColor || settings?.backgroundColor || '#FEF9E1', 0.3),
                     },
                   }}
                 >
                   <ListItemText
                     primary={employee.name}
                     secondary={`#${employee.employeeNumber}`}
-                    primaryTypographyProps={{ fontWeight: 'bold' }}
-                    secondaryTypographyProps={{ color: '#666' }}
+                    primaryTypographyProps={{ fontWeight: 'bold', color: settings?.textPrimaryColor || '#6D2323' }}
+                    secondaryTypographyProps={{ color: settings?.textSecondaryColor || '#666' }}
                   />
                 </ListItem>
               ))}
@@ -847,7 +848,7 @@ const DepartmentAssignment = () => {
                       </Typography>
                       <Typography
                         variant="body1"
-                        sx={{ opacity: 0.8, fontWeight: 400, color: '#8B3333' }}
+                        sx={{ opacity: 0.8, fontWeight: 400, color: settings.secondaryColor || accentDark }}
                       >
                         View departments and their assigned employees
                       </Typography>
@@ -924,12 +925,12 @@ const DepartmentAssignment = () => {
                       sx={{
                         fontWeight: 600,
                         mb: 2,
-                        color: '#6d2323',
+                        color: settings.textPrimaryColor || textPrimaryColor,
                         display: 'flex',
                         alignItems: 'center',
                       }}
                     >
-                      <PersonIcon sx={{ mr: 2, fontSize: 24 }} />
+                      <PersonIcon sx={{ mr: 2, fontSize: 24, color: settings.primaryColor || accentColor }} />
                       Assignment Information{' '}
                       <span
                         style={{
@@ -947,7 +948,7 @@ const DepartmentAssignment = () => {
                       <Grid item xs={12}>
                         <Typography
                           variant="body2"
-                          sx={{ fontWeight: 500, mb: 1, color: '#6d2323' }}
+                          sx={{ fontWeight: 500, mb: 1, color: settings.textPrimaryColor || textPrimaryColor }}
                         >
                           Department Code
                         </Typography>
@@ -972,15 +973,15 @@ const DepartmentAssignment = () => {
                                 '&.Mui-focused': {
                                   transform: 'translateY(-1px)',
                                   boxShadow:
-                                    '0 4px 20px rgba(254, 249, 225, 0.25)',
+                                    `0 4px 20px ${alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.25)}`,
                                   backgroundColor: 'rgba(255, 255, 255, 1)',
                                   '& fieldset': {
-                                    borderColor: '#6d2323',
+                                    borderColor: settings.primaryColor || accentColor,
                                     borderWidth: '1.5px',
                                   },
                                 },
                                 '& fieldset': {
-                                  borderColor: '#6d2323',
+                                  borderColor: settings.primaryColor || accentColor,
                                   borderWidth: '1.5px',
                                 },
                               },
@@ -999,7 +1000,7 @@ const DepartmentAssignment = () => {
                       <Grid item xs={12}>
                         <Typography
                           variant="body2"
-                          sx={{ fontWeight: 500, mb: 1, color: '#6d2323' }}
+                          sx={{ fontWeight: 500, mb: 1, color: settings.textPrimaryColor || textPrimaryColor }}
                         >
                           Search Employee
                         </Typography>
@@ -1010,13 +1011,14 @@ const DepartmentAssignment = () => {
                           onEmployeeSelect={handleEmployeeSelect}
                           placeholder="Search and select employee..."
                           required
+                          settings={settings}
                         />
                       </Grid>
 
                       <Grid item xs={12}>
                         <Typography
                           variant="body2"
-                          sx={{ fontWeight: 500, mb: 1, color: '#6d2323' }}
+                          sx={{ fontWeight: 500, mb: 1, color: settings.textPrimaryColor || textPrimaryColor }}
                         >
                           Selected Employee
                         </Typography>
@@ -1025,15 +1027,15 @@ const DepartmentAssignment = () => {
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
-                              backgroundColor: 'rgba(254, 249, 225, 0.8)',
-                              border: '1px solid rgba(109, 35, 35, 0.3)',
+                              backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.8),
+                              border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
                               paddingLeft: '10px',
                               gap: 1.5,
                             }}
                           >
                             <PersonIcon
-                              sx={{ color: '#6d2323', fontSize: 20 }}
+                              sx={{ color: settings.primaryColor || accentColor, fontSize: 20 }}
                             />
                             <Box
                               sx={{
@@ -1046,7 +1048,7 @@ const DepartmentAssignment = () => {
                                 variant="body2"
                                 sx={{
                                   fontWeight: 'bold',
-                                  color: textPrimaryColor,
+                                  color: settings.textPrimaryColor || textPrimaryColor,
                                   fontSize: '14px',
                                   lineHeight: 1.2,
                                 }}
@@ -1056,7 +1058,7 @@ const DepartmentAssignment = () => {
                               <Typography
                                 variant="caption"
                                 sx={{
-                                  color: '#666',
+                                  color: settings.textSecondaryColor || '#666',
                                   fontSize: '12px',
                                   lineHeight: 1.2,
                                 }}
@@ -1100,12 +1102,12 @@ const DepartmentAssignment = () => {
                       startIcon={<AddIcon />}
                       fullWidth
                       sx={{
-                        backgroundColor: '#6d2323',
-                        color: '#FEF9E1',
                         py: 1.5,
                         fontSize: '1rem',
+                        backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                        color: settings.accentColor || '#FEF9E1',
                         '&:hover': {
-                          backgroundColor: '#8B3333',
+                          backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
                         },
                       }}
                     >
@@ -1189,7 +1191,7 @@ const DepartmentAssignment = () => {
                   }}
                 >
                   <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
-                    <ModernTextField
+                      <ModernTextField
                       size="small"
                       variant="outlined"
                       placeholder="Search by Department Code"
@@ -1198,7 +1200,7 @@ const DepartmentAssignment = () => {
                       fullWidth
                       InputProps={{
                         startAdornment: (
-                          <SearchIcon sx={{ color: '#6d2323', mr: 1 }} />
+                          <SearchIcon sx={{ color: settings.primaryColor || accentColor, mr: 1 }} />
                         ),
                       }}
                     />
@@ -1220,15 +1222,15 @@ const DepartmentAssignment = () => {
                             },
                             '&.Mui-focused': {
                               transform: 'translateY(-1px)',
-                              boxShadow: '0 4px 20px rgba(254, 249, 225, 0.25)',
+                              boxShadow: `0 4px 20px ${alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.25)}`,
                               backgroundColor: 'rgba(255, 255, 255, 1)',
                               '& fieldset': {
-                                borderColor: '#6d2323',
+                                borderColor: settings.primaryColor || accentColor,
                                 borderWidth: '1.5px',
                               },
                             },
                             '& fieldset': {
-                              borderColor: '#6d2323',
+                              borderColor: settings.primaryColor || accentColor,
                               borderWidth: '1.5px',
                             },
                           },
@@ -1257,7 +1259,7 @@ const DepartmentAssignment = () => {
                         borderRadius: '3px',
                       },
                       '&::-webkit-scrollbar-thumb': {
-                        background: '#6d2323',
+                        background: settings.primaryColor || accentColor,
                         borderRadius: '3px',
                       },
                     }}
@@ -1278,16 +1280,16 @@ const DepartmentAssignment = () => {
                               }
                               sx={{
                                 cursor: 'pointer',
-                                border: '1px solid rgba(109, 35, 35, 0.1)',
+                                border: `1px solid ${alpha(settings.primaryColor || accentColor, 0.1)}`,
                                 height: '100%',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 '&:hover': {
-                                  borderColor: '#6d2323',
+                                  borderColor: settings.primaryColor || accentColor,
                                   transform: 'translateY(-2px)',
                                   transition: 'all 0.2s ease',
                                   boxShadow:
-                                    '0 4px 8px rgba(109, 35, 35, 0.15)',
+                                    `0 4px 8px ${alpha(settings.primaryColor || accentColor, 0.15)}`,
                                 },
                               }}
                             >
@@ -1309,14 +1311,14 @@ const DepartmentAssignment = () => {
                                   <DomainIcon
                                     sx={{
                                       fontSize: 18,
-                                      color: '#6d2323',
+                                      color: settings.primaryColor || accentColor,
                                       mr: 0.5,
                                     }}
                                   />
                                   <Typography
                                     variant="caption"
                                     sx={{
-                                      color: textPrimaryColor,
+                                      color: settings.textPrimaryColor || textPrimaryColor,
                                       px: 0.5,
                                       py: 0.2,
                                       borderRadius: 0.5,
@@ -1331,8 +1333,7 @@ const DepartmentAssignment = () => {
                                 <Typography
                                   variant="body2"
                                   fontWeight="bold"
-                                  color="#333"
-                                  mb={0.5}
+                                  sx={{ color: settings.textPrimaryColor || '#333', mb: 0.5 }}
                                 >
                                   Department
                                 </Typography>
@@ -1347,11 +1348,11 @@ const DepartmentAssignment = () => {
                                   <PeopleIcon
                                     sx={{
                                       fontSize: 16,
-                                      color: '#666',
+                                      color: settings.textSecondaryColor || '#666',
                                       mr: 0.5,
                                     }}
                                   />
-                                  <Typography variant="body2" color="#666">
+                                  <Typography variant="body2" sx={{ color: settings.textSecondaryColor || '#666' }}>
                                     {department.employees.length} Employees
                                   </Typography>
                                 </Box>
@@ -1362,8 +1363,8 @@ const DepartmentAssignment = () => {
                                     color="primary"
                                     sx={{
                                       '& .MuiBadge-badge': {
-                                        backgroundColor: '#6d2323',
-                                        color: '#FEF9E1',
+                                        backgroundColor: settings.primaryColor || accentColor,
+                                        color: settings.accentColor || textSecondaryColor,
                                       },
                                     }}
                                   >
@@ -1371,11 +1372,11 @@ const DepartmentAssignment = () => {
                                       label="View Employees"
                                       size="small"
                                       sx={{
-                                        bgcolor: 'rgba(109,35,35,0.1)',
-                                        color: textPrimaryColor,
+                                        bgcolor: alpha(settings.primaryColor || accentColor, 0.1),
+                                        color: settings.textPrimaryColor || textPrimaryColor,
                                         fontWeight: 500,
                                         '&:hover': {
-                                          bgcolor: alpha(accentColor, 0.2),
+                                          bgcolor: alpha(settings.primaryColor || accentColor, 0.2),
                                         },
                                       }}
                                     />
@@ -1393,11 +1394,11 @@ const DepartmentAssignment = () => {
                           onClick={() => handleOpenDepartmentModal(department)}
                           sx={{
                             cursor: 'pointer',
-                            border: '1px solid rgba(109, 35, 35, 0.1)',
+                            border: `1px solid ${alpha(settings.primaryColor || accentColor, 0.1)}`,
                             mb: 1,
                             '&:hover': {
-                              borderColor: '#6d2323',
-                              backgroundColor: 'rgba(254, 249, 225, 0.3)',
+                              borderColor: settings.primaryColor || accentColor,
+                              backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.3),
                             },
                           }}
                         >
@@ -1415,14 +1416,14 @@ const DepartmentAssignment = () => {
                                 <DomainIcon
                                   sx={{
                                     fontSize: 20,
-                                    color: '#6d2323',
+                                    color: settings.primaryColor || accentColor,
                                     mr: 1.5,
                                   }}
                                 />
                                 <Typography
                                   variant="body2"
                                   fontWeight="bold"
-                                  color="#333"
+                                  sx={{ color: settings.textPrimaryColor || '#333' }}
                                 >
                                   {department.code}
                                 </Typography>
@@ -1432,12 +1433,11 @@ const DepartmentAssignment = () => {
                                 sx={{ display: 'flex', alignItems: 'center' }}
                               >
                                 <PeopleIcon
-                                  sx={{ fontSize: 16, color: '#666', mr: 0.5 }}
+                                  sx={{ fontSize: 16, color: settings.textSecondaryColor || '#666', mr: 0.5 }}
                                 />
                                 <Typography
                                   variant="body2"
-                                  color="#666"
-                                  sx={{ mr: 1 }}
+                                  sx={{ color: settings.textSecondaryColor || '#666', mr: 1 }}
                                 >
                                   {department.employees.length}
                                 </Typography>
@@ -1445,11 +1445,11 @@ const DepartmentAssignment = () => {
                                   label="View"
                                   size="small"
                                   sx={{
-                                    bgcolor: 'rgba(109,35,35,0.1)',
-                                    color: textPrimaryColor,
+                                    bgcolor: alpha(settings.primaryColor || accentColor, 0.1),
+                                    color: settings.textPrimaryColor || textPrimaryColor,
                                     fontWeight: 500,
                                     '&:hover': {
-                                      bgcolor: alpha(accentColor, 0.2),
+                                      bgcolor: alpha(settings.primaryColor || accentColor, 0.2),
                                     },
                                   }}
                                 />
@@ -1464,16 +1464,13 @@ const DepartmentAssignment = () => {
                       <Box textAlign="center" py={4}>
                         <Typography
                           variant="h6"
-                          color="#6d2323"
-                          fontWeight="bold"
-                          sx={{ mb: 1 }}
+                          sx={{ color: settings.textPrimaryColor || textPrimaryColor, fontWeight: "bold", mb: 1 }}
                         >
                           No Departments Found
                         </Typography>
                         <Typography
                           variant="body2"
-                          color="#666"
-                          sx={{ mt: 0.5 }}
+                          sx={{ color: settings.textSecondaryColor || '#666', mt: 0.5 }}
                         >
                           Try adjusting your search criteria or department
                           filter
@@ -1500,7 +1497,7 @@ const DepartmentAssignment = () => {
           <GlassCard
             sx={{
               width: '90%',
-              maxWidth: '800px',
+              maxWidth: '900px',
               maxHeight: '90vh',
               display: 'flex',
               flexDirection: 'column',
@@ -1514,31 +1511,32 @@ const DepartmentAssignment = () => {
                 {/* Modal Header */}
                 <Box
                   sx={{
-                    p: 4,
-                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-                    color: textPrimaryColor,
+                    p: 3,
+                    background: `linear-gradient(135deg, ${settings.secondaryColor || '#6d2323'} 0%, ${settings.deleteButtonHoverColor || '#a31d1d'} 100%)`,
+                    color: settings.accentColor || '#FEF9E1',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     position: 'sticky',
                     top: 0,
                     zIndex: 10,
+                    flexShrink: 0,
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <DomainIcon sx={{ fontSize: '1.8rem', mr: 2 }} />
+                    <DomainIcon sx={{ fontSize: '1.8rem', mr: 2, color: settings.accentColor || '#FEF9E1' }} />
                     <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', color: settings.accentColor || '#FEF9E1' }}>
                         {selectedDepartment.code} Department
                       </Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                      <Typography variant="caption" sx={{ opacity: 0.9, color: settings.accentColor || '#FEF9E1' }}>
                         {selectedDepartment.employees.length} Employees
                       </Typography>
                     </Box>
                   </Box>
                   <IconButton
                     onClick={handleCloseDepartmentModal}
-                    sx={{ color: '#6d2323' }}
+                    sx={{ color: settings.accentColor || '#FEF9E1' }}
                   >
                     <Close />
                   </IconButton>
@@ -1550,7 +1548,7 @@ const DepartmentAssignment = () => {
                     p: 4,
                     flexGrow: 1,
                     overflowY: 'auto',
-                    maxHeight: 'calc(90vh - 140px)', // Account for header and sticky footer
+                    minHeight: 0,
                     '&::-webkit-scrollbar': {
                       width: '6px',
                     },
@@ -1559,7 +1557,7 @@ const DepartmentAssignment = () => {
                       borderRadius: '3px',
                     },
                     '&::-webkit-scrollbar-thumb': {
-                      background: '#6d2323',
+                      background: settings.primaryColor || accentColor,
                       borderRadius: '3px',
                     },
                   }}
@@ -1570,15 +1568,15 @@ const DepartmentAssignment = () => {
                         <Grid item xs={12} sm={6} md={4} key={employee.id}>
                           <Card
                             sx={{
-                              border: '1px solid rgba(109, 35, 35, 0.1)',
+                              border: `1px solid ${alpha(settings.primaryColor || accentColor, 0.1)}`,
                               height: '100%',
                               display: 'flex',
                               flexDirection: 'column',
                               '&:hover': {
-                                borderColor: '#6d2323',
+                                borderColor: settings.primaryColor || accentColor,
                                 transform: 'translateY(-2px)',
                                 transition: 'all 0.2s ease',
-                                boxShadow: '0 4px 8px rgba(109, 35, 35, 0.15)',
+                                boxShadow: `0 4px 8px ${alpha(settings.primaryColor || accentColor, 0.15)}`,
                               },
                             }}
                           >
@@ -1600,14 +1598,14 @@ const DepartmentAssignment = () => {
                                 <PersonIcon
                                   sx={{
                                     fontSize: 18,
-                                    color: '#6d2323',
+                                    color: settings.primaryColor || accentColor,
                                     mr: 0.5,
                                   }}
                                 />
                                 <Typography
                                   variant="caption"
                                   sx={{
-                                    color: textPrimaryColor,
+                                    color: settings.textPrimaryColor || textPrimaryColor,
                                     px: 0.5,
                                     py: 0.2,
                                     borderRadius: 0.5,
@@ -1622,8 +1620,7 @@ const DepartmentAssignment = () => {
                               <Typography
                                 variant="body2"
                                 fontWeight="bold"
-                                color="#333"
-                                mb={0.5}
+                                sx={{ color: settings.textPrimaryColor || '#333', mb: 0.5 }}
                                 noWrap
                               >
                                 {departmentEmployeeDetails[employee.employeeNumber]?.name || employee.name || 'No Name'}
@@ -1640,8 +1637,8 @@ const DepartmentAssignment = () => {
                                   label={employee.code}
                                   size="small"
                                   sx={{
-                                    bgcolor: 'rgba(109,35,35,0.1)',
-                                    color: textPrimaryColor,
+                                    bgcolor: alpha(settings.primaryColor || accentColor, 0.1),
+                                    color: settings.textPrimaryColor || textPrimaryColor,
                                     fontWeight: 500,
                                   }}
                                 />
@@ -1652,7 +1649,7 @@ const DepartmentAssignment = () => {
                                       e.stopPropagation();
                                       handleOpenModal(employee, true); // Direct edit mode
                                     }}
-                                    sx={{ color: '#6d2323' }}
+                                    sx={{ color: settings.updateButtonColor || settings.primaryColor || accentColor }}
                                   >
                                     <EditIcon fontSize="small" />
                                   </IconButton>
@@ -1662,7 +1659,7 @@ const DepartmentAssignment = () => {
                                       e.stopPropagation();
                                       handleDelete(employee.id);
                                     }}
-                                    sx={{ color: '#d32f2f' }}
+                                    sx={{ color: settings.deleteButtonColor || settings.primaryColor || '#d32f2f' }}
                                   >
                                     <DeleteIcon fontSize="small" />
                                   </IconButton>
@@ -1679,11 +1676,11 @@ const DepartmentAssignment = () => {
                         <Card
                           key={employee.id}
                           sx={{
-                            border: '1px solid rgba(109, 35, 35, 0.1)',
+                            border: `1px solid ${alpha(settings.primaryColor || accentColor, 0.1)}`,
                             mb: 1,
                             '&:hover': {
-                              borderColor: '#6d2323',
-                              backgroundColor: 'rgba(254, 249, 225, 0.3)',
+                              borderColor: settings.primaryColor || accentColor,
+                              backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.3),
                             },
                           }}
                         >
@@ -1701,7 +1698,7 @@ const DepartmentAssignment = () => {
                                 <PersonIcon
                                   sx={{
                                     fontSize: 20,
-                                    color: '#6d2323',
+                                    color: settings.primaryColor || accentColor,
                                     mr: 1.5,
                                   }}
                                 />
@@ -1709,14 +1706,13 @@ const DepartmentAssignment = () => {
                                   <Typography
                                     variant="body2"
                                     fontWeight="bold"
-                                    color="#333"
+                                    sx={{ color: settings.textPrimaryColor || '#333' }}
                                   >
                                     {departmentEmployeeDetails[employee.employeeNumber]?.name || employee.name || 'No Name'}
                                   </Typography>
                                   <Typography
                                     variant="caption"
-                                    color="#666"
-                                    sx={{ mt: 0.2 }}
+                                    sx={{ color: settings.textSecondaryColor || '#666', mt: 0.2 }}
                                   >
                                     ID: {employee.employeeNumber} •{' '}
                                     {employee.code}
@@ -1733,7 +1729,7 @@ const DepartmentAssignment = () => {
                                     e.stopPropagation();
                                     handleOpenModal(employee, true); // Direct edit mode
                                   }}
-                                  sx={{ color: '#6d2323', mr: 0.5 }}
+                                  sx={{ color: settings.updateButtonColor || settings.primaryColor || accentColor, mr: 0.5 }}
                                 >
                                   <EditIcon fontSize="small" />
                                 </IconButton>
@@ -1743,7 +1739,7 @@ const DepartmentAssignment = () => {
                                     e.stopPropagation();
                                     handleDelete(employee.id);
                                   }}
-                                  sx={{ color: '#d32f2f' }}
+                                  sx={{ color: settings.deleteButtonColor || settings.primaryColor || '#d32f2f' }}
                                 >
                                   <DeleteIcon fontSize="small" />
                                 </IconButton>
@@ -1759,13 +1755,11 @@ const DepartmentAssignment = () => {
                     <Box textAlign="center" py={4}>
                       <Typography
                         variant="h6"
-                        color="#6d2323"
-                        fontWeight="bold"
-                        sx={{ mb: 1 }}
+                        sx={{ color: settings.textPrimaryColor || textPrimaryColor, fontWeight: "bold", mb: 1 }}
                       >
                         No Employees Found
                       </Typography>
-                      <Typography variant="body2" color="#666" sx={{ mt: 0.5 }}>
+                      <Typography variant="body2" sx={{ color: settings.textSecondaryColor || '#666', mt: 0.5 }}>
                         This department has no assigned employees yet
                       </Typography>
                     </Box>
@@ -1789,7 +1783,7 @@ const DepartmentAssignment = () => {
           <GlassCard
             sx={{
               width: '90%',
-              maxWidth: '600px',
+              maxWidth: '900px',
               maxHeight: '90vh',
               display: 'flex',
               flexDirection: 'column',
@@ -1803,25 +1797,26 @@ const DepartmentAssignment = () => {
                 {/* Modal Header */}
                 <Box
                   sx={{
-                    p: 4,
-                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-                    color: textPrimaryColor,
+                    p: 3,
+                    background: `linear-gradient(135deg, ${settings.secondaryColor || '#6d2323'} 0%, ${settings.deleteButtonHoverColor || '#a31d1d'} 100%)`,
+                    color: settings.accentColor || '#FEF9E1',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     position: 'sticky',
                     top: 0,
                     zIndex: 10,
+                    flexShrink: 0,
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: settings.accentColor || '#FEF9E1' }}>
                     {isEditing
                       ? 'Edit Department Assignment'
                       : 'Assignment Details'}
                   </Typography>
                   <IconButton
                     onClick={handleCloseModal}
-                    sx={{ color: '#6d2323' }}
+                    sx={{ color: settings.accentColor || '#FEF9E1' }}
                   >
                     <Close />
                   </IconButton>
@@ -1833,7 +1828,7 @@ const DepartmentAssignment = () => {
                     p: 4,
                     flexGrow: 1,
                     overflowY: 'auto',
-                    maxHeight: 'calc(90vh - 140px)', // Account for header and sticky footer
+                    minHeight: 0,
                     '&::-webkit-scrollbar': {
                       width: '6px',
                     },
@@ -1842,7 +1837,7 @@ const DepartmentAssignment = () => {
                       borderRadius: '3px',
                     },
                     '&::-webkit-scrollbar-thumb': {
-                      background: '#6d2323',
+                      background: settings.primaryColor || accentColor,
                       borderRadius: '3px',
                     },
                   }}
@@ -1853,12 +1848,12 @@ const DepartmentAssignment = () => {
                       sx={{
                         fontWeight: 600,
                         mb: 2,
-                        color: '#6d2323',
+                        color: settings.textPrimaryColor || textPrimaryColor,
                         display: 'flex',
                         alignItems: 'center',
                       }}
                     >
-                      <PersonIcon sx={{ mr: 2, fontSize: 24 }} />
+                      <PersonIcon sx={{ mr: 2, fontSize: 24, color: settings.primaryColor || accentColor }} />
                       Assignment Information
                     </Typography>
 
@@ -1866,7 +1861,7 @@ const DepartmentAssignment = () => {
                       <Grid item xs={12}>
                         <Typography
                           variant="body2"
-                          sx={{ fontWeight: 500, mb: 1, color: '#6d2323' }}
+                          sx={{ fontWeight: 500, mb: 1, color: settings.textPrimaryColor || textPrimaryColor }}
                         >
                           Department Code
                         </Typography>
@@ -1892,15 +1887,15 @@ const DepartmentAssignment = () => {
                                   '&.Mui-focused': {
                                     transform: 'translateY(-1px)',
                                     boxShadow:
-                                      '0 4px 20px rgba(254, 249, 225, 0.25)',
+                                      `0 4px 20px ${alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.25)}`,
                                     backgroundColor: 'rgba(255, 255, 255, 1)',
                                     '& fieldset': {
-                                      borderColor: '#6d2323',
+                                      borderColor: settings.primaryColor || accentColor,
                                       borderWidth: '1.5px',
                                     },
                                   },
                                   '& fieldset': {
-                                    borderColor: '#6d2323',
+                                    borderColor: settings.primaryColor || accentColor,
                                     borderWidth: '1.5px',
                                   },
                                 },
@@ -1919,8 +1914,9 @@ const DepartmentAssignment = () => {
                             variant="body2"
                             sx={{
                               p: 1.5,
-                              bgcolor: 'rgba(254, 249, 225, 0.5)',
+                              bgcolor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.5),
                               borderRadius: 1,
+                              color: settings.textPrimaryColor || textPrimaryColor,
                             }}
                           >
                             {editAssignment.code || 'N/A'}
@@ -1931,7 +1927,7 @@ const DepartmentAssignment = () => {
                       <Grid item xs={12}>
                         <Typography
                           variant="body2"
-                          sx={{ fontWeight: 500, mb: 1, color: '#6d2323' }}
+                          sx={{ fontWeight: 500, mb: 1, color: settings.textPrimaryColor || textPrimaryColor }}
                         >
                           Search Employee
                         </Typography>
@@ -1943,21 +1939,22 @@ const DepartmentAssignment = () => {
                             onEmployeeSelect={handleEditEmployeeSelect}
                             placeholder="Search and select employee..."
                             dropdownDisabled={!isEditing}
+                            settings={settings}
                           />
                         ) : (
                           <Box
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
-                              backgroundColor: 'rgba(254, 249, 225, 0.8)',
-                              border: '1px solid rgba(109, 35, 35, 0.3)',
+                              backgroundColor: alpha(settings.accentColor || settings.backgroundColor || '#FEF9E1', 0.8),
+                              border: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.3)}`,
                               borderRadius: 2,
                               paddingLeft: '10px',
                               gap: 1.5,
                             }}
                           >
                             <PersonIcon
-                              sx={{ color: '#6d2323', fontSize: 20 }}
+                              sx={{ color: settings.primaryColor || accentColor, fontSize: 20 }}
                             />
                             <Box
                               sx={{
@@ -1970,7 +1967,7 @@ const DepartmentAssignment = () => {
                                 variant="body2"
                                 sx={{
                                   fontWeight: 'bold',
-                                  color: textPrimaryColor,
+                                  color: settings.textPrimaryColor || textPrimaryColor,
                                   fontSize: '14px',
                                   lineHeight: 1.2,
                                 }}
@@ -1980,7 +1977,7 @@ const DepartmentAssignment = () => {
                               <Typography
                                 variant="caption"
                                 sx={{
-                                  color: '#666',
+                                  color: settings.textSecondaryColor || '#666',
                                   fontSize: '12px',
                                   lineHeight: 1.2,
                                 }}
@@ -1995,19 +1992,20 @@ const DepartmentAssignment = () => {
                   </Box>
                 </Box>
 
-                {/* Sticky Action Buttons */}
+                {/* Bottom action bar */}
                 <Box
                   sx={{
-                    backgroundColor: '#ffffff',
-                    borderTop: '1px solid #e0e0e0',
-                    p: 2,
+                    borderTop: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.2)}`,
+                    backgroundColor: '#FFFFFF',
+                    px: 3,
+                    py: 2,
                     display: 'flex',
                     justifyContent: 'flex-end',
                     gap: 2,
                     position: 'sticky',
                     bottom: 0,
                     zIndex: 10,
-                    boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.1)',
+                    flexShrink: 0,
                   }}
                 >
                   {!isEditing ? (
@@ -2017,11 +2015,13 @@ const DepartmentAssignment = () => {
                         variant="outlined"
                         startIcon={<DeleteIcon />}
                         sx={{
-                          color: '#d32f2f',
-                          borderColor: '#d32f2f',
+                          borderColor: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          minWidth: '120px',
                           '&:hover': {
-                            backgroundColor: '#d32f2f',
-                            color: '#fff',
+                            backgroundColor: alpha(settings.deleteButtonColor || settings.primaryColor || '#6d2323', 0.1),
+                            borderColor: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
+                            color: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
                           },
                         }}
                       >
@@ -2032,9 +2032,12 @@ const DepartmentAssignment = () => {
                         variant="contained"
                         startIcon={<EditIcon />}
                         sx={{
-                          backgroundColor: '#6d2323',
-                          color: '#FEF9E1',
-                          '&:hover': { backgroundColor: '#8B3333' },
+                          backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
+                          '&:hover': {
+                            backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
+                          },
                         }}
                       >
                         Edit
@@ -2047,10 +2050,13 @@ const DepartmentAssignment = () => {
                         variant="outlined"
                         startIcon={<CancelIcon />}
                         sx={{
-                          color: '#666',
-                          borderColor: '#666',
+                          borderColor: settings.cancelButtonColor || '#6c757d',
+                          color: settings.cancelButtonColor || '#6c757d',
+                          minWidth: '120px',
                           '&:hover': {
-                            backgroundColor: '#f5f5f5',
+                            backgroundColor: alpha(settings.cancelButtonColor || '#6c757d', 0.1),
+                            borderColor: settings.cancelButtonHoverColor || '#5a6268',
+                            color: settings.cancelButtonHoverColor || '#5a6268',
                           },
                         }}
                       >
@@ -2062,14 +2068,18 @@ const DepartmentAssignment = () => {
                         startIcon={<SaveIcon />}
                         disabled={!hasChanges()}
                         sx={{
-                          backgroundColor: hasChanges() ? '#6d2323' : '#ccc',
-                          color: '#FEF9E1',
+                          backgroundColor: hasChanges() 
+                            ? (settings.updateButtonColor || settings.primaryColor || '#6d2323')
+                            : alpha(settings.primaryColor || '#6d2323', 0.5),
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
                           '&:hover': {
-                            backgroundColor: hasChanges() ? '#8B3333' : '#ccc',
+                            backgroundColor: hasChanges() 
+                              ? (settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d')
+                              : alpha(settings.primaryColor || '#6d2323', 0.5),
                           },
                           '&:disabled': {
-                            backgroundColor: '#ccc',
-                            color: '#999',
+                            color: alpha(settings.accentColor || '#FEF9E1', 0.5),
                           },
                         }}
                       >

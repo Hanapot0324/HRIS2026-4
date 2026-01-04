@@ -1674,7 +1674,7 @@ const PersonTable = () => {
         <Paper
           sx={{
             width: '90%',
-            maxWidth: '800px',
+            maxWidth: '900px',
             height: '85vh',
             maxHeight: '85vh',
             overflow: 'hidden',
@@ -1689,9 +1689,9 @@ const PersonTable = () => {
               {/* Modal Header */}
               <Box
                 sx={{
-                  backgroundColor: '#6D2323',
-                  color: '#ffffff',
-                  p: 2,
+                  background: `linear-gradient(135deg, ${settings.secondaryColor || '#6d2323'} 0%, ${settings.deleteButtonHoverColor || '#a31d1d'} 100%)`,
+                  color: settings.accentColor || '#FEF9E1',
+                  p: 3,
                   borderRadius: '8px 8px 0 0',
                   display: 'flex',
                   alignItems: 'center',
@@ -1699,17 +1699,18 @@ const PersonTable = () => {
                   position: 'sticky',
                   top: 0,
                   zIndex: 10,
+                  flexShrink: 0,
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <PersonIcon sx={{ fontSize: '1.8rem', mr: 2 }} />
+                  <PersonIcon sx={{ fontSize: '1.8rem', mr: 2, color: settings.accentColor || '#FEF9E1' }} />
                   <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: settings.accentColor || '#FEF9E1' }}>
                       {isEditing
                         ? 'Edit Personal Information'
                         : 'Personal Information Details'}
                     </Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                    <Typography variant="caption" sx={{ opacity: 0.9, color: settings.accentColor || '#FEF9E1' }}>
                       {editPerson.firstName} {editPerson.lastName} -{' '}
                       {editPerson.agencyEmployeeNum}
                     </Typography>
@@ -1717,7 +1718,7 @@ const PersonTable = () => {
                 </Box>
                 <IconButton
                   onClick={handleCloseModal}
-                  sx={{ color: '#fff', ml: 1 }}
+                  sx={{ color: settings.accentColor || '#FEF9E1', ml: 1 }}
                 >
                   <Close />
                 </IconButton>
@@ -1728,6 +1729,7 @@ const PersonTable = () => {
                 sx={{
                   flexGrow: 1,
                   overflowY: 'auto',
+                  minHeight: 0,
                   '&::-webkit-scrollbar': {
                     width: '8px',
                   },
@@ -1736,7 +1738,7 @@ const PersonTable = () => {
                     borderRadius: '4px',
                   },
                   '&::-webkit-scrollbar-thumb': {
-                    background: '#6D2323',
+                    background: settings.primaryColor || '#6D2323',
                     borderRadius: '4px',
                   },
                 }}
@@ -3512,17 +3514,20 @@ const PersonTable = () => {
               {/* Bottom Action Bar for Edit/Delete - stays visible while scrolling */}
               <Box
                 sx={{
-                  borderTop: '1px solid rgba(0,0,0,0.12)',
-                  backgroundColor: '#6D2323',
+                  borderTop: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.2)}`,
+                  backgroundColor: '#FFFFFF',
                   px: 3,
                   py: 2,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'flex-end',
-                  boxShadow: '0 -2px 6px rgba(0,0,0,0.12)',
+                  position: 'sticky',
+                  bottom: 0,
+                  zIndex: 10,
+                  flexShrink: 0,
                 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   {!isEditing ? (
                     <>
                       <Button
@@ -3530,12 +3535,13 @@ const PersonTable = () => {
                         variant="outlined"
                         startIcon={<DeleteIcon />}
                         sx={{
-                          borderColor: '#6D2323',
-                          color: '#6D2323',
-                          backgroundColor: '#FFFFFF',
+                          borderColor: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          minWidth: '120px',
                           '&:hover': {
-                            backgroundColor: '#FDE2E2',
-                            borderColor: '#6D2323',
+                            backgroundColor: alpha(settings.deleteButtonColor || settings.primaryColor || '#6d2323', 0.1),
+                            borderColor: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
+                            color: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
                           },
                         }}
                       >
@@ -3546,11 +3552,11 @@ const PersonTable = () => {
                         variant="contained"
                         startIcon={<EditIcon />}
                         sx={{
-                          backgroundColor: '#FEF9E1',
-                          color: '#6D2323',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                          backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
                           '&:hover': {
-                            backgroundColor: '#FFFFFF',
+                            backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
                           },
                         }}
                       >
@@ -3564,12 +3570,13 @@ const PersonTable = () => {
                         variant="outlined"
                         startIcon={<CancelIcon />}
                         sx={{
-                          borderColor: '#6D2323',
-                          color: '#6D2323',
-                          backgroundColor: '#FFFFFF',
+                          borderColor: settings.cancelButtonColor || '#6c757d',
+                          color: settings.cancelButtonColor || '#6c757d',
+                          minWidth: '120px',
                           '&:hover': {
-                            backgroundColor: '#FDE2E2',
-                            borderColor: '#6D2323',
+                            backgroundColor: alpha(settings.cancelButtonColor || '#6c757d', 0.1),
+                            borderColor: settings.cancelButtonHoverColor || '#5a6268',
+                            color: settings.cancelButtonHoverColor || '#5a6268',
                           },
                         }}
                       >
@@ -3581,18 +3588,18 @@ const PersonTable = () => {
                         startIcon={<SaveIcon />}
                         disabled={!hasChanges()}
                         sx={{
-                          backgroundColor: hasChanges() ? '#FEF9E1' : '#E2CFCF',
-                          color: '#6D2323',
-                          boxShadow: hasChanges()
-                            ? '0 2px 4px rgba(0,0,0,0.15)'
-                            : 'none',
+                          backgroundColor: hasChanges() 
+                            ? (settings.updateButtonColor || settings.primaryColor || '#6d2323')
+                            : alpha(settings.primaryColor || '#6d2323', 0.5),
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
                           '&:hover': {
-                            backgroundColor: hasChanges()
-                              ? '#FFFFFF'
-                              : '#E2CFCF',
+                            backgroundColor: hasChanges() 
+                              ? (settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d')
+                              : alpha(settings.primaryColor || '#6d2323', 0.5),
                           },
                           '&:disabled': {
-                            color: '#6D2323',
+                            color: alpha(settings.accentColor || '#FEF9E1', 0.5),
                           },
                         }}
                       >

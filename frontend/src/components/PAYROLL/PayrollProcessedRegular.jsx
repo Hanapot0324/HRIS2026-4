@@ -349,28 +349,21 @@ const PayrollProcessed = () => {
     const fetchFinalizedPayroll = async () => {
       try {
         const res = await axios.get(
-          `${API_BASE_URL}/PayrollRoute/payroll-processed`,
+          `${API_BASE_URL}/PayrollRoute/finalized-payroll`,
           getAuthHeaders()
         );
-        
-        // Filter for Regular employees only (employmentCategory = 1)
-        // employmentCategory: 0 = Job Order, 1 = Regular, -1 = Not set
-        const regularData = res.data.filter(
-          (item) => item.employmentCategory === 1
-        );
-        
-        setFinalizedData(regularData);
-        setFilteredFinalizedData(regularData);
+        setFinalizedData(res.data);
+        setFilteredFinalizedData(res.data);
 
         // Calculate summary data
-        const totalNet = regularData.reduce(
+        const totalNet = res.data.reduce(
           (sum, item) => sum + parseFloat(item.netSalary || 0),
           0
         );
 
         setSummaryData((prev) => ({
-          totalEmployees: regularData.length,
-          processedEmployees: regularData.length,
+          totalEmployees: res.data.length,
+          processedEmployees: res.data.length,
           totalReleased: prev.totalReleased, // Will be updated by useEffect
           totalNetSalary: totalNet,
         }));
@@ -560,9 +553,9 @@ const PayrollProcessed = () => {
         prev.filter((item) => item.id !== rowId)
       );
 
-      // Delete from payroll-processed
+      // Delete from finalized-payroll
       await axios.delete(
-        `${API_BASE_URL}/PayrollRoute/payroll-processed/${rowId}`,
+        `${API_BASE_URL}/PayrollRoute/finalized-payroll/${rowId}`,
         getAuthHeaders()
       );
 
@@ -595,14 +588,10 @@ const PayrollProcessed = () => {
       setOverlayLoading(false);
       // If API call fails, revert the UI changes
       const res = await axios.get(
-        `${API_BASE_URL}/PayrollRoute/payroll-processed`,
+        `${API_BASE_URL}/PayrollRoute/finalized-payroll`,
         getAuthHeaders()
       );
-      // Filter for Regular employees only
-      const regularData = res.data.filter(
-        (item) => item.employmentCategory === 1
-      );
-      setFinalizedData(regularData);
+      setFinalizedData(res.data);
       setFilteredFinalizedData((prev) => {
         // Reapply current filters
         let filtered = res.data;
@@ -714,11 +703,11 @@ const PayrollProcessed = () => {
               filteredFinalizedData.find((item) => item.id === id)
             ).filter(Boolean);
 
-            // Delete from payroll-processed
+            // Delete from finalized-payroll
             await Promise.all(
               deletableIds.map((id) =>
                 axios.delete(
-                  `${API_BASE_URL}/PayrollRoute/payroll-processed/${id}`,
+                  `${API_BASE_URL}/PayrollRoute/finalized-payroll/${id}`,
                   getAuthHeaders()
                 )
               )
@@ -771,9 +760,9 @@ const PayrollProcessed = () => {
               prev.filter((item) => item.id !== selectedRow.id)
             );
 
-            // Delete from payroll-processed
+            // Delete from finalized-payroll
             await axios.delete(
-              `${API_BASE_URL}/PayrollRoute/payroll-processed/${selectedRow.id}`,
+              `${API_BASE_URL}/PayrollRoute/finalized-payroll/${selectedRow.id}`,
               {
                 ...getAuthHeaders(),
                 data: {
@@ -813,14 +802,10 @@ const PayrollProcessed = () => {
           setOverlayLoading(false);
           // Revert UI changes on error
           const res = await axios.get(
-            `${API_BASE_URL}/PayrollRoute/payroll-processed`,
+            `${API_BASE_URL}/PayrollRoute/finalized-payroll`,
             getAuthHeaders()
           );
-          // Filter for Regular employees only
-          const regularData = res.data.filter(
-            (item) => item.employmentCategory === 1
-          );
-          setFinalizedData(regularData);
+          setFinalizedData(res.data);
           applyFilters(selectedDepartment, searchTerm, selectedDate);
           alert("Failed to delete record(s). Please try again.");
         } finally {
@@ -3012,7 +2997,7 @@ const PayrollProcessed = () => {
               left: "50%",
               transform: "translate(-50%, -50%)",
               width: { xs: "90%", sm: 500 },
-              maxWidth: 900,
+              maxWidth: 600,
               bgcolor: "white",
               borderRadius: 3,
               boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
@@ -3025,20 +3010,17 @@ const PayrollProcessed = () => {
             <Box
               sx={{
                 p: 3,
-                background: `linear-gradient(135deg, ${settings.secondaryColor || accentColor} 0%, ${settings.deleteButtonHoverColor || accentDark} 100%)`,
+                bgcolor: "white",
+                borderBottom: `3px solid ${accentColor}`,
                 display: "flex",
                 alignItems: "center",
                 gap: 2,
-                position: 'sticky',
-                top: 0,
-                zIndex: 10,
-                flexShrink: 0,
               }}
             >
               <Avatar
                 sx={{
-                  bgcolor: alpha(settings.accentColor || textSecondaryColor, 0.2),
-                  color: settings.accentColor || textSecondaryColor,
+                  bgcolor: alpha(accentColor, 0.1),
+                  color: accentColor,
                   width: 56,
                   height: 56,
                 }}
@@ -3048,11 +3030,11 @@ const PayrollProcessed = () => {
               <Box>
                 <Typography
                   variant="h5"
-                  sx={{ fontWeight: "bold", color: settings.accentColor || textSecondaryColor }}
+                  sx={{ fontWeight: "bold", color: "#333" }}
                 >
                   Delete Record Confirmation
                 </Typography>
-                <Typography variant="body2" sx={{ color: settings.accentColor || textSecondaryColor, opacity: 0.9 }}>
+                <Typography variant="body2" sx={{ color: "#666" }}>
                   This action cannot be undone
                 </Typography>
               </Box>
@@ -3100,17 +3082,16 @@ const PayrollProcessed = () => {
                   variant="outlined"
                   onClick={() => setOpenConfirm(false)}
                   sx={{
-                    color: settings.cancelButtonColor || accentColor,
-                    borderColor: settings.cancelButtonColor || accentColor,
+                    color: accentColor,
+                    borderColor: accentColor,
                     px: 3,
                     py: 1.2,
                     fontWeight: 600,
                     textTransform: "none",
                     borderRadius: 2,
-                    minWidth: 120,
                     "&:hover": {
-                      borderColor: settings.cancelButtonHoverColor || accentDark,
-                      backgroundColor: alpha(settings.cancelButtonColor || accentColor, 0.08),
+                      borderColor: accentDark,
+                      backgroundColor: alpha(accentColor, 0.08),
                     },
                   }}
                 >
@@ -3120,16 +3101,16 @@ const PayrollProcessed = () => {
                   variant="contained"
                   onClick={handleConfirm}
                   sx={{
-                    backgroundColor: settings.deleteButtonColor || settings.primaryColor || accentColor,
-                    color: settings.accentColor || "white",
+                    backgroundColor: accentColor,
+                    color: "white",
                     px: 4,
                     py: 1.2,
                     fontWeight: 600,
                     textTransform: "none",
                     borderRadius: 2,
-                    minWidth: 120,
+                    minWidth: 140,
                     "&:hover": {
-                      backgroundColor: settings.deleteButtonHoverColor || settings.hoverColor || accentDark,
+                      backgroundColor: accentDark,
                     },
                   }}
                   startIcon={<DeleteForever />}
@@ -3153,7 +3134,7 @@ const PayrollProcessed = () => {
               left: "50%",
               transform: "translate(-50%, -50%)",
               width: { xs: "90%", sm: 500 },
-              maxWidth: 900,
+              maxWidth: 600,
               bgcolor: "white",
               borderRadius: 3,
               boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
@@ -3165,20 +3146,17 @@ const PayrollProcessed = () => {
             <Box
               sx={{
                 p: 3,
-                background: `linear-gradient(135deg, ${settings.secondaryColor || accentColor} 0%, ${settings.deleteButtonHoverColor || accentDark} 100%)`,
+                bgcolor: "white",
+                borderBottom: `3px solid ${accentColor}`,
                 display: "flex",
                 alignItems: "center",
                 gap: 2,
-                position: 'sticky',
-                top: 0,
-                zIndex: 10,
-                flexShrink: 0,
               }}
             >
               <Avatar
                 sx={{
-                  bgcolor: alpha(settings.accentColor || textSecondaryColor, 0.2),
-                  color: settings.accentColor || textSecondaryColor,
+                  bgcolor: alpha(accentColor, 0.1),
+                  color: accentColor,
                   width: 56,
                   height: 56,
                 }}
@@ -3188,11 +3166,11 @@ const PayrollProcessed = () => {
               <Box>
                 <Typography
                   variant="h5"
-                  sx={{ fontWeight: "bold", color: settings.accentColor || textSecondaryColor }}
+                  sx={{ fontWeight: "bold", color: "#333" }}
                 >
                   Authorization Required
                 </Typography>
-                <Typography variant="body2" sx={{ color: settings.accentColor || textSecondaryColor, opacity: 0.9 }}>
+                <Typography variant="body2" sx={{ color: "#666" }}>
                   Sensitive operation verification
                 </Typography>
               </Box>
@@ -3233,17 +3211,16 @@ const PayrollProcessed = () => {
                   onClick={handleConfidentialPasswordCancel}
                   variant="outlined"
                   sx={{
-                    color: settings.cancelButtonColor || accentColor,
-                    borderColor: settings.cancelButtonColor || accentColor,
+                    color: accentColor,
+                    borderColor: accentColor,
                     px: 3,
                     py: 1.2,
                     fontWeight: 600,
                     textTransform: "none",
                     borderRadius: 2,
-                    minWidth: 120,
                     "&:hover": {
-                      borderColor: settings.cancelButtonHoverColor || accentDark,
-                      backgroundColor: alpha(settings.cancelButtonColor || accentColor, 0.08),
+                      borderColor: accentDark,
+                      backgroundColor: alpha(accentColor, 0.08),
                     },
                   }}
                 >
@@ -3253,16 +3230,16 @@ const PayrollProcessed = () => {
                   onClick={handleConfidentialPasswordSubmit}
                   variant="contained"
                   sx={{
-                    backgroundColor: settings.updateButtonColor || settings.primaryColor || accentColor,
-                    color: settings.accentColor || "white",
+                    backgroundColor: accentColor,
+                    color: "white",
                     px: 4,
                     py: 1.2,
                     fontWeight: 600,
                     textTransform: "none",
                     borderRadius: 2,
-                    minWidth: 120,
+                    minWidth: 140,
                     "&:hover": {
-                      backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || accentDark,
+                      backgroundColor: accentDark,
                     },
                   }}
                   startIcon={<Lock />}
@@ -3286,7 +3263,7 @@ const PayrollProcessed = () => {
               left: "50%",
               transform: "translate(-50%, -50%)",
               width: { xs: "90%", sm: 500 },
-              maxWidth: 900,
+              maxWidth: 600,
               bgcolor: "white",
               borderRadius: 3,
               boxShadow: "0 20px 60px rgba(0,0,0,0.3)",

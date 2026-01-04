@@ -47,6 +47,7 @@ import LoadingOverlay from '../LoadingOverlay';
 import SuccessfulOverlay from '../SuccessfulOverlay';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
 import usePageAccess from '../../hooks/usePageAccess';
+import { usePayrollFormulas } from '../../hooks/usePayrollFormulas';
 import AccessDenied from '../AccessDenied';
 import SearchIcon from '@mui/icons-material/Search';
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
@@ -260,6 +261,9 @@ const PayrollProcess = () => {
   } = usePageAccess('payroll-table');
   // ACCESSING END
 
+  // Payroll Formulas Hook
+  const { calculatePayroll, loading: formulasLoading } = usePayrollFormulas();
+
   // [All existing state variables remain the same]
   const [data, setData] = useState([]);
   const [error, setError] = useState('');
@@ -436,48 +440,82 @@ const PayrollProcess = () => {
         }
       });
 
-      // Normalize data
-      const allData = res.data.map((item) => ({
-        ...item,
-        status:
-          item.status === 'Processed' || item.status === 1
-            ? 'Processed'
-            : 'Unprocessed',
-      }));
+      // Normalize data and ensure remittance fields have fallback values
+      const normalizedData = res.data.map((item) => {
+        // Ensure all remittance fields have fallback values to prevent miscalculations
+        const normalizedItem = {
+          ...item,
+          // Remittance fields with fallback to 0 if NULL/undefined
+          increment: item.increment ?? 0,
+          gsisSalaryLoan: item.gsisSalaryLoan ?? 0,
+          gsisPolicyLoan: item.gsisPolicyLoan ?? 0,
+          gsisArrears: item.gsisArrears ?? 0,
+          cpl: item.cpl ?? 0,
+          mpl: item.mpl ?? 0,
+          eal: item.eal ?? 0,
+          mplLite: item.mplLite ?? 0,
+          emergencyLoan: item.emergencyLoan ?? 0,
+          pagibigFundCont: item.pagibigFundCont ?? 0,
+          pagibig2: item.pagibig2 ?? 0,
+          multiPurpLoan: item.multiPurpLoan ?? 0,
+          liquidatingCash: item.liquidatingCash ?? 0,
+          landbankSalaryLoan: item.landbankSalaryLoan ?? 0,
+          earistCreditCoop: item.earistCreditCoop ?? 0,
+          feu: item.feu ?? 0,
+          // Other fields
+          h: item.h ?? 0,
+          m: item.m ?? 0,
+          s: item.s ?? 0,
+          withholdingTax: item.withholdingTax ?? 0,
+          ec: item.ec ?? 0,
+          rateNbc594: item.rateNbc594 ?? 0,
+          nbcDiffl597: item.nbcDiffl597 ?? 0,
+          status:
+            item.status === 'Processed' || item.status === 1
+              ? 'Processed'
+              : 'Unprocessed',
+        };
+
+        // Recalculate all fields using formulas (don't trust pre-computed values from database)
+        // This fixes the miscalculation issue where initial data shows wrong values
+        const calculatedItem = calculatePayroll(normalizedItem);
+
+        return calculatedItem || normalizedItem;
+      });
 
       setDuplicateEmployeeNumbers([...duplicates]);
-      setFilteredData(allData);
-      setData(allData);
+      setFilteredData(normalizedData);
+      setData(normalizedData);
 
-      // Calculate summary data
-      const processedCount = allData.filter(
+      // Calculate summary data using recalculated values
+      const processedCount = normalizedData.filter(
         (item) => item.status === 'Processed' || item.status === 1
       ).length;
 
-      const totalGross = allData.reduce(
+      const totalGross = normalizedData.reduce(
         (sum, item) => sum + parseFloat(item.grossSalary || 0),
         0
       );
 
-      const totalNet = allData.reduce(
+      const totalNet = normalizedData.reduce(
         (sum, item) => sum + parseFloat(item.netSalary || 0),
         0
       );
 
       setSummaryData({
-        totalEmployees: allData.length,
+        totalEmployees: normalizedData.length,
         processedEmployees: processedCount,
-        unprocessedEmployees: allData.length - processedCount,
+        unprocessedEmployees: normalizedData.length - processedCount,
         totalGrossSalary: totalGross,
         totalNetSalary: totalNet,
       });
 
       // Check if all processed/unprocessed
-      const allProcessed = allData.every(
+      const allProcessed = normalizedData.every(
         (item) => item.status === 'Processed' || item.status === 1
       );
 
-      const allUnprocessed = allData.every(
+      const allUnprocessed = normalizedData.every(
         (item) => item.status === 'Unprocessed' || item.status === 0
       );
 
@@ -644,83 +682,28 @@ const PayrollProcess = () => {
 
   const handleSubmitPayroll = async () => {
     try {
+      // Use formula-based calculation for all items
       const updatedData = filteredData.map((item) => {
-        const h = item.h || 0; // Default to 0 if h is not available
-        const m = item.m || 0; // Default to 0 if m is not available
+        // Calculate all fields using formulas
+        const calculatedItem = calculatePayroll(item) || item;
 
-        const grossSalary = item.increment
-          ? (parseFloat(item.rateNbc594) || 0) +
-            (parseFloat(item.nbcDiffl597) || 0) +
-            (parseFloat(item.increment) || 0)
-          : (parseFloat(item.rateNbc594) || 0) +
-            (parseFloat(item.nbcDiffl597) || 0);
-
-        const abs =
-          grossSalary * 0.0055555525544423 * h +
-          grossSalary * 0.0000925948584897 * m;
-
-        const PhilHealthContribution =
-          Math.floor(((grossSalary * 0.05) / 2) * 100) / 100;
-
-        const personalLifeRetIns = grossSalary * 0.09;
-
-        const netSalary = grossSalary - abs;
-
-        const totalGsisDeds =
-          (parseFloat(personalLifeRetIns) || 0) +
-          (parseFloat(item.gsisSalaryLoan) || 0) +
-          (parseFloat(item.gsisPolicyLoan) || 0) +
-          (parseFloat(item.gsisArrears) || 0) +
-          (parseFloat(item.cpl) || 0) +
-          (parseFloat(item.mpl) || 0) +
-          (parseFloat(item.eal) || 0) +
-          (parseFloat(item.mplLite) || 0) +
-          (parseFloat(item.emergencyLoan) || 0);
-
-        const totalPagibigDeds =
-          (parseFloat(item.pagibigFundCont) || 0) +
-          (parseFloat(item.pagibig2) || 0) +
-          (parseFloat(item.multiPurpLoan) || 0);
-
-        const totalOtherDeds =
-          (parseFloat(item.liquidatingCash) || 0) +
-          (parseFloat(item.landbankSalaryLoan) || 0) +
-          (parseFloat(item.earistCreditCoop) || 0) +
-          (parseFloat(item.feu) || 0);
-
-        const totalDeductions =
-          (parseFloat(item.withholdingTax) || 0) +
-          (parseFloat(PhilHealthContribution) || 0) +
-          (parseFloat(totalGsisDeds) || 0) +
-          (parseFloat(totalPagibigDeds) || 0) +
-          (parseFloat(totalOtherDeds) || 0);
-
-        const pay1stCompute = netSalary - totalDeductions;
-        const pay2ndCompute = (netSalary - totalDeductions) / 2;
-
-        const pay1st = pay2ndCompute;
-        const pay2nd =
-          (parseFloat(pay1stCompute) || 0) -
-          parseFloat((parseFloat(pay1st) || 0).toFixed(0));
-
-        const rtIns = grossSalary * 0.12;
-
+        // Format values for database storage (use .toFixed for precision)
         return {
-          ...item,
-          totalGsisDeds: totalGsisDeds.toFixed(2),
-          totalPagibigDeds: totalPagibigDeds.toFixed(2),
-          totalOtherDeds: totalOtherDeds.toFixed(2),
-          grossSalary,
-          abs: abs.toFixed(2),
-          netSalary: netSalary.toFixed(2),
-          totalDeductions: totalDeductions.toFixed(2),
-          PhilHealthContribution: PhilHealthContribution.toFixed(2),
-          personalLifeRetIns: personalLifeRetIns.toFixed(2),
-          pay1stCompute: pay1stCompute.toFixed(2),
-          pay2ndCompute: pay2ndCompute.toFixed(2),
-          pay1st: pay1st.toFixed(0),
-          pay2nd: pay2nd.toFixed(2),
-          rtIns: rtIns.toFixed(2),
+          ...calculatedItem,
+          totalGsisDeds: (calculatedItem.totalGsisDeds || 0).toFixed(2),
+          totalPagibigDeds: (calculatedItem.totalPagibigDeds || 0).toFixed(2),
+          totalOtherDeds: (calculatedItem.totalOtherDeds || 0).toFixed(2),
+          grossSalary: (calculatedItem.grossSalary || 0).toFixed(2),
+          abs: (calculatedItem.abs || 0).toFixed(2),
+          netSalary: (calculatedItem.netSalary || 0).toFixed(2),
+          totalDeductions: (calculatedItem.totalDeductions || 0).toFixed(2),
+          PhilHealthContribution: (calculatedItem.PhilHealthContribution || 0).toFixed(2),
+          personalLifeRetIns: (calculatedItem.personalLifeRetIns || 0).toFixed(2),
+          pay1stCompute: (calculatedItem.pay1stCompute || 0).toFixed(2),
+          pay2ndCompute: (calculatedItem.pay2ndCompute || 0).toFixed(2),
+          pay1st: (calculatedItem.pay1st || 0).toFixed(0),
+          pay2nd: (calculatedItem.pay2nd || 0).toFixed(2),
+          rtIns: (calculatedItem.rtIns || 0).toFixed(2),
           status: 'Processed',
         };
       });
@@ -907,78 +890,55 @@ const PayrollProcess = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const h = editRow.h || 0;
-      const m = editRow.m || 0;
+      // Ensure remittance fields have fallback values
+      const normalizedEditRow = {
+        ...editRow,
+        h: editRow.h ?? 0,
+        m: editRow.m ?? 0,
+        increment: editRow.increment ?? 0,
+        gsisSalaryLoan: editRow.gsisSalaryLoan ?? 0,
+        gsisPolicyLoan: editRow.gsisPolicyLoan ?? 0,
+        gsisArrears: editRow.gsisArrears ?? 0,
+        cpl: editRow.cpl ?? 0,
+        mpl: editRow.mpl ?? 0,
+        eal: editRow.eal ?? 0,
+        mplLite: editRow.mplLite ?? 0,
+        emergencyLoan: editRow.emergencyLoan ?? 0,
+        pagibigFundCont: editRow.pagibigFundCont ?? 0,
+        pagibig2: editRow.pagibig2 ?? 0,
+        multiPurpLoan: editRow.multiPurpLoan ?? 0,
+        liquidatingCash: editRow.liquidatingCash ?? 0,
+        landbankSalaryLoan: editRow.landbankSalaryLoan ?? 0,
+        earistCreditCoop: editRow.earistCreditCoop ?? 0,
+        feu: editRow.feu ?? 0,
+        withholdingTax: editRow.withholdingTax ?? 0,
+        rateNbc594: editRow.rateNbc594 ?? 0,
+        nbcDiffl597: editRow.nbcDiffl597 ?? 0,
+        ec: editRow.ec ?? 0,
+      };
 
-      const grossSalary = editRow.increment
-        ? (parseFloat(editRow.rateNbc594) || 0) +
-          (parseFloat(editRow.nbcDiffl597) || 0) +
-          (parseFloat(editRow.increment) || 0)
-        : (parseFloat(editRow.rateNbc594) || 0) +
-          (parseFloat(editRow.nbcDiffl597) || 0);
-
-      const abs =
-        grossSalary * 0.0055555525544423 * h +
-        grossSalary * 0.0000925948584897 * m;
-      const PhilHealthContribution =
-        Math.floor(((grossSalary * 0.05) / 2) * 100) / 100;
-      const personalLifeRetIns = grossSalary * 0.09;
-      const netSalary = grossSalary - abs;
-
-      const totalGsisDeds =
-        (parseFloat(personalLifeRetIns) || 0) +
-        (parseFloat(editRow.gsisSalaryLoan) || 0) +
-        (parseFloat(editRow.gsisPolicyLoan) || 0) +
-        (parseFloat(editRow.gsisArrears) || 0) +
-        (parseFloat(editRow.cpl) || 0) +
-        (parseFloat(editRow.mpl) || 0) +
-        (parseFloat(editRow.eal) || 0) +
-        (parseFloat(editRow.mplLite) || 0) +
-        (parseFloat(editRow.emergencyLoan) || 0);
-
-      const totalPagibigDeds =
-        (parseFloat(editRow.pagibigFundCont) || 0) +
-        (parseFloat(editRow.pagibig2) || 0) +
-        (parseFloat(editRow.multiPurpLoan) || 0);
-
-      const totalOtherDeds =
-        (parseFloat(editRow.liquidatingCash) || 0) +
-        (parseFloat(editRow.landbankSalaryLoan) || 0) +
-        (parseFloat(editRow.earistCreditCoop) || 0) +
-        (parseFloat(editRow.feu) || 0);
-
-      const totalDeductions =
-        (parseFloat(editRow.withholdingTax) || 0) +
-        (parseFloat(PhilHealthContribution) || 0) +
-        (parseFloat(totalGsisDeds) || 0) +
-        (parseFloat(totalPagibigDeds) || 0) +
-        (parseFloat(totalOtherDeds) || 0);
-
-      const pay1stCompute = netSalary - totalDeductions;
-      const pay2ndCompute = pay1stCompute / 2;
-
-      const pay1st = pay2ndCompute;
-      const pay2nd =
-        pay1stCompute - parseFloat((parseFloat(pay1st) || 0).toFixed(0));
-
-      const rtIns = grossSalary * 0.12;
+      // Calculate all fields using formulas
+      const calculatedRow = calculatePayroll(normalizedEditRow) || normalizedEditRow;
 
       const updatedRow = {
-        ...editRow,
-        h,
-        m,
-        grossSalary,
-        abs,
-        PhilHealthContribution,
-        personalLifeRetIns,
-        netSalary,
-        totalGsisDeds,
-        totalPagibigDeds,
-        totalOtherDeds,
-        totalDeductions,
-        pay1st,
-        pay2nd,
-        rtIns,
+        ...calculatedRow,
+        // Ensure all values are numbers (not formatted strings)
+        h: parseInt(calculatedRow.h) || 0,
+        m: parseInt(calculatedRow.m) || 0,
+        grossSalary: parseFloat(calculatedRow.grossSalary) || 0,
+        abs: parseFloat(calculatedRow.abs) || 0,
+        PhilHealthContribution: parseFloat(calculatedRow.PhilHealthContribution) || 0,
+        personalLifeRetIns: parseFloat(calculatedRow.personalLifeRetIns) || 0,
+        netSalary: parseFloat(calculatedRow.netSalary) || 0,
+        totalGsisDeds: parseFloat(calculatedRow.totalGsisDeds) || 0,
+        totalPagibigDeds: parseFloat(calculatedRow.totalPagibigDeds) || 0,
+        totalOtherDeds: parseFloat(calculatedRow.totalOtherDeds) || 0,
+        totalDeductions: parseFloat(calculatedRow.totalDeductions) || 0,
+        pay1st: parseFloat(calculatedRow.pay1st) || 0,
+        pay2nd: parseFloat(calculatedRow.pay2nd) || 0,
+        pay1stCompute: parseFloat(calculatedRow.pay1stCompute) || 0,
+        pay2ndCompute: parseFloat(calculatedRow.pay2ndCompute) || 0,
+        rtIns: parseFloat(calculatedRow.rtIns) || 0,
       };
 
       const response = await axios.put(
@@ -990,10 +950,22 @@ const PayrollProcess = () => {
       console.log('Payroll record updated successfully:', response.data);
       setOpenModal(false);
 
+      // Recalculate the updated row using formulas before updating state
+      const recalculatedRow = calculatePayroll(updatedRow) || updatedRow;
+
       setFilteredData((prevData) =>
         prevData.map((item) =>
           item.employeeNumber === updatedRow.employeeNumber
-            ? { ...item, ...updatedRow }
+            ? { ...item, ...recalculatedRow }
+            : item
+        )
+      );
+
+      // Also update the main data array
+      setData((prevData) =>
+        prevData.map((item) =>
+          item.employeeNumber === updatedRow.employeeNumber
+            ? { ...item, ...recalculatedRow }
             : item
         )
       );
@@ -1059,123 +1031,69 @@ const PayrollProcess = () => {
     'landbankSalaryLoan',
   ];
 
-  // COMPUTATION:
+  // COMPUTATION: Use formula-based calculation
+  // Data is already calculated in fetchPayrollData, but we format it here for display
   const computedRows = filteredData.map((item) => {
-    const h = item.h || 0; // Default to 0 if h is not available
-    const m = item.m || 0; // Default to 0 if m is not availabl
+    // Ensure item is recalculated using formulas (in case filters changed data)
+    const calculatedItem = calculatePayroll(item) || item;
 
-    const grossSalary = item.increment
-      ? (parseFloat(item.rateNbc594) || 0) +
-        (parseFloat(item.nbcDiffl597) || 0) +
-        (parseFloat(item.increment) || 0)
-      : (parseFloat(item.rateNbc594) || 0) +
-        (parseFloat(item.nbcDiffl597) || 0);
-
-    const abs =
-      grossSalary * 0.0055555525544423 * h +
-      grossSalary * 0.0000925948584897 * m;
-    const PhilHealthContribution =
-      Math.floor(((grossSalary * 0.05) / 2) * 100) / 100;
-    const personalLifeRetIns = grossSalary * 0.09;
-
-    const netSalary = grossSalary - abs;
-
-    const totalGsisDeds =
-      (parseFloat(personalLifeRetIns) || 0) +
-      (parseFloat(item.gsisSalaryLoan) || 0) +
-      (parseFloat(item.gsisPolicyLoan) || 0) +
-      (parseFloat(item.gsisArrears) || 0) +
-      (parseFloat(item.cpl) || 0) +
-      (parseFloat(item.mpl) || 0) +
-      (parseFloat(item.eal) || 0) +
-      (parseFloat(item.mplLite) || 0) +
-      (parseFloat(item.emergencyLoan) || 0);
-
-    const totalPagibigDeds =
-      (parseFloat(item.pagibigFundCont) || 0) +
-      (parseFloat(item.pagibig2) || 0) +
-      (parseFloat(item.multiPurpLoan) || 0);
-
-    const totalOtherDeds =
-      (parseFloat(item.liquidatingCash) || 0) +
-      (parseFloat(item.landbankSalaryLoan) || 0) +
-      (parseFloat(item.earistCreditCoop) || 0) +
-      (parseFloat(item.feu) || 0);
-
-    const totalDeductions =
-      (parseFloat(item.withholdingTax) || 0) +
-      (parseFloat(PhilHealthContribution) || 0) +
-      (parseFloat(totalGsisDeds) || 0) +
-      (parseFloat(totalPagibigDeds) || 0) +
-      (parseFloat(totalOtherDeds) || 0);
-
-    const pay1stCompute = netSalary - totalDeductions;
-    const pay2ndCompute = (netSalary - totalDeductions) / 2;
-
-    const pay1st = pay2ndCompute;
-    const pay2nd =
-      (parseFloat(pay1stCompute) || 0) -
-      parseFloat((parseFloat(pay1st) || 0).toFixed(0));
-
-    const rtIns = grossSalary * 0.12;
-
+    // Format numeric values for display
     return {
-      ...item,
-      h,
-      m,
-      totalGsisDeds: totalGsisDeds.toLocaleString('en-US', {
+      ...calculatedItem,
+      h: calculatedItem.h || 0,
+      m: calculatedItem.m || 0,
+      totalGsisDeds: (calculatedItem.totalGsisDeds || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }),
-      totalPagibigDeds: totalPagibigDeds.toLocaleString('en-US', {
+      totalPagibigDeds: (calculatedItem.totalPagibigDeds || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }),
-      totalOtherDeds: totalOtherDeds.toLocaleString('en-US', {
+      totalOtherDeds: (calculatedItem.totalOtherDeds || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }),
-      grossSalary: grossSalary.toLocaleString('en-US', {
+      grossSalary: (calculatedItem.grossSalary || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }),
-      abs: abs.toLocaleString('en-US', {
+      abs: (calculatedItem.abs || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }),
-      netSalary: netSalary.toLocaleString('en-US', {
+      netSalary: (calculatedItem.netSalary || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }),
-      totalDeductions: totalDeductions.toLocaleString('en-US', {
+      totalDeductions: (calculatedItem.totalDeductions || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }),
-      PhilHealthContribution: PhilHealthContribution.toLocaleString('en-US', {
+      PhilHealthContribution: (calculatedItem.PhilHealthContribution || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }),
-      personalLifeRetIns: personalLifeRetIns.toLocaleString('en-US', {
+      personalLifeRetIns: (calculatedItem.personalLifeRetIns || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }),
-      pay1stCompute: pay1stCompute.toLocaleString('en-US', {
+      pay1stCompute: (calculatedItem.pay1stCompute || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }),
-      pay2ndCompute: pay2ndCompute.toLocaleString('en-US', {
+      pay2ndCompute: (calculatedItem.pay2ndCompute || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }),
-      pay1st: pay1st.toLocaleString('en-US', {
+      pay1st: (calculatedItem.pay1st || 0).toLocaleString('en-US', {
         maximumFractionDigits: 0,
-        maximumFractionDigits: 0,
       }),
-      pay2nd: pay2nd.toLocaleString('en-US', {
+      pay2nd: (calculatedItem.pay2nd || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }),
-      rtIns: rtIns.toLocaleString('en-US', {
+      rtIns: (calculatedItem.rtIns || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }),
@@ -3560,17 +3478,21 @@ const PayrollProcess = () => {
                 <Box
                   sx={{
                     p: 3,
-                    bgcolor: accentColor,
-                    color: 'white',
+                    background: `linear-gradient(135deg, ${settings.secondaryColor || accentColor} 0%, ${settings.deleteButtonHoverColor || accentDark} 100%)`,
+                    color: settings.accentColor || textSecondaryColor,
                     borderRadius: '2px 2px 0 0',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 10,
+                    flexShrink: 0,
                   }}
                 >
-                  <Typography variant="h5" fontWeight="bold">
+                  <Typography variant="h5" fontWeight="bold" sx={{ color: settings.accentColor || textSecondaryColor }}>
                     Edit Payroll Record - {editRow.name}
                   </Typography>
                   <Typography
                     variant="body2"
-                    sx={{ opacity: 0.9, mt: 0.5, fontWeight: 'bold' }}
+                    sx={{ opacity: 0.9, mt: 0.5, fontWeight: 'bold', color: settings.accentColor || textSecondaryColor }}
                   >
                     Employee Number: {editRow.employeeNumber}
                   </Typography>

@@ -20,6 +20,17 @@ const defaultSettings = {
   footerText: '© 2025 EARIST Manila - Human Resources Information System. All rights Reserved.',
   copyrightSymbol: '©',
   enableWatermark: true,
+  // CRUD Button Colors
+  createButtonColor: '#6d2323',
+  createButtonHoverColor: '#a31d1d',
+  readButtonColor: '#6d2323',
+  readButtonHoverColor: '#a31d1d',
+  updateButtonColor: '#6d2323',
+  updateButtonHoverColor: '#a31d1d',
+  deleteButtonColor: '#6d2323',
+  deleteButtonHoverColor: '#a31d1d',
+  cancelButtonColor: '#6c757d',
+  cancelButtonHoverColor: '#5a6268',
 };
 
 const SystemSettingsContext = createContext({
@@ -38,7 +49,12 @@ export const SystemSettingsProvider = ({ children }) => {
     if (localSettings) {
       try {
         const parsed = JSON.parse(localSettings);
-        setSettings(parsed);
+        // Merge with defaults to ensure all CRUD button colors are present
+        const mergedSettings = {
+          ...defaultSettings,
+          ...parsed,
+        };
+        setSettings(mergedSettings);
         
         // Set CSS variables
         document.documentElement.style.setProperty(
@@ -62,8 +78,14 @@ export const SystemSettingsProvider = ({ children }) => {
         const response = await axios.get(url);
         const fetchedSettings = response.data;
         
-        setSettings(fetchedSettings);
-        localStorage.setItem('systemSettings', JSON.stringify(fetchedSettings));
+        // Merge with defaults to ensure all CRUD button colors are present
+        const mergedSettings = {
+          ...defaultSettings,
+          ...fetchedSettings,
+        };
+        
+        setSettings(mergedSettings);
+        localStorage.setItem('systemSettings', JSON.stringify(mergedSettings));
 
         // Set CSS variables
         document.documentElement.style.setProperty(
@@ -87,11 +109,16 @@ export const SystemSettingsProvider = ({ children }) => {
       if (e.key === 'systemSettings') {
         try {
           const newSettings = JSON.parse(e.newValue);
-          setSettings(newSettings);
+          // Merge with defaults to ensure all CRUD button colors are present
+          const mergedSettings = {
+            ...defaultSettings,
+            ...newSettings,
+          };
+          setSettings(mergedSettings);
           
           document.documentElement.style.setProperty(
             '--background-color',
-            newSettings.backgroundColor || '#FFFFFF'
+            mergedSettings.backgroundColor || '#FFFFFF'
           );
         } catch (error) {
           console.error('Error parsing updated settings:', error);
@@ -107,11 +134,16 @@ export const SystemSettingsProvider = ({ children }) => {
       if (localSettings) {
         try {
           const parsed = JSON.parse(localSettings);
-          setSettings(parsed);
+          // Merge with defaults to ensure all CRUD button colors are present
+          const mergedSettings = {
+            ...defaultSettings,
+            ...parsed,
+          };
+          setSettings(mergedSettings);
           
           document.documentElement.style.setProperty(
             '--background-color',
-            parsed.backgroundColor || '#FFFFFF'
+            mergedSettings.backgroundColor || '#FFFFFF'
           );
         } catch (error) {
           console.error('Error parsing updated settings:', error);

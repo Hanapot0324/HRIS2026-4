@@ -32,9 +32,9 @@ const ScholarshipAgreement = () => {
                      <p style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '-10px' }}>Scholarship Study Leave With Pay</p>
                 </div>
                 <div style={{ position: 'relative', top: '100px', left: '-10px', width: '7.75in', margin: 'auto', marginTop: '-29px'}}>
-                    <p>&emsp;&emsp;&emsp;I _________________________, in consideration of the scholarship, fellowship, training or study</p>
-                    <p style={{marginTop: '-14px'}}>grant granted to me by the ________________________________________________________ under</p>
-                    <p style={{marginTop: '-10px'}}>________________________________ and of payment of my salary by the Republic of the Philippines</p>
+                    <p style={{display: 'flex', alignItems: 'baseline', flexWrap: 'nowrap'}}>&emsp;&emsp;&emsp;I <span style={{borderBottom: '1px solid black', minWidth: '200px', display: 'inline-block', margin: '0 4px'}}></span>, in consideration of the scholarship, fellowship, training or study</p>
+                    <p style={{marginTop: '-14px', display: 'flex', alignItems: 'baseline', flexWrap: 'nowrap'}}>grant granted to me by the <span style={{borderBottom: '1px solid black', minWidth: '300px', display: 'inline-block', margin: '0 4px'}}></span> under</p>
+                    <p style={{marginTop: '-10px', display: 'flex', alignItems: 'baseline', flexWrap: 'nowrap'}}><span style={{borderBottom: '1px solid black', minWidth: '200px', display: 'inline-block', margin: '0 4px'}}></span> and of payment of my salary by the Republic of the Philippines</p>
                     <p style={{ textIndent: '3em', marginTop: '-19px', marginBottom: '-10px'}}><sup>(type of scholarship)</sup></p>
                     <p style={{marginTop: '5px', marginBottom: '-10px'}}>during the period of such scholarship, fellowship, training or study grant, do hereby agree, acknowledge, understand and accept;</p><br/>
 
@@ -62,14 +62,14 @@ const ScholarshipAgreement = () => {
                             </li>
                     </ol>
                     <br/>
-                    <p style={{marginTop: '-10px'}}>&emsp;&emsp;&emsp; In witness hereof, I have hereunder set my hand this _____ day of ______________ 20_____, Manila, Philippines.</p>
+                    <p style={{marginTop: '-10px', display: 'flex', alignItems: 'baseline', flexWrap: 'nowrap'}}>&emsp;&emsp;&emsp; In witness hereof, I have hereunder set my hand this <span style={{borderBottom: '1px solid black', minWidth: '60px', display: 'inline-block', margin: '0 4px'}}></span> day of <span style={{borderBottom: '1px solid black', minWidth: '120px', display: 'inline-block', margin: '0 4px'}}></span> 20<span style={{borderBottom: '1px solid black', minWidth: '40px', display: 'inline-block', margin: '0 4px'}}></span>, Manila, Philippines.</p>
                 </div>
             </div>
 
 
             <div style={{ position: 'relative', top: '125px', left: '-50px', textAlign: 'center', float: 'right', }}>
-                <p style={{marginTop: '-15px'}}>__________________________________</p>
-                <p style={{marginTop: '-22px'}}>(Name & Signature of Scholar)</p>
+                <p style={{marginTop: '-15px', borderBottom: '1px solid black', minWidth: '200px', display: 'inline-block'}}></p>
+                <p style={{marginTop: '5px'}}>(Name & Signature of Scholar)</p>
             </div>
 
 

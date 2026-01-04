@@ -315,7 +315,7 @@ async function generateDashboardReport(period) {
   // Payslip Count
   const [payslipCount] = await db
     .promise()
-    .query('SELECT COUNT(*) as total FROM finalize_payroll');
+    .query('SELECT COUNT(*) as total FROM payroll_processed');
   stats.payslipCount = payslipCount[0]?.total || 0;
 
   return stats;
@@ -451,7 +451,7 @@ async function generatePayrollReport(period) {
       COUNT(DISTINCT fp.employeeNumber) as employeeCount,
       SUM(fp.netSalary) as totalBudget,
       AVG(fp.netSalary) as avgSalary
-    FROM finalize_payroll fp
+    FROM payroll_processed fp
     LEFT JOIN (
       SELECT employeeNumber, code, MAX(id) as max_id
       FROM department_assignment
@@ -473,7 +473,7 @@ async function generatePayrollReport(period) {
     SELECT 
       COALESCE(da.code, fp.department) as department,
       SUM(fp.netSalary) as totalBudget
-    FROM finalize_payroll fp
+    FROM payroll_processed fp
     LEFT JOIN (
       SELECT employeeNumber, code, MAX(id) as max_id
       FROM department_assignment
@@ -851,7 +851,7 @@ router.get('/api/reports/employee/performance', authenticateToken, async (req, r
         COUNT(*) as totalRecords,
         SUM(netSalary) as totalEarnings,
         AVG(netSalary) as avgSalary
-      FROM finalize_payroll
+      FROM payroll_processed
       WHERE employeeNumber = ?
         AND startDate >= ? AND endDate <= ?
     `, [employeeNumber, startDate, endDate]);
@@ -901,7 +901,7 @@ router.get('/api/reports/employee/payroll-history', authenticateToken, async (re
         pay1st,
         pay2nd,
         status
-      FROM finalize_payroll
+      FROM payroll_processed
       WHERE employeeNumber = ?
         AND startDate >= ? AND endDate <= ?
       ORDER BY startDate DESC

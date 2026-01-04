@@ -47,27 +47,12 @@ function logAudit(
   `;
 
 
-  console.log(`Audit Log: ${action} on ${tableName} by ${user.employeeNumber}`);
-
-
   db.query(
     auditQuery,
     [user.employeeNumber, action, tableName, recordId, targetEmployeeNumber],
     (err) => {
       if (err) {
         console.error('Error inserting audit log:', err);
-        console.error('Audit query:', auditQuery);
-        console.error('Audit values:', [
-          user.employeeNumber,
-          action,
-          tableName,
-          recordId,
-          targetEmployeeNumber,
-        ]);
-      } else {
-        console.log(
-          `Audit log successfully recorded: ${action} on ${tableName}`
-        );
       }
     }
   );
@@ -105,78 +90,87 @@ router.get('/released-payroll', authenticateToken, (req, res) => {
 
 // GET released payroll with detailed joins (for payslip components)
 router.get('/released-payroll-detailed', authenticateToken, (req, res) => {
+  // Use CAST/CONVERT to ensure data type compatibility in JOIN
   const query = `
     SELECT
-      pr.id,
-      pr.employeeNumber,
-      pr.startDate,
-      pr.endDate,
-      pr.name,
-      pr.rateNbc584,
-      pr.nbc594,
-      pr.rateNbc594,
-      pr.nbcDiffl597,
-      pr.grossSalary,
-      pr.abs,
-      pr.h,
-      pr.m,
-      pr.s,
-      pr.netSalary,
-      pr.withholdingTax,
-      pr.personalLifeRetIns,
-      pr.totalGsisDeds,
-      pr.totalPagibigDeds,
-      pr.totalOtherDeds,
-      pr.totalDeductions,
-      pr.pay1st,
-      pr.pay2nd,
-      pr.pay1stCompute,
-      pr.pay2ndCompute,
-      pr.rtIns,
-      pr.ec,
-      pr.increment,
-      pr.gsisSalaryLoan,
-      pr.gsisPolicyLoan,
-      pr.gsisArrears,
-      pr.cpl,
-      pr.mpl,
-      pr.eal,
-      pr.mplLite,
-      pr.emergencyLoan,
-      pr.pagibigFundCont,
-      pr.pagibig2,
-      pr.multiPurpLoan,
-      pr.position,
-      pr.liquidatingCash,
-      pr.landbankSalaryLoan,
-      pr.earistCreditCoop,
-      pr.feu,
-      pr.PhilHealthContribution,
-      pr.department,
-      pr.rh,
-      pr.sss,
-      pr.dateReleased,
-      pr.releasedBy
+      pr.*,
+      COALESCE(ec.employmentCategory, -1) AS employmentCategory
     FROM payroll_released pr
+    LEFT JOIN employment_category ec ON CAST(pr.employeeNumber AS CHAR) = CAST(ec.employeeNumber AS CHAR)
     ORDER BY pr.dateReleased DESC
   `;
-
 
   db.query(query, (err, results) => {
     if (err) {
       console.error('Error fetching detailed released payroll:', err);
-      return res.status(500).json({ error: 'Internal server error' });
+      console.error('Error details:', {
+        message: err.message,
+        code: err.code,
+        sqlState: err.sqlState,
+        sqlMessage: err.sqlMessage
+      });
+      
+      // Try fallback query without JOIN if the JOIN fails
+      console.log('Attempting fallback query without employment_category JOIN...');
+      const fallbackQuery = `
+        SELECT
+          pr.*,
+          -1 AS employmentCategory
+        FROM payroll_released pr
+        ORDER BY pr.dateReleased DESC
+      `;
+      
+      db.query(fallbackQuery, (fallbackErr, fallbackResults) => {
+        if (fallbackErr) {
+          console.error('Fallback query also failed:', fallbackErr);
+          const errorResponse = {
+            error: 'Internal server error',
+            message: 'Failed to fetch detailed released payroll data'
+          };
+          
+          if (process.env.NODE_ENV === 'development') {
+            errorResponse.details = err.message;
+            errorResponse.code = err.code;
+            errorResponse.fallbackError = fallbackErr.message;
+          }
+          
+          return res.status(500).json(errorResponse);
+        }
+        
+        // Success with fallback - return results with default employmentCategory
+        console.log('Fallback query succeeded, returning results without employmentCategory data');
+        
+        // Audit log (non-blocking)
+        try {
+          logAudit(
+            req.user,
+            'view',
+            'payroll_released_detailed',
+            fallbackResults.length > 0 ? fallbackResults[0].id : null
+          );
+        } catch (auditErr) {
+          console.error('Error logging audit (non-blocking):', auditErr);
+        }
+        
+        return res.json(fallbackResults);
+      });
+      
+      return; // Exit early, fallback query will handle response
     }
 
-
-    // Audit log: viewing detailed released payroll
-    logAudit(
-      req.user,
-      'view',
-      'payroll_released_detailed',
-      results.length > 0 ? results[0].id : null
-    );
-
+    // Audit log: viewing detailed released payroll (non-blocking)
+    // Don't let audit logging failure prevent the response
+    try {
+      logAudit(
+        req.user,
+        'view',
+        'payroll_released_detailed',
+        results.length > 0 ? results[0].id : null
+      );
+    } catch (auditErr) {
+      console.error('Error logging audit (non-blocking):', auditErr);
+      // Continue with response even if audit logging fails
+    }
 
     res.json(results);
   });
@@ -196,16 +190,23 @@ router.post('/release-payroll', authenticateToken, (req, res) => {
   }
 
 
-  // First, get the payroll data from finalized_payroll
-  const getQuery = 'SELECT * FROM finalize_payroll WHERE id IN (?)';
+  // Get the payroll data from payroll_processed (both regular and JO records are in the same table)
+  const getPayrollQuery = 'SELECT * FROM payroll_processed WHERE id IN (?)';
 
-
-  db.query(getQuery, [payrollIds], (err, payrollData) => {
+  db.query(getPayrollQuery, [payrollIds], (err, payrollData) => {
     if (err) {
       console.error('Error fetching payroll data:', err);
-      return res.status(500).json({ error: 'Internal server error' });
+      console.error('Error details:', {
+        message: err.message,
+        code: err.code,
+        sqlState: err.sqlState,
+        payrollIds: payrollIds
+      });
+      return res.status(500).json({ 
+        error: 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
     }
-
 
     if (payrollData.length === 0) {
       return res
@@ -213,22 +214,40 @@ router.post('/release-payroll', authenticateToken, (req, res) => {
         .json({ error: 'No payroll records found to release.' });
     }
 
-
     // Check if any of these records are already released
-    const checkReleasedQuery =
-      'SELECT employeeNumber, startDate, endDate FROM payroll_released WHERE employeeNumber IN (?) AND startDate IN (?) AND endDate IN (?)';
-    const employeeNumbers = payrollData.map((record) => record.employeeNumber);
-    const startDates = payrollData.map((record) => record.startDate);
-    const endDates = payrollData.map((record) => record.endDate);
+    // Build query with OR conditions to check for specific combinations
+    const placeholders = payrollData.map(() => '(employeeNumber = ? AND startDate = ? AND endDate = ?)').join(' OR ');
+    const checkReleasedQuery = `
+      SELECT employeeNumber, startDate, endDate 
+      FROM payroll_released 
+      WHERE ${placeholders}
+    `;
+    
+    // Flatten the parameters for the query
+    const checkParams = payrollData.flatMap((record) => [
+      record.employeeNumber,
+      record.startDate,
+      record.endDate,
+    ]);
 
 
     db.query(
       checkReleasedQuery,
-      [employeeNumbers, startDates, endDates],
+      checkParams,
       (checkErr, existingReleased) => {
         if (checkErr) {
           console.error('Error checking existing released records:', checkErr);
-          return res.status(500).json({ error: 'Internal server error' });
+          console.error('Error details:', {
+            message: checkErr.message,
+            code: checkErr.code,
+            sqlState: checkErr.sqlState,
+            sqlMessage: checkErr.sqlMessage,
+            payrollIds: payrollIds
+          });
+          return res.status(500).json({ 
+            error: 'Internal server error',
+            details: process.env.NODE_ENV === 'development' ? checkErr.message : undefined
+          });
         }
 
 
@@ -325,6 +344,14 @@ router.post('/release-payroll', authenticateToken, (req, res) => {
         db.query(insertQuery, [values], (err, result) => {
           if (err) {
             console.error('Error inserting released payroll:', err);
+            console.error('Error details:', {
+              message: err.message,
+              code: err.code,
+              sqlState: err.sqlState,
+              sqlMessage: err.sqlMessage,
+              payrollIds: payrollIds,
+              recordsCount: recordsToRelease.length
+            });
             logAudit(
               req.user,
               'create_failed',
@@ -332,7 +359,10 @@ router.post('/release-payroll', authenticateToken, (req, res) => {
               null,
               payrollIds.join(', ')
             );
-            return res.status(500).json({ error: 'Internal server error' });
+            return res.status(500).json({ 
+              error: 'Internal server error',
+              details: process.env.NODE_ENV === 'development' ? err.message : undefined
+            });
           }
 
 
@@ -346,8 +376,8 @@ router.post('/release-payroll', authenticateToken, (req, res) => {
           );
 
 
-          // IMPORTANT: Don't delete from finalize_payroll - just copy to payroll_released
-          // The records should remain in finalize_payroll for the PayrollProcessed view
+          // IMPORTANT: Don't delete from payroll_processed - just copy to payroll_released
+          // The records should remain in payroll_processed for the PayrollProcessed view
 
 
           res.json({

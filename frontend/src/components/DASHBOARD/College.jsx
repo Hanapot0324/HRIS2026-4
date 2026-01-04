@@ -1240,7 +1240,7 @@ const College = () => {
                                   {employeeNames[college.person_id] || 'Loading...'}
                                 </Typography>
                                 
-                                <Typography variant="body2" fontWeight="bold" color="#333" mb={1} noWrap sx={{ flexGrow: 1 }}>
+                                <Typography variant="body2" fontWeight="bold" color="#333" mb={1} sx={{ flexGrow: 1, wordBreak: 'break-word' }}>
                                   {college.collegeNameOfSchool || 'No College Name'}
                                 </Typography>
                                 
@@ -1286,38 +1286,33 @@ const College = () => {
                               </Box>
                               
                               <Box sx={{ flexGrow: 1 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                                  <Typography variant="caption" sx={{ 
-                                    color: accentColor,
-                                    fontSize: '0.7rem',
-                                    fontWeight: 'bold',
-                                    mr: 1
-                                  }}>
-                                    ID: {college.person_id}
-                                  </Typography>
-                                  <Typography variant="body2" fontWeight="bold" color="#333">
-                                    {employeeNames[college.person_id] || 'Loading...'}
-                                  </Typography>
-                                </Box>
+                                <Typography variant="caption" sx={{ 
+                                  color: accentColor,
+                                  fontSize: '0.7rem',
+                                  fontWeight: 'bold',
+                                  display: 'block',
+                                  mb: 0.5
+                                }}>
+                                  ID: {college.person_id}
+                                </Typography>
+                                <Typography variant="body2" fontWeight="bold" color="#333" sx={{ mb: 0.5 }}>
+                                  {employeeNames[college.person_id] || 'Loading...'}
+                                </Typography>
                                 
-                                <Typography variant="body2" color={grayColor} sx={{ mb: 0.5 }}>
+                                <Typography variant="body2" fontWeight="bold" color="#333" sx={{ mb: 0.5, wordBreak: 'break-word' }}>
                                   {college.collegeNameOfSchool || 'No College Name'}
                                 </Typography>
                                 
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
-                                    <CalendarToday sx={{ fontSize: 14, color: '#999', mr: 0.5 }} />
-                                    <Typography variant="caption" color={grayColor} fontSize="0.7rem">
-                                      {college.collegePeriodFrom || '----'}
-                                    </Typography>
-                                  </Box>
-                                  <ArrowForward sx={{ fontSize: 14, color: '#999', mx: 0.5 }} />
-                                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <CalendarToday sx={{ fontSize: 14, color: '#999', mr: 0.5 }} />
-                                    <Typography variant="caption" color={grayColor} fontSize="0.7rem">
-                                      {college.collegePeriodTo || '----'}
-                                    </Typography>
-                                  </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <CalendarToday sx={{ fontSize: 14, color: '#000', mr: 0.25 }} />
+                                  <Typography variant="caption" color="#000" fontSize="0.75rem">
+                                    {college.collegePeriodFrom || '----'}
+                                  </Typography>
+                                  <ArrowForward sx={{ fontSize: 14, color: '#000', mx: 0.25 }} />
+                                  <CalendarToday sx={{ fontSize: 14, color: '#000', mr: 0.25 }} />
+                                  <Typography variant="caption" color="#000" fontSize="0.75rem">
+                                    {college.collegePeriodTo || '----'}
+                                  </Typography>
                                 </Box>
                               </Box>
                             </Box>
@@ -1356,7 +1351,7 @@ const College = () => {
           <GlassCard
             sx={{
               width: '90%',
-              maxWidth: '600px',
+              maxWidth: '900px',
               maxHeight: '90vh',
               display: 'flex',
               flexDirection: 'column',
@@ -1368,20 +1363,21 @@ const College = () => {
                 <Box
                   sx={{
                     p: 3,
-                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-                    color: accentColor,
+                    background: `linear-gradient(135deg, ${settings.secondaryColor || '#6d2323'} 0%, ${settings.deleteButtonHoverColor || '#a31d1d'} 100%)`,
+                    color: settings.accentColor || '#FEF9E1',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     position: 'sticky',
                     top: 0,
                     zIndex: 10,
+                    flexShrink: 0,
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: settings.accentColor || '#FEF9E1' }}>
                     {isEditing ? "Edit College Information" : "College Details"}
                   </Typography>
-                  <IconButton onClick={handleCloseModal} sx={{ color: accentColor }}>
+                  <IconButton onClick={handleCloseModal} sx={{ color: settings.accentColor || '#FEF9E1' }}>
                     <Close />
                   </IconButton>
                 </Box>
@@ -1391,6 +1387,7 @@ const College = () => {
                     p: 4,
                     flexGrow: 1,
                     overflowY: 'auto',
+                    minHeight: 0,
                     '&::-webkit-scrollbar': {
                       width: '6px',
                     },
@@ -1399,7 +1396,7 @@ const College = () => {
                       borderRadius: '3px',
                     },
                     '&::-webkit-scrollbar-thumb': {
-                      background: accentColor,
+                      background: settings.primaryColor || accentColor,
                       borderRadius: '3px',
                     },
                   }}
@@ -1685,13 +1682,17 @@ const College = () => {
                 {/* Bottom action bar */}
                 <Box
                   sx={{
-                    borderTop: '1px solid rgba(0,0,0,0.12)',
-                    backgroundColor: accentColor,
+                    borderTop: `1px solid ${alpha(settings.primaryColor || '#6d2323', 0.2)}`,
+                    backgroundColor: '#FFFFFF',
                     px: 3,
                     py: 2,
                     display: 'flex',
                     justifyContent: 'flex-end',
                     gap: 2,
+                    position: 'sticky',
+                    bottom: 0,
+                    zIndex: 10,
+                    flexShrink: 0,
                   }}
                 >
                   {!isEditing ? (
@@ -1701,11 +1702,13 @@ const College = () => {
                         variant="outlined"
                         startIcon={<DeleteIcon />}
                         sx={{
-                          borderColor: '#ffffff',
-                              color: '#000000',
+                          borderColor: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.deleteButtonColor || settings.primaryColor || '#6d2323',
+                          minWidth: '120px',
                           '&:hover': {
-                            backgroundColor: 'rgba(255,255,255,0.12)',
-                            borderColor: '#ffffff',
+                            backgroundColor: alpha(settings.deleteButtonColor || settings.primaryColor || '#6d2323', 0.1),
+                            borderColor: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
+                            color: settings.deleteButtonHoverColor || settings.hoverColor || '#a31d1d',
                           },
                         }}
                       >
@@ -1716,10 +1719,11 @@ const College = () => {
                         variant="contained"
                         startIcon={<EditIcon />}
                         sx={{
-                          backgroundColor: '#FEF9E1',
-                          color: accentColor,
+                          backgroundColor: settings.updateButtonColor || settings.primaryColor || '#6d2323',
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
                           '&:hover': {
-                            backgroundColor: '#ffffff',
+                            backgroundColor: settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d',
                           },
                         }}
                       >
@@ -1733,11 +1737,13 @@ const College = () => {
                         variant="outlined"
                         startIcon={<CancelIcon />}
                         sx={{
-                          borderColor: '#ffffff',
-                          color: '#ffffff',
+                          borderColor: settings.cancelButtonColor || '#6c757d',
+                          color: settings.cancelButtonColor || '#6c757d',
+                          minWidth: '120px',
                           '&:hover': {
-                            backgroundColor: 'rgba(255,255,255,0.12)',
-                            borderColor: '#ffffff',
+                            backgroundColor: alpha(settings.cancelButtonColor || '#6c757d', 0.1),
+                            borderColor: settings.cancelButtonHoverColor || '#5a6268',
+                            color: settings.cancelButtonHoverColor || '#5a6268',
                           },
                         }}
                       >
@@ -1749,13 +1755,18 @@ const College = () => {
                         startIcon={<SaveIcon />}
                         disabled={!hasChanges()}
                         sx={{
-                          backgroundColor: hasChanges() ? '#FEF9E1' : '#E2CFCF',
-                          color: accentColor,
+                          backgroundColor: hasChanges() 
+                            ? (settings.updateButtonColor || settings.primaryColor || '#6d2323')
+                            : alpha(settings.primaryColor || '#6d2323', 0.5),
+                          color: settings.accentColor || '#FEF9E1',
+                          minWidth: '120px',
                           '&:hover': {
-                            backgroundColor: hasChanges() ? '#ffffff' : '#E2CFCF',
+                            backgroundColor: hasChanges() 
+                              ? (settings.updateButtonHoverColor || settings.hoverColor || '#a31d1d')
+                              : alpha(settings.primaryColor || '#6d2323', 0.5),
                           },
                           '&:disabled': {
-                            color: accentColor,
+                            color: alpha(settings.accentColor || '#FEF9E1', 0.5),
                           },
                         }}
                       >

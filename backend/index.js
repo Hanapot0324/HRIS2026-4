@@ -24,6 +24,7 @@ const SendPayslip = require('./payrollRoutes/SendPayslip');
 const Payroll = require('./payrollRoutes/Payroll');
 const PayrollReleased = require('./payrollRoutes/PayrollReleased');
 const PayrollJO = require('./payrollRoutes/PayrollJO');
+const PayrollFormulas = require('./payrollRoutes/PayrollFormulas');
 const EmployeeCategory = require('./dashboardRoutes/EmployeeCategory');
 
 // Import new organized routes
@@ -107,6 +108,34 @@ db.query(ensureAuditLogTableSQL, (err) => {
   }
 });
 
+// Ensure auth_sessions table exists
+const ensureAuthSessionsTableSQL = `
+  CREATE TABLE IF NOT EXISTS auth_sessions (
+    id INT(11) NOT NULL AUTO_INCREMENT,
+    employee_number VARCHAR(64) NOT NULL COMMENT 'Employee number of the user',
+    email VARCHAR(255) NOT NULL COMMENT 'Email address of the user',
+    ip_address VARCHAR(45) NULL DEFAULT NULL COMMENT 'IP address from which the user logged in',
+    user_agent TEXT NULL DEFAULT NULL COMMENT 'User agent/browser information',
+    login_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'When the user logged in',
+    logout_time DATETIME NULL DEFAULT NULL COMMENT 'When the user logged out (NULL if still active)',
+    is_active TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Whether the session is still active (1 = active, 0 = logged out)',
+    token_expires_at DATETIME NULL DEFAULT NULL COMMENT 'When the JWT token expires',
+    PRIMARY KEY (id),
+    INDEX idx_employee_number (employee_number),
+    INDEX idx_email (email),
+    INDEX idx_login_time (login_time),
+    INDEX idx_is_active (is_active)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Stores user authentication sessions for login tracking';
+`;
+
+db.query(ensureAuthSessionsTableSQL, (err) => {
+  if (err) {
+    console.error('Failed to ensure auth_sessions table exists:', err);
+  } else {
+    console.log('Auth sessions table ready');
+  }
+});
+
 // Mount existing dashboard and payroll routes
 app.use('/ChildrenRoute', childrenRouter);
 app.use('/VoluntaryRoute', VoluntaryWork);
@@ -156,6 +185,7 @@ app.use('/', notificationsRoutes);
 app.use('/', reportsRoutes);
 app.use('/', settingsExtendedRoutes);
 app.use('/', confidentialPasswordRoutes);
+app.use('/', PayrollFormulas);
 
 
 

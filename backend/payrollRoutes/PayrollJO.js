@@ -80,7 +80,8 @@ router.get('/payroll-jo', authenticateToken, (req, res) => {
     END AS ratePerDay,
     oar.overallRenderedOfficialTime,
     oar.overallRenderedOfficialTimeTardiness AS hms,
-    COALESCE(rt.sss, '0') AS sssContribution
+    COALESCE(rt.sss, '0') AS sssContribution,
+    COALESCE(rt.pagibig, '0') AS pagibigContribution
   FROM payroll_processing p
   LEFT JOIN person_table pt ON pt.agencyEmployeeNum = p.employeeNumber
   LEFT JOIN (
@@ -449,6 +450,66 @@ router.delete('/payroll-jo/:id', authenticateToken, (req, res) => {
     res.json({ message: 'JO payroll record deleted successfully' });
   });
 });
+
+// UPDATE SSS and PAGIBIG contributions in remittance_table
+router.put('/payroll-jo/:id/contributions', authenticateToken, (req, res) => {
+  const { id } = req.params;
+  const { employeeNumber, sssContribution, pagibigContribution } = req.body;
+
+  if (!employeeNumber) {
+    return res.status(400).json({ message: 'Employee number is required' });
+  }
+
+  // First, check if remittance record exists for this employee
+  const checkSql = `SELECT id FROM remittance_table WHERE employeeNumber = ?`;
+  
+  db.query(checkSql, [employeeNumber], (err, result) => {
+    if (err) {
+      console.error('Error checking remittance record:', err);
+      return res.status(500).json({ message: 'Error checking remittance record' });
+    }
+
+    if (result.length === 0) {
+      // Create new remittance record if it doesn't exist
+      const insertSql = `
+        INSERT INTO remittance_table (employeeNumber, sss, pagibig)
+        VALUES (?, ?, ?)
+      `;
+      db.query(
+        insertSql,
+        [employeeNumber, sssContribution || 0, pagibigContribution || 0],
+        (insertErr, insertResult) => {
+          if (insertErr) {
+            console.error('Error creating remittance record:', insertErr);
+            return res.status(500).json({ message: 'Error creating remittance record' });
+          }
+          logAudit(req.user, 'Create', 'remittance_table', insertResult.insertId, employeeNumber);
+          res.json({ message: 'Contributions updated successfully' });
+        }
+      );
+    } else {
+      // Update existing remittance record
+      const updateSql = `
+        UPDATE remittance_table
+        SET sss = ?, pagibig = ?
+        WHERE employeeNumber = ?
+      `;
+      db.query(
+        updateSql,
+        [sssContribution || 0, pagibigContribution || 0, employeeNumber],
+        (updateErr, updateResult) => {
+          if (updateErr) {
+            console.error('Error updating remittance record:', updateErr);
+            return res.status(500).json({ message: 'Error updating remittance record' });
+          }
+          logAudit(req.user, 'Update', 'remittance_table', result[0].id, employeeNumber);
+          res.json({ message: 'Contributions updated successfully' });
+        }
+      );
+    }
+  });
+});
+
 // GET official time schedule with time ranges
 // GET official time schedule with smart day formatting
 router.get('/official-time/:employeeNumber', authenticateToken, (req, res) => {
@@ -560,8 +621,10 @@ router.post('/export-to-finalized', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'No payroll data provided' });
   }
 
+  // Insert into payroll_processed with only the columns needed for Job Order payroll
+  // Note: payroll_processed has many columns, but we only populate the ones we need
   const insertQuery = `
-    INSERT INTO finalize_payroll (
+    INSERT INTO payroll_processed (
       employeeNumber, department, startDate, endDate, name, position,
       grossSalary, h, m, s, netSalary, sss, rh, abs
     ) VALUES ?
@@ -575,30 +638,40 @@ router.post('/export-to-finalized', authenticateToken, async (req, res) => {
     row.endDate || null,
     row.name || '',
     row.position || '',
-    row.grossAmount || 0,
+    row.grossAmount || row.grossSalary || 0, // Support both field names
     row.h || 0,
     row.m || 0,
     row.s || 0,
     row.netSalary || 0,
-    row.sssContribution || 0,
+    row.sssContribution || row.sss || 0, // Support both field names
     row.rh || 0,
     row.abs || 0,
   ]);
 
   db.query(insertQuery, [values], (err, result) => {
     if (err) {
-      console.error('Error exporting payroll to finalized table:', err);
+      console.error('Error exporting payroll to payroll_processed table:', err);
+      console.error('Error details:', {
+        code: err.code,
+        sqlMessage: err.sqlMessage,
+        sqlState: err.sqlState,
+        errno: err.errno,
+      });
       const employeeNumbers = payrollData
         .map((entry) => entry.employeeNumber)
         .join(', ');
       logAudit(
         req.user,
         'create_failed',
-        'finalize_payroll',
+        'payroll_processed',
         null,
         employeeNumbers
       );
-      return res.status(500).json({ error: 'Database error during export' });
+      return res.status(500).json({ 
+        error: 'Database error during export',
+        details: err.sqlMessage || err.message,
+        code: err.code
+      });
     }
 
     // Log successful insertion
@@ -608,7 +681,7 @@ router.post('/export-to-finalized', authenticateToken, async (req, res) => {
     logAudit(
       req.user,
       'create',
-      'finalize_payroll',
+      'payroll_processed',
       result.insertId,
       employeeNumbers
     );

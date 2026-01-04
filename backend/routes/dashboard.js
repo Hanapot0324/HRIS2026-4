@@ -385,7 +385,7 @@ router.get(
       const [lastPayroll] = await db
         .promise()
         .query(
-          'SELECT pay1st, pay2nd, startDate, endDate FROM finalize_payroll WHERE employeeNumber = ? ORDER BY dateCreated DESC LIMIT 1',
+          'SELECT pay1st, pay2nd, startDate, endDate FROM payroll_processed WHERE employeeNumber = ? ORDER BY dateCreated DESC LIMIT 1',
           [employeeNumber]
         );
       stats.lastPayroll = lastPayroll[0] || null;

@@ -60,6 +60,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
+import { useCRUDButtonStyles, useCRUDButtonStylesOutlined } from '../../hooks/useCRUDButtonStyles';
 import usePageAccess from '../../hooks/usePageAccess';
 import AccessDenied from '../AccessDenied';
 
@@ -318,6 +319,9 @@ const StyledModal = ({
 
 const OverallAttendance = () => {
   const { settings } = useSystemSettings();
+  const saveButtonStyles = useCRUDButtonStyles('save');
+  const editButtonStyles = useCRUDButtonStyles('edit');
+  const deleteButtonStyles = useCRUDButtonStylesOutlined('delete');
   const [employeeNumber, setEmployeeNumber] = useState('');
   const [startDate, setStartDate] = useState('');
   
@@ -1455,13 +1459,7 @@ const OverallAttendance = () => {
                                 onClick={updateRecord} 
                                 variant="contained" 
                                 size="small"
-                                sx={{ 
-                                  bgcolor: accentColor,
-                                  color: primaryColor,
-                                  '&:hover': {
-                                    bgcolor: accentDark,
-                                  }
-                                }} 
+                                sx={saveButtonStyles}
                                 startIcon={<SaveIcon />}
                               >
                                 Save
@@ -1488,13 +1486,7 @@ const OverallAttendance = () => {
                                 onClick={() => { setEditRecord(record); }} 
                                 variant="contained" 
                                 size="small"
-                                sx={{ 
-                                  bgcolor: accentColor,
-                                  color: primaryColor,
-                                  '&:hover': {
-                                    bgcolor: accentDark,
-                                  }
-                                }} 
+                                sx={editButtonStyles}
                                 startIcon={<EditIcon />}
                               >
                                 Edit
@@ -1503,13 +1495,7 @@ const OverallAttendance = () => {
                                 onClick={() => deleteRecord(record.id, record.personID)} 
                                 variant="outlined" 
                                 size="small"
-                                sx={{ 
-                                  borderColor: accentColor,
-                                  color: accentColor,
-                                  '&:hover': {
-                                    backgroundColor: 'rgba(109, 35, 35, 0.1)',
-                                  }
-                                }} 
+                                sx={deleteButtonStyles}
                                 startIcon={<DeleteIcon />}
                               >
                                 Delete

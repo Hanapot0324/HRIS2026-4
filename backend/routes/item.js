@@ -6,14 +6,57 @@ const { authenticateToken, logAudit } = require('../middleware/auth');
 // GET all item table records
 router.get('/api/item-table', authenticateToken, (req, res) => {
   const sql = `
-    SELECT id, item_description, employeeID, name, item_code, salary_grade, step, effectivityDate, dateCreated
+    SELECT 
+      id, 
+      COALESCE(item_description, '') as item_description, 
+      COALESCE(employeeID, '') as employeeID, 
+      COALESCE(name, '') as name, 
+      COALESCE(item_code, '') as item_code, 
+      COALESCE(salary_grade, '') as salary_grade, 
+      COALESCE(step, '') as step, 
+      COALESCE(effectivityDate, '') as effectivityDate, 
+      dateCreated
     FROM item_table
+    ORDER BY dateCreated DESC
   `;
   db.query(sql, (err, result) => {
     if (err) {
       console.error('Database Query Error:', err.message);
-      return res.status(500).json({ error: 'Internal Server Error' });
+      console.error('SQL Error Code:', err.code);
+      console.error('SQL Error SQL State:', err.sqlState);
+      return res.status(500).json({ 
+        error: 'Internal Server Error',
+        message: err.message,
+        details: 'Failed to fetch item records'
+      });
     }
+
+    // Debug logging
+    console.log('=== ITEM TABLE FETCH DEBUG ===');
+    console.log('Total records found:', result.length);
+    if (result.length > 0) {
+      console.log('Sample record:', {
+        id: result[0].id,
+        employeeID: result[0].employeeID,
+        name: result[0].name,
+        item_description: result[0].item_description,
+        salary_grade: result[0].salary_grade,
+        step: result[0].step,
+      });
+      // Check for NULL values
+      const nullFields = result.filter(r => 
+        r.employeeID === null || 
+        r.name === null || 
+        r.item_description === null
+      );
+      if (nullFields.length > 0) {
+        console.log('Records with NULL values:', nullFields.length);
+        console.log('Sample NULL record:', nullFields[0]);
+      }
+    } else {
+      console.log('No records found in item_table');
+    }
+    console.log('==============================');
 
     try {
       logAudit(req.user, 'View', 'item_table', null, null);

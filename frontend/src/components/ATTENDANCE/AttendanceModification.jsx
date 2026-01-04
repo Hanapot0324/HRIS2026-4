@@ -55,6 +55,7 @@ import {
   DateRange as DateRangeIcon,
 } from "@mui/icons-material";
 import { useSystemSettings } from "../../hooks/useSystemSettings";
+import { useCRUDButtonStyles } from '../../hooks/useCRUDButtonStyles';
 import usePageAccess from '../../hooks/usePageAccess';
 import AccessDenied from '../AccessDenied';
 
@@ -130,6 +131,7 @@ const PremiumTableCell = styled(TableCell)(({ theme, isHeader = false }) => ({
 
 const AttendanceSearch = () => {
   const { settings } = useSystemSettings();
+  const saveButtonStyles = useCRUDButtonStyles('save');
   const [personID, setPersonID] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -856,12 +858,8 @@ const AttendanceSearch = () => {
                   disabled={loading}
                   sx={{
                     py: 2,
-                    bgcolor: accentColor,
-                    color: primaryColor,
                     fontSize: '1rem',
-                    '&:hover': {
-                      bgcolor: accentDark,
-                    }
+                    ...saveButtonStyles
                   }}
                 >
                   Save All Changes

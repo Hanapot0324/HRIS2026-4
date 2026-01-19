@@ -1260,4 +1260,86 @@ router.post('/api/bulk-auto-save', authenticateToken, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// DTR Print Status Tracking API Endpoints
+
+// Get print status for multiple employees
+router.post('/api/dtr-print-status', authenticateToken, async (req, res) => {
+  const { employeeNumbers, year, month } = req.body;
+  
+  if (!employeeNumbers || !Array.isArray(employeeNumbers) || employeeNumbers.length === 0) {
+    return res.status(400).json({ error: 'employeeNumbers array is required' });
+  }
+  
+  if (!year || !month) {
+    return res.status(400).json({ error: 'year and month are required' });
+  }
+  
+  const query = `
+    SELECT employee_number, year, month, printed_at, printed_by
+    FROM dtr_print_history
+    WHERE employee_number IN (?) AND year = ? AND month = ?
+  `;
+  
+  db.query(query, [employeeNumbers, year, month], (err, results) => {
+    if (err) {
+      console.error('Error fetching print status:', err);
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(results);
+  });
+});
+
+// Mark DTRs as printed
+router.post('/api/mark-dtr-printed', authenticateToken, async (req, res) => {
+  const { employeeNumbers, year, month, startDate, endDate } = req.body;
+  
+  if (!employeeNumbers || !Array.isArray(employeeNumbers) || employeeNumbers.length === 0) {
+    return res.status(400).json({ error: 'employeeNumbers array is required' });
+  }
+  
+  if (!year || !month || !startDate || !endDate) {
+    return res.status(400).json({ error: 'year, month, startDate, and endDate are required' });
+  }
+  
+  const printedBy = req.user.employeeNumber || req.user.username;
+  
+  const values = employeeNumbers.map(empNum => [
+    empNum, year, month, startDate, endDate, printedBy
+  ]);
+  
+  const query = `
+    INSERT INTO dtr_print_history 
+    (employee_number, year, month, start_date, end_date, printed_by)
+    VALUES ?
+    ON DUPLICATE KEY UPDATE 
+      printed_at = CURRENT_TIMESTAMP,
+      printed_by = VALUES(printed_by),
+      start_date = VALUES(start_date),
+      end_date = VALUES(end_date)
+  `;
+  
+  db.query(query, [values], (err, result) => {
+    if (err) {
+      console.error('Error marking DTRs as printed:', err);
+      return res.status(500).json({ error: err.message });
+    }
+    
+    // Log audit trail
+    logAudit(
+      req.user,
+      'print',
+      'DTR',
+      `${employeeNumbers.length} records for ${year}-${month}`,
+      employeeNumbers.join(', ')
+    );
+    
+    res.json({ 
+      success: true, 
+      count: result.affectedRows,
+      message: `Successfully marked ${employeeNumbers.length} DTR(s) as printed`
+    });
+  });
+});
+
 module.exports = router;

@@ -151,6 +151,31 @@ const DailyTimeRecordFaculty = () => {
   // Record filter: 'all' | 'has' | 'no'
   const [recordFilter, setRecordFilter] = useState('all');
 
+  // Print tracking states
+  const [printStatusFilter, setPrintStatusFilter] = useState('all'); // 'all' | 'printed' | 'unprinted'
+  const [printStatusMap, setPrintStatusMap] = useState(new Map()); // Map<employeeNumber, printInfo>
+  
+  // Modal states for alerts and confirmations
+  const [alertModal, setAlertModal] = useState({ open: false, title: '', message: '' });
+  const [confirmModal, setConfirmModal] = useState({ open: false, user: null });
+  
+  // Helper functions for modals
+  const showAlert = (title, message) => {
+    setAlertModal({ open: true, title, message });
+  };
+  
+  const closeAlert = () => {
+    setAlertModal({ open: false, title: '', message: '' });
+  };
+  
+  const showReprintConfirm = (user) => {
+    setConfirmModal({ open: true, user });
+  };
+  
+  const closeConfirm = () => {
+    setConfirmModal({ open: false, user: null });
+  };
+
   // Get colors from system settings
   const primaryColor = settings.accentColor || '#FEF9E1';
   const secondaryColor = settings.backgroundColor || '#FFF8E7';
@@ -294,10 +319,10 @@ const DailyTimeRecordFaculty = () => {
     }
   };
 
-  // Fetch all users and their DTR data
+  // Fetch all users and their DTR data - Optimized for large datasets
   const fetchAllUsersDTR = async () => {
     if (!startDate || !endDate) {
-      alert('Please select start date and end date first');
+      showAlert('Date Required', 'Please select start date and end date first');
       return;
     }
 
@@ -310,49 +335,77 @@ const DailyTimeRecordFaculty = () => {
 
       const users = usersResponse.data || [];
 
-      const dtrPromises = users.map(async (user) => {
-        try {
-          const dtrResponse = await axios.post(
-            `${API_BASE_URL}/attendance/api/view-attendance`,
-            {
-              personID: user.employeeNumber,
-              startDate,
-              endDate,
-            },
-            getAuthHeaders(),
-          );
-
-          const dtrData = dtrResponse.data || [];
-          const fullName = formatFullName(user);
-
-          return {
-            employeeNumber: user.employeeNumber,
-            firstName: user.firstName || '',
-            lastName: user.lastName || '',
-            fullName,
-            records: dtrData,
-            hasRecords: dtrData.length > 0,
-            rawUser: user,
-          };
-        } catch (error) {
-          console.error(
-            `Error fetching DTR for ${user.employeeNumber}:`,
-            error,
-          );
-          const fullName = formatFullName(user);
-          return {
-            employeeNumber: user.employeeNumber,
-            firstName: user.firstName || '',
-            lastName: user.lastName || '',
-            fullName,
-            records: [],
-            hasRecords: false,
-            rawUser: user,
-          };
+      // Warn if dataset is large
+      if (users.length > 150) {
+        const proceed = window.confirm(
+          `Loading DTR for ${users.length} employees may take a while and could slow down the system. Continue?`,
+        );
+        if (!proceed) {
+          setLoadingAllUsers(false);
+          return;
         }
-      });
+      }
 
-      const allDTRData = await Promise.all(dtrPromises);
+      // Process in batches to prevent overwhelming the browser
+      const BATCH_SIZE = 20; // Process 20 users at a time
+      const allDTRData = [];
+      
+      for (let i = 0; i < users.length; i += BATCH_SIZE) {
+        const batch = users.slice(i, i + BATCH_SIZE);
+        const progress = Math.min(100, Math.round(((i + batch.length) / users.length) * 100));
+        
+        // Update status
+        setPrintingStatus(`Loading DTR data: ${i + batch.length} of ${users.length} (${progress}%)`);
+
+        const batchPromises = batch.map(async (user) => {
+          try {
+            const dtrResponse = await axios.post(
+              `${API_BASE_URL}/attendance/api/view-attendance`,
+              {
+                personID: user.employeeNumber,
+                startDate,
+                endDate,
+              },
+              getAuthHeaders(),
+            );
+
+            const dtrData = dtrResponse.data || [];
+            const fullName = formatFullName(user);
+
+            return {
+              employeeNumber: user.employeeNumber,
+              firstName: user.firstName || '',
+              lastName: user.lastName || '',
+              fullName,
+              records: dtrData,
+              hasRecords: dtrData.length > 0,
+              rawUser: user,
+            };
+          } catch (error) {
+            console.error(
+              `Error fetching DTR for ${user.employeeNumber}:`,
+              error,
+            );
+            const fullName = formatFullName(user);
+            return {
+              employeeNumber: user.employeeNumber,
+              firstName: user.firstName || '',
+              lastName: user.lastName || '',
+              fullName,
+              records: [],
+              hasRecords: false,
+              rawUser: user,
+            };
+          }
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+        allDTRData.push(...batchResults);
+
+        // Small delay between batches to prevent overwhelming the browser
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+
       allDTRData.sort((a, b) => {
         const lastNameA = (a.lastName || '').toUpperCase();
         const lastNameB = (b.lastName || '').toUpperCase();
@@ -363,12 +416,44 @@ const DailyTimeRecordFaculty = () => {
       });
 
       setAllUsersDTR(allDTRData);
+
+      // Fetch print status for all loaded users
+      try {
+        const year = new Date(startDate).getFullYear();
+        const month = new Date(startDate).getMonth() + 1;
+        const employeeNumbers = allDTRData.map(user => user.employeeNumber);
+
+        if (employeeNumbers.length > 0) {
+          setPrintingStatus('Loading print status...');
+          const printStatusResponse = await axios.post(
+            `${API_BASE_URL}/attendance/api/dtr-print-status`,
+            { employeeNumbers, year, month },
+            getAuthHeaders(),
+          );
+
+          const printStatusData = printStatusResponse.data || [];
+          const newPrintStatusMap = new Map();
+          printStatusData.forEach(status => {
+            newPrintStatusMap.set(status.employee_number, {
+              printed_at: status.printed_at,
+              printed_by: status.printed_by,
+            });
+          });
+          setPrintStatusMap(newPrintStatusMap);
+        }
+      } catch (error) {
+        console.error('Error fetching print status:', error);
+        // Don't fail the entire operation if print status fetch fails
+      }
+
       // Reset pagination and selection when new dataset loads
       setSelectedUsers(new Set());
       setCurrentPage(1);
+      setPrintingStatus('');
     } catch (error) {
       console.error('Error fetching all users DTR:', error);
-      alert('Error fetching users DTR data');
+      showAlert('Fetch Error', 'Error fetching users DTR data. Please try again.');
+      setPrintingStatus('');
     } finally {
       setLoadingAllUsers(false);
     }
@@ -376,6 +461,11 @@ const DailyTimeRecordFaculty = () => {
 
   // Selection helpers
   const handleUserSelect = (employeeNumber) => {
+    // Prevent selection if already printed - use action button instead
+    if (printStatusMap.has(employeeNumber)) {
+      return; // Already printed records cannot be bulk selected
+    }
+    
     const newSelected = new Set(selectedUsers);
     if (newSelected.has(employeeNumber)) newSelected.delete(employeeNumber);
     else newSelected.add(employeeNumber);
@@ -385,7 +475,12 @@ const DailyTimeRecordFaculty = () => {
   const handleSelectAll = (checked) => {
     if (checked) {
       const filtered = getFilteredUsers();
-      setSelectedUsers(new Set(filtered.map((user) => user.employeeNumber)));
+      const limitedFiltered = filtered.slice(0, 50);
+      setSelectedUsers(new Set(limitedFiltered.map((user) => user.employeeNumber)));
+      
+      if (filtered.length > 50) {
+        showAlert('Selection Limited', `Only the first 50 users were selected (out of ${filtered.length} filtered users). Bulk printing is limited to 50 users per batch for better performance.`);
+      }
     } else {
       setSelectedUsers(new Set());
     }
@@ -402,6 +497,14 @@ const DailyTimeRecordFaculty = () => {
       filtered = filtered.filter((u) => !u.records || u.records.length === 0);
     }
 
+    // Apply print status filter
+    if (printStatusFilter === 'printed') {
+      filtered = filtered.filter((u) => printStatusMap.has(u.employeeNumber));
+    } else if (printStatusFilter === 'unprinted') {
+      filtered = filtered.filter((u) => !printStatusMap.has(u.employeeNumber));
+    }
+
+    // Apply search filter
     if (!searchQuery || searchQuery.trim() === '') return filtered;
     const q = searchQuery.trim().toLowerCase();
     return filtered.filter((user) => {
@@ -438,11 +541,8 @@ const DailyTimeRecordFaculty = () => {
       setSelectedUsers(new Set());
       return;
     }
-    if (n === 'all') {
-      setSelectedUsers(new Set(filtered.map((u) => u.employeeNumber)));
-      return;
-    }
-    const count = Number(n) || 0;
+    // Limit to 50 max
+    const count = n === 'all' ? Math.min(50, filtered.length) : Number(n) || 0;
     const toSelect = filtered.slice(0, count).map((u) => u.employeeNumber);
     setSelectedUsers(new Set(toSelect));
     // Optionally set the previewUsers to the same selection immediately
@@ -456,7 +556,11 @@ const DailyTimeRecordFaculty = () => {
     const filtered = getFilteredUsers();
     const toPrint = filtered.filter((u) => selectedUsers.has(u.employeeNumber));
     if (toPrint.length === 0) {
-      alert('Please select at least one user to print');
+      showAlert('No Selection', 'Please select at least one user to print');
+      return;
+    }
+    if (toPrint.length > 50) {
+      showAlert('Too Many Selected', `You have selected ${toPrint.length} users. Please limit to 50 users per print batch for better performance. You can print in multiple batches.`);
       return;
     }
     setPreviewUsers(toPrint);
@@ -469,42 +573,181 @@ const DailyTimeRecordFaculty = () => {
   const handleNext = () =>
     setCurrentPreviewIndex((p) => (p < previewUsers.length - 1 ? p + 1 : 0));
 
-  // --- Mirror printPage & downloadPDF from DailyTimeRecord (single user) ---
+  // Individual print for already-printed records (called after confirmation)
+  const handleIndividualPrintConfirmed = async (user) => {
+    // Close confirmation modal
+    closeConfirm();
+    
+    // Store current modal state
+    const wasModalOpen = previewModalOpen;
+    
+    try {
+      setPrintingAll(true);
+      setPrintingStatus(`Preparing DTR for ${user.firstName} ${user.lastName}...`);
+      
+      // Set up the preview users and open modal (but hide it with printingAll)
+      setPreviewUsers([user]);
+      setCurrentPreviewIndex(0);
+      setPreviewModalOpen(true);
+      
+      // Wait for React to render the modal and DTR element
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const ref = bulkDTRRefs.current[user.employeeNumber];
+      if (!ref) {
+        throw new Error('DTR element not found. The record may not be loaded yet. Please try again.');
+      }
+      
+      // Ensure capture-friendly styles
+      const orig = ensureCaptureStyles(ref);
+      
+      // Wait for styles to apply
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const capturedCanvas = await html2canvas(ref, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+      
+      // Restore original styles
+      restoreCaptureStyles(ref, orig);
+      
+      if (!capturedCanvas || capturedCanvas.width === 0 || capturedCanvas.height === 0) {
+        throw new Error('Failed to capture DTR. Please try again.');
+      }
+      
+      const imgData = capturedCanvas.toDataURL('image/png');
+      
+      if (!imgData || imgData === 'data:,') {
+        throw new Error('Failed to generate image data. Please try again.');
+      }
+      
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'a4' });
+      
+      const dtrWidth = 8;
+      const dtrHeight = 9.5;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const xOffset = (pageWidth - dtrWidth) / 2;
+      const yOffset = (pageHeight - dtrHeight) / 2;
+      
+      pdf.addImage(imgData, 'PNG', xOffset, yOffset, dtrWidth, dtrHeight);
+      pdf.autoPrint();
+      
+      // Mark as printed
+      const year = new Date(startDate).getFullYear();
+      const month = new Date(startDate).getMonth() + 1;
+      
+      await axios.post(`${API_BASE_URL}/attendance/api/mark-dtr-printed`, {
+        employeeNumbers: [user.employeeNumber],
+        year,
+        month,
+        startDate,
+        endDate,
+      }, getAuthHeaders());
+      
+      // Update local state
+      const newMap = new Map(printStatusMap);
+      newMap.set(user.employeeNumber, {
+        printed_at: new Date().toISOString(),
+        printed_by: 'current_user',
+      });
+      setPrintStatusMap(newMap);
+      
+      // Open print dialog
+      const blobUrl = pdf.output('bloburl');
+      window.open(blobUrl, '_blank');
+      
+    } catch (error) {
+      console.error('Error printing individual DTR:', error);
+      showAlert('Print Error', `Error printing DTR: ${error.message}`);
+    } finally {
+      setPrintingStatus('');
+      setPrintingAll(false);
+      // Close modal only if it wasn't open before
+      if (!wasModalOpen) {
+        setPreviewModalOpen(false);
+      }
+    }
+  };
+
+  // --- Single user print & download ---
+  // Capture helpers (match DailyTimeRecord.jsx)
+  const ensureCaptureStyles = (el) => {
+    if (!el) return {};
+    const orig = {
+      backgroundColor: el.style.backgroundColor,
+      width: el.style.width,
+      visibility: el.style.visibility,
+      display: el.style.display,
+      position: el.style.position,
+      left: el.style.left,
+      zIndex: el.style.zIndex,
+      opacity: el.style.opacity,
+    };
+    el.style.backgroundColor = '#ffffff';
+    el.style.width = DTR_WIDTH_IN;
+    el.style.visibility = 'visible';
+    el.style.display = 'block';
+    el.style.position = 'fixed';
+    el.style.left = '-9999px';
+    el.style.zIndex = '10000';
+    el.style.opacity = '1';
+    return orig;
+  };
+
+  const restoreCaptureStyles = (el, orig) => {
+    if (!el || !orig) return;
+    try {
+      el.style.backgroundColor = orig.backgroundColor || '';
+      el.style.width = orig.width || '';
+      el.style.visibility = orig.visibility || '';
+      el.style.display = orig.display || '';
+      el.style.position = orig.position || '';
+      el.style.left = orig.left || '';
+      el.style.zIndex = orig.zIndex || '';
+      el.style.opacity = orig.opacity || '';
+    } catch (e) {
+      /* noop */
+    }
+  };
+
   const printPage = async () => {
     if (!dtrRef.current) return;
 
     try {
-      // Initialize PDF
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'in',
         format: 'a4',
       });
 
-      // Capture the visual state
+      // Ensure capture-friendly styles
+      const orig = ensureCaptureStyles(dtrRef.current);
+
+      // Wait for styles to apply
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const canvas = await html2canvas(dtrRef.current, {
         scale: 2,
         useCORS: true,
         logging: false,
       });
 
+      restoreCaptureStyles(dtrRef.current, orig);
+
       const imgData = canvas.toDataURL('image/png');
 
-      // Fixed dimensions (same as downloadPDF in main)
-      const dtrWidth = 8; // match DailyTimeRecord
-      const dtrHeight = 9.5; // match DailyTimeRecord
-
+      const dtrWidth = 8;
+      const dtrHeight = 9.5;
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-
-      // Center horizontally and vertically
       const xOffset = (pageWidth - dtrWidth) / 2;
       const yOffset = (pageHeight - dtrHeight) / 2;
 
-      // Add image to PDF
       pdf.addImage(imgData, 'PNG', xOffset, yOffset, dtrWidth, dtrHeight);
-
-      // Auto print and open in new tab
       pdf.autoPrint();
       const blobUrl = pdf.output('bloburl');
       window.open(blobUrl, '_blank');
@@ -523,34 +766,34 @@ const DailyTimeRecordFaculty = () => {
         format: 'a4',
       });
 
+      const orig = ensureCaptureStyles(dtrRef.current);
+
+      // Wait for styles to apply
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const canvas = await html2canvas(dtrRef.current, {
         scale: 2,
         useCORS: true,
         logging: false,
       });
 
+      restoreCaptureStyles(dtrRef.current, orig);
+
       const imgData = canvas.toDataURL('image/png');
 
-      // Dimensions of the DTR content in inches (match main)
       const dtrWidth = 8;
       const dtrHeight = 10;
-
-      // Get page size
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-
-      // Calculate centered positions
       const xOffset = (pageWidth - dtrWidth) / 2;
       const yOffset = (pageHeight - dtrHeight) / 2;
 
-      // Add image to PDF
       pdf.addImage(imgData, 'PNG', xOffset, yOffset, dtrWidth, dtrHeight);
       pdf.save(`DTR-${employeeName}-${formatMonth(startDate)}.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
     }
   };
-  // --- end mirror ---
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -1450,20 +1693,18 @@ const DailyTimeRecordFaculty = () => {
     );
   };
 
-  // Printing helper for "Print All Selected" — hides visible preview, prints using off-screen DTRs, then closes modal.
+  // Simple handler for printing selected DTRs
   const handlePrintAllSelected = async () => {
     if (previewUsers.length === 0) {
-      alert('No DTRs to print');
+      showAlert('No Selection', 'No DTRs to print. Please select users first.');
       return;
     }
 
     try {
-      // Hide the visible popup preview to avoid confusion (the modal stays open, but the preview is replaced by a loading status)
       setPrintingAll(true);
-      setPrintingStatus('Preparing DTRs...');
+      setPrintingStatus('Preparing DTRs for printing...');
 
-      // allow UI to update and ensure hidden off-screen elements have rendered
-      await new Promise((res) => setTimeout(res, 300));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -1471,7 +1712,6 @@ const DailyTimeRecordFaculty = () => {
         format: 'a4',
       });
 
-      // Use same centered dimensions as DailyTimeRecord
       const dtrWidth = 8;
       const dtrHeight = 9.5;
       const pageWidth = pdf.internal.pageSize.getWidth();
@@ -1479,73 +1719,212 @@ const DailyTimeRecordFaculty = () => {
       const xOffset = (pageWidth - dtrWidth) / 2;
       const yOffset = (pageHeight - dtrHeight) / 2;
 
+      let successCount = 0;
+
       for (let i = 0; i < previewUsers.length; i++) {
         const user = previewUsers[i];
         const ref = bulkDTRRefs.current[user.employeeNumber];
 
-        setPrintingStatus(`Capturing ${i + 1} of ${previewUsers.length}...`);
+        setPrintingStatus(`Capturing DTR ${i + 1} of ${previewUsers.length}...`);
 
         if (!ref) {
           console.warn(`No ref found for ${user.employeeNumber}`);
           continue;
         }
 
-        if (i > 0) pdf.addPage();
+        try {
+          // Ensure capture-friendly styles
+          const orig = ensureCaptureStyles(ref);
 
-        // Show element for capture and ensure width equals DTR_WIDTH_IN
-        const orig = {
-          display: ref.style.display,
-          position: ref.style.position,
-          left: ref.style.left,
-          top: ref.style.top,
-          visibility: ref.style.visibility,
-          width: ref.style.width,
-          zIndex: ref.style.zIndex,
-          backgroundColor: ref.style.backgroundColor,
-          opacity: ref.style.opacity,
-        };
+          // Wait for styles to apply (off-screen)
+          await new Promise(resolve => setTimeout(resolve, 50));
 
-        ref.style.display = 'block';
-        ref.style.position = 'fixed';
-        ref.style.left = '0';
-        ref.style.top = '0';
-        ref.style.width = DTR_WIDTH_IN;
-        ref.style.zIndex = '9999';
-        ref.style.backgroundColor = '#ffffff';
-        ref.style.visibility = 'visible';
-        ref.style.opacity = '1';
+          const canvas = await html2canvas(ref, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+          });
 
-        // Allow render
-        await new Promise((res) => setTimeout(res, 300));
+          restoreCaptureStyles(ref, orig);
 
-        const canvas = await html2canvas(ref, {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-        });
-
-        // Restore original styles
-        Object.keys(orig).forEach((k) => {
-          try {
-            ref.style[k] = orig[k] || '';
-          } catch (e) {
-            /* ignore restore errors */
+          if (!canvas || canvas.width === 0 || canvas.height === 0) {
+            console.error(`Invalid canvas for ${user.employeeNumber}:`, { width: canvas?.width, height: canvas?.height });
+            continue;
           }
-        });
 
-        const imgData = canvas.toDataURL('image/png');
-        pdf.addImage(imgData, 'PNG', xOffset, yOffset, dtrWidth, dtrHeight);
+          const imgData = canvas.toDataURL('image/png');
+
+          if (!imgData || imgData === 'data:,') {
+            console.error(`Invalid image data for ${user.employeeNumber}`);
+            continue;
+          }
+
+          if (successCount > 0) {
+            pdf.addPage();
+          }
+
+          pdf.addImage(imgData, 'PNG', xOffset, yOffset, dtrWidth, dtrHeight);
+          successCount++;
+          
+          console.log(`Successfully captured DTR for ${user.fullName} (${successCount}/${previewUsers.length})`);
+        } catch (error) {
+          console.error(`Error capturing DTR for ${user.employeeNumber}:`, error);
+          // Restore styles even on error
+          try {
+            restoreCaptureStyles(ref, {});
+          } catch (e) {
+            // Ignore
+          }
+        }
+      }
+
+      console.log(`Total captured: ${successCount} out of ${previewUsers.length}`);
+
+      if (successCount === 0) {
+        throw new Error('No DTRs were successfully captured. Please try again or contact support.');
       }
 
       setPrintingStatus('Opening print preview...');
       pdf.autoPrint();
       const blobUrl = pdf.output('bloburl');
       window.open(blobUrl, '_blank');
+
+      // Mark DTRs as printed
+      try {
+        const year = new Date(startDate).getFullYear();
+        const month = new Date(startDate).getMonth() + 1;
+        const employeeNumbers = previewUsers.map(user => user.employeeNumber);
+
+        await axios.post(
+          `${API_BASE_URL}/attendance/api/mark-dtr-printed`,
+          { employeeNumbers, year, month, startDate, endDate },
+          getAuthHeaders(),
+        );
+
+        // Update local print status map
+        const newMap = new Map(printStatusMap);
+        employeeNumbers.forEach(empNum => {
+          newMap.set(empNum, {
+            printed_at: new Date().toISOString(),
+            printed_by: 'current_user',
+          });
+        });
+        setPrintStatusMap(newMap);
+
+        // Clear selection
+        setSelectedUsers(new Set());
+      } catch (error) {
+        console.error('Error marking DTRs as printed:', error);
+        // Don't fail the entire operation if marking fails
+      }
     } catch (error) {
       console.error('Error printing DTRs:', error);
-      alert('Error printing DTRs');
+      showAlert('Print Error', `Error printing DTRs: ${error.message || 'Unknown error'}`);
     } finally {
-      // Restore preview and close modal after a short delay to avoid abrupt UI jump
+      setPrintingStatus('');
+      setPrintingAll(false);
+      setPreviewModalOpen(false);
+    }
+  };
+
+  // Simple handler for downloading selected DTRs as PDF
+  const handleDownloadAllSelected = async () => {
+    if (previewUsers.length === 0) {
+      showAlert('No Selection', 'No DTRs to download. Please select users first.');
+      return;
+    }
+
+    try {
+      setPrintingAll(true);
+      setPrintingStatus('Preparing DTRs for download...');
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'in',
+        format: 'a4',
+      });
+
+      const dtrWidth = 8;
+      const dtrHeight = 10;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const xOffset = (pageWidth - dtrWidth) / 2;
+      const yOffset = (pageHeight - dtrHeight) / 2;
+
+      let successCount = 0;
+
+      for (let i = 0; i < previewUsers.length; i++) {
+        const user = previewUsers[i];
+        const ref = bulkDTRRefs.current[user.employeeNumber];
+
+        setPrintingStatus(`Capturing DTR ${i + 1} of ${previewUsers.length}...`);
+
+        if (!ref) {
+          console.warn(`No ref found for ${user.employeeNumber}`);
+          continue;
+        }
+
+        try {
+          // Ensure capture-friendly styles
+          const orig = ensureCaptureStyles(ref);
+
+          // Wait for styles to apply (off-screen)
+          await new Promise(resolve => setTimeout(resolve, 50));
+
+          const canvas = await html2canvas(ref, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+          });
+
+          restoreCaptureStyles(ref, orig);
+
+          if (!canvas || canvas.width === 0 || canvas.height === 0) {
+            console.error(`Invalid canvas for ${user.employeeNumber}:`, { width: canvas?.width, height: canvas?.height });
+            continue;
+          }
+
+          const imgData = canvas.toDataURL('image/png');
+
+          if (!imgData || imgData === 'data:,') {
+            console.error(`Invalid image data for ${user.employeeNumber}`);
+            continue;
+          }
+
+          if (successCount > 0) {
+            pdf.addPage();
+          }
+
+          pdf.addImage(imgData, 'PNG', xOffset, yOffset, dtrWidth, dtrHeight);
+          successCount++;
+          
+          console.log(`Successfully captured DTR for ${user.fullName} (${successCount}/${previewUsers.length})`);
+        } catch (error) {
+          console.error(`Error capturing DTR for ${user.employeeNumber}:`, error);
+          // Restore styles even on error
+          try {
+            restoreCaptureStyles(ref, {});
+          } catch (e) {
+            // Ignore
+          }
+        }
+      }
+
+      console.log(`Total captured: ${successCount} out of ${previewUsers.length}`);
+
+      if (successCount === 0) {
+        throw new Error('No DTRs were successfully captured. Please try again or contact support.');
+      }
+
+      setPrintingStatus('Saving PDF...');
+      const fileName = `DTR-AllUsers-${formatMonth(startDate)}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Error downloading DTRs:', error);
+      showAlert('Download Error', `Error downloading DTRs: ${error.message || 'Unknown error'}`);
+    } finally {
       setPrintingStatus('');
       setPrintingAll(false);
       setPreviewModalOpen(false);
@@ -1554,6 +1933,40 @@ const DailyTimeRecordFaculty = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4, mt: -5 }}>
+      {/* Fixed Status Overlay at Top of Screen - Shows during printing/downloading/loading */}
+      {(printingAll || loadingAllUsers) && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            color: 'white',
+            py: 2,
+            px: 3,
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 1,
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <MCircularProgress size={24} sx={{ color: 'white' }} />
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              {printingStatus || (loadingAllUsers ? 'Loading DTR data...' : 'Preparing DTRs...')}
+            </Typography>
+          </Box>
+          <Typography variant="body2" sx={{ opacity: 0.9 }}>
+            {loadingAllUsers 
+              ? 'Please wait while we fetch DTR data for all users...'
+              : 'Please wait — the DTRs are being captured and compiled. A new tab will open when ready.'}
+          </Typography>
+        </Box>
+      )}
+
       <style>
         {`
           /* FIX: Force vertical scrollbar to prevent center-jump when data loads */
@@ -1874,81 +2287,84 @@ const DailyTimeRecordFaculty = () => {
                 ))}
               </Box>
 
-              <Box
-                sx={{
-                  display: 'flex',
-                  gap: 2,
-                  alignItems: 'flex-end',
-                  flexWrap: 'wrap',
-                  justifyContent: 'center',
-                }}
-              >
-                <Box sx={{ minWidth: 225 }}>
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 500, mb: 1, color: textPrimaryColor }}
-                  >
-                    Employee Number
-                  </Typography>
-                  <ModernTextField
-                    value={personID}
-                    onChange={(e) => setPersonID(e.target.value)}
-                    variant="outlined"
-                    fullWidth
-                  />
-                </Box>
-
-                <Box sx={{ minWidth: 225 }}>
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 500, mb: 1, color: textPrimaryColor }}
-                  >
-                    Start Date
-                  </Typography>
-                  <ModernTextField
-                    label="Start Date"
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    variant="outlined"
-                    InputLabelProps={{ shrink: true }}
-                    fullWidth
-                  />
-                </Box>
-
-                <Box sx={{ minWidth: 225 }}>
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 500, mb: 1, color: textPrimaryColor }}
-                  >
-                    End Date
-                  </Typography>
-                  <ModernTextField
-                    label="End Date"
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    variant="outlined"
-                    InputLabelProps={{ shrink: true }}
-                    fullWidth
-                  />
-                </Box>
-
-                <ProfessionalButton
-                  variant="contained"
-                  onClick={fetchRecords}
-                  startIcon={<SearchOutlined />}
+              {/* Show Employee Number, Date fields, and Search button only in Single User mode */}
+              {viewMode === 'single' && (
+                <Box
                   sx={{
-                    backgroundColor: accentColor,
-                    color: textSecondaryColor,
-                    '&:hover': { backgroundColor: hoverColor },
-                    py: 1.5,
-                    px: 3,
+                    display: 'flex',
+                    gap: 2,
+                    alignItems: 'flex-end',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
                   }}
                 >
-                  Search
-                </ProfessionalButton>
-              </Box>
+                  <Box sx={{ minWidth: 225 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 500, mb: 1, color: textPrimaryColor }}
+                    >
+                      Employee Number
+                    </Typography>
+                    <ModernTextField
+                      value={personID}
+                      onChange={(e) => setPersonID(e.target.value)}
+                      variant="outlined"
+                      fullWidth
+                    />
+                  </Box>
+
+                  <Box sx={{ minWidth: 225 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 500, mb: 1, color: textPrimaryColor }}
+                    >
+                      Start Date
+                    </Typography>
+                    <ModernTextField
+                      label="Start Date"
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      variant="outlined"
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                  </Box>
+
+                  <Box sx={{ minWidth: 225 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 500, mb: 1, color: textPrimaryColor }}
+                    >
+                      End Date
+                    </Typography>
+                    <ModernTextField
+                      label="End Date"
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      variant="outlined"
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                  </Box>
+
+                  <ProfessionalButton
+                    variant="contained"
+                    onClick={fetchRecords}
+                    startIcon={<SearchOutlined />}
+                    sx={{
+                      backgroundColor: accentColor,
+                      color: textSecondaryColor,
+                      '&:hover': { backgroundColor: hoverColor },
+                      py: 1.5,
+                      px: 3,
+                    }}
+                  >
+                    Search
+                  </ProfessionalButton>
+                </Box>
+              )}
             </Box>
           </GlassCard>
         </Fade>
@@ -2037,8 +2453,7 @@ const DailyTimeRecordFaculty = () => {
                         </MenuItem>
                         <MenuItem value={10}>First 10</MenuItem>
                         <MenuItem value={20}>First 20</MenuItem>
-                        <MenuItem value={50}>First 50</MenuItem>
-                        <MenuItem value="all">Select All (filtered)</MenuItem>
+                        <MenuItem value={50}>First 50 (Max)</MenuItem>
                       </Select>
                     </FormControl>
                   )}
@@ -2068,52 +2483,108 @@ const DailyTimeRecordFaculty = () => {
               <Box sx={{ p: 4 }}>
                 {allUsersDTR.length > 0 ? (
                   <>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        gap: 2,
-                        mb: 3,
-                        flexWrap: 'wrap',
-                        alignItems: 'center',
-                      }}
-                    >
-                      {/* Replaced alphabetical dropdown with free-text search */}
-                      <TextField
-                        label="Search users"
-                        value={searchQuery}
-                        onChange={(e) => {
-                          setSearchQuery(e.target.value);
-                          // reset to first page on search change
-                          setCurrentPage(1);
+                    {/* Print Status Filter Tabs */}
+                    <Box sx={{ mb: 3 }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontWeight: 600, 
+                          mb: 1, 
+                          color: textPrimaryColor,
+                          fontSize: '0.9rem'
                         }}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <SearchOutlined />
-                            </InputAdornment>
-                          ),
-                        }}
-                        sx={{ minWidth: 300, backgroundColor: 'white' }}
-                      />
-
-                      {/* New dropdown for Has Records / No Records */}
-                      <FormControl
-                        sx={{ minWidth: 160, backgroundColor: 'white' }}
                       >
-                        <InputLabel>Records</InputLabel>
-                        <Select
-                          value={recordFilter}
-                          label="Records"
+                        Print Status:
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Chip
+                          label="All"
+                          onClick={() => setPrintStatusFilter('all')}
+                          color={printStatusFilter === 'all' ? 'primary' : 'default'}
+                          sx={{ 
+                            fontWeight: printStatusFilter === 'all' ? 700 : 400,
+                            cursor: 'pointer',
+                          }}
+                        />
+                        <Chip
+                          label="Printed"
+                          onClick={() => setPrintStatusFilter('printed')}
+                          color={printStatusFilter === 'printed' ? 'primary' : 'default'}
+                          sx={{ 
+                            fontWeight: printStatusFilter === 'printed' ? 700 : 400,
+                            cursor: 'pointer',
+                          }}
+                        />
+                        <Chip
+                          label="Unprinted"
+                          onClick={() => setPrintStatusFilter('unprinted')}
+                          color={printStatusFilter === 'unprinted' ? 'primary' : 'default'}
+                          sx={{ 
+                            fontWeight: printStatusFilter === 'unprinted' ? 700 : 400,
+                            cursor: 'pointer',
+                          }}
+                        />
+                      </Box>
+                    </Box>
+
+                    {/* Search and Additional Filters */}
+                    <Box sx={{ mb: 3 }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontWeight: 600, 
+                          mb: 1.5, 
+                          color: textPrimaryColor,
+                          fontSize: '0.9rem'
+                        }}
+                      >
+                        Search & Filters:
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          gap: 2,
+                          flexWrap: 'wrap',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {/* Replaced alphabetical dropdown with free-text search */}
+                        <TextField
+                          label="Search users"
+                          value={searchQuery}
                           onChange={(e) => {
-                            setRecordFilter(e.target.value);
+                            setSearchQuery(e.target.value);
+                            // reset to first page on search change
                             setCurrentPage(1);
                           }}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <SearchOutlined />
+                              </InputAdornment>
+                            ),
+                          }}
+                          sx={{ minWidth: 300, backgroundColor: 'white' }}
+                        />
+
+                        {/* New dropdown for Has Records / No Records */}
+                        <FormControl
+                          sx={{ minWidth: 160, backgroundColor: 'white' }}
                         >
-                          <MenuItem value="all">All</MenuItem>
-                          <MenuItem value="has">Has Records</MenuItem>
-                          <MenuItem value="no">No Records</MenuItem>
-                        </Select>
-                      </FormControl>
+                          <InputLabel>Records</InputLabel>
+                          <Select
+                            value={recordFilter}
+                            label="Records"
+                            onChange={(e) => {
+                              setRecordFilter(e.target.value);
+                              setCurrentPage(1);
+                            }}
+                          >
+                            <MenuItem value="all">All</MenuItem>
+                            <MenuItem value="has">Has Records</MenuItem>
+                            <MenuItem value="no">No Records</MenuItem>
+                          </Select>
+                        </FormControl>
 
                       <ProfessionalButton
                         variant="outlined"
@@ -2129,30 +2600,30 @@ const DailyTimeRecordFaculty = () => {
                           : 'Select All'}
                       </ProfessionalButton>
 
-                      {/* Rows per page selector */}
-                      <FormControl
-                        sx={{ minWidth: 140, backgroundColor: 'white' }}
-                      >
-                        <InputLabel>Rows</InputLabel>
-                        <Select
-                          value={rowsPerPage}
-                          label="Rows"
-                          onChange={(e) => {
-                            setRowsPerPage(Number(e.target.value));
-                            setCurrentPage(1);
-                          }}
+                        {/* Rows per page selector */}
+                        <FormControl
+                          sx={{ minWidth: 140, backgroundColor: 'white' }}
                         >
-                          <MenuItem value={10}>10</MenuItem>
-                          <MenuItem value={20}>20</MenuItem>
-                          <MenuItem value={50}>50</MenuItem>
-                          <MenuItem value={100}>100</MenuItem>
-                        </Select>
-                      </FormControl>
+                          <InputLabel>Rows</InputLabel>
+                          <Select
+                            value={rowsPerPage}
+                            label="Rows"
+                            onChange={(e) => {
+                              setRowsPerPage(Number(e.target.value));
+                              setCurrentPage(1);
+                            }}
+                          >
+                            <MenuItem value={10}>10</MenuItem>
+                            <MenuItem value={20}>20</MenuItem>
+                            <MenuItem value={50}>50</MenuItem>
+                            <MenuItem value={100}>100</MenuItem>
+                          </Select>
+                        </FormControl>
 
-                      {/* Simple pagination controls */}
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                      >
+                        {/* Simple pagination controls */}
+                        <Box
+                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                        >
                         <IconButton
                           onClick={() => goToPage(currentPage - 1)}
                           disabled={currentPage === 1}
@@ -2170,14 +2641,23 @@ const DailyTimeRecordFaculty = () => {
                         >
                           <ArrowForward />
                         </IconButton>
+                        </Box>
                       </Box>
                     </Box>
 
                     {/* Table wrapped with fixed-height scrollable container */}
                     <Box
-                      sx={{ maxHeight: 360, overflow: 'auto', borderRadius: 1 }}
+                      sx={{
+                        maxHeight: 360,
+                        overflow: 'auto',
+                        borderRadius: 1,
+                        width: '100%',
+                      }}
                     >
-                      <Table stickyHeader>
+                      <Table
+                        stickyHeader
+                        sx={{ tableLayout: 'fixed', width: '100%' }}
+                      >
                         <TableHead>
                           <TableRow>
                             <TableCell>
@@ -2196,11 +2676,21 @@ const DailyTimeRecordFaculty = () => {
                                 }
                               />
                             </TableCell>
-                            <TableCell>Employee Number</TableCell>
-                            <TableCell>Full Name</TableCell>
-                            <TableCell>Last Name</TableCell>
-                            <TableCell>Records Count</TableCell>
-                            <TableCell>Status</TableCell>
+                            <TableCell sx={{ minWidth: 120 }}>
+                              Employee Number
+                            </TableCell>
+                            <TableCell sx={{ minWidth: 200, maxWidth: 250 }}>
+                              Full Name
+                            </TableCell>
+                            <TableCell sx={{ minWidth: 120, maxWidth: 180 }}>
+                              Last Name
+                            </TableCell>
+                            <TableCell sx={{ minWidth: 120 }}>
+                              Records Count
+                            </TableCell>
+                            <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
+                            <TableCell sx={{ minWidth: 120 }}>Print Status</TableCell>
+                            <TableCell sx={{ minWidth: 100 }}>Actions</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -2214,10 +2704,21 @@ const DailyTimeRecordFaculty = () => {
                                   onChange={() =>
                                     handleUserSelect(user.employeeNumber)
                                   }
+                                  disabled={printStatusMap.has(user.employeeNumber)}
                                 />
                               </TableCell>
-                              <TableCell>{user.employeeNumber}</TableCell>
-                              <TableCell>
+                              <TableCell sx={{ minWidth: 120 }}>
+                                {user.employeeNumber}
+                              </TableCell>
+                              <TableCell
+                                sx={{
+                                  minWidth: 200,
+                                  maxWidth: 250,
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                }}
+                              >
                                 {/* highlight matched substring */}
                                 {searchQuery
                                   ? highlightMatch(
@@ -2226,9 +2727,21 @@ const DailyTimeRecordFaculty = () => {
                                     )
                                   : user.fullName}
                               </TableCell>
-                              <TableCell>{user.lastName}</TableCell>
-                              <TableCell>{user.records.length}</TableCell>
-                              <TableCell>
+                              <TableCell
+                                sx={{
+                                  minWidth: 120,
+                                  maxWidth: 180,
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                }}
+                              >
+                                {user.lastName}
+                              </TableCell>
+                              <TableCell sx={{ minWidth: 120 }}>
+                                {user.records.length}
+                              </TableCell>
+                              <TableCell sx={{ minWidth: 100 }}>
                                 <Chip
                                   label={
                                     user.records.length > 0
@@ -2242,6 +2755,33 @@ const DailyTimeRecordFaculty = () => {
                                   }
                                   size="small"
                                 />
+                              </TableCell>
+                              <TableCell sx={{ minWidth: 120 }}>
+                                {printStatusMap.has(user.employeeNumber) ? (
+                                  <Chip
+                                    label="Printed"
+                                    size="small"
+                                    color="success"
+                                    sx={{ fontSize: '0.75rem' }}
+                                  />
+                                ) : (
+                                  <Chip
+                                    label="Not Printed"
+                                    size="small"
+                                    color="default"
+                                    sx={{ fontSize: '0.75rem' }}
+                                  />
+                                )}
+                              </TableCell>
+                              <TableCell sx={{ minWidth: 100 }}>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => showReprintConfirm(user)}
+                                  sx={{ color: accentColor }}
+                                  title={printStatusMap.has(user.employeeNumber) ? "Re-print this DTR" : "Print this DTR"}
+                                >
+                                  <PrintIcon fontSize="small" />
+                                </IconButton>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -2258,22 +2798,32 @@ const DailyTimeRecordFaculty = () => {
                         mt: 2,
                       }}
                     >
-                      <Typography
-                        variant="body2"
-                        sx={{ color: textPrimaryColor }}
-                      >
-                        Showing{' '}
-                        {Math.min(
-                          filteredUsers.length,
-                          (currentPage - 1) * rowsPerPage + 1,
-                        )}{' '}
-                        -{' '}
-                        {Math.min(
-                          filteredUsers.length,
-                          currentPage * rowsPerPage,
-                        )}{' '}
-                        of {filteredUsers.length} users
-                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ color: textPrimaryColor }}
+                        >
+                          Showing{' '}
+                          {Math.min(
+                            filteredUsers.length,
+                            (currentPage - 1) * rowsPerPage + 1,
+                          )}{' '}
+                          -{' '}
+                          {Math.min(
+                            filteredUsers.length,
+                            currentPage * rowsPerPage,
+                          )}{' '}
+                          of {filteredUsers.length} users
+                        </Typography>
+                        {startDate && (
+                          <Typography
+                            variant="caption"
+                            sx={{ color: textPrimaryColor, opacity: 0.8, fontWeight: 600 }}
+                          >
+                            Period: {formatMonth(startDate)} {new Date(startDate).getFullYear()}
+                          </Typography>
+                        )}
+                      </Box>
 
                       <Box
                         sx={{ display: 'flex', gap: 1, alignItems: 'center' }}
@@ -2518,10 +3068,12 @@ const DailyTimeRecordFaculty = () => {
                                       /* Allow full name to wrap and be visible instead of truncating */
                                       whiteSpace: 'normal',
                                       overflow: 'visible',
-                                      textOverflow: 'unset',
                                       wordBreak: 'break-word',
-                                      paddingLeft: '130px',
                                       fontFamily: 'Times New Roman',
+                                      textAlign: 'center',
+                                      paddingLeft: '0', // remove this
+                                      width: '159%', // match underline width
+                                      margin: '0 auto',
                                     }}
                                   >
                                     {employeeName}
@@ -3224,6 +3776,8 @@ const DailyTimeRecordFaculty = () => {
             sx: {
               backgroundColor: 'rgba(255, 255, 255, 0.98)',
               borderRadius: 3,
+              visibility: printingAll ? 'hidden' : 'visible',
+              pointerEvents: printingAll ? 'none' : 'auto',
             },
           }}
         >
@@ -3354,30 +3908,6 @@ const DailyTimeRecordFaculty = () => {
               </Box>
             )}
 
-            {/* Printing/loading overlay shown while printingAll === true */}
-            {printingAll && (
-              <Box
-                sx={{
-                  width: '100%',
-                  height: '60vh',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: 2,
-                }}
-              >
-                <MCircularProgress size={64} sx={{ color: accentColor }} />
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  {printingStatus || 'Preparing DTRs...'}
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                  Please wait — the DTRs are being captured and compiled. A new
-                  tab will open when ready.
-                </Typography>
-              </Box>
-            )}
-
             {/* Hidden print-ready DTR tables: render ONLY for previewUsers (on-demand) */}
             <Box
               sx={{
@@ -3400,6 +3930,7 @@ const DailyTimeRecordFaculty = () => {
                 mt: 2,
                 width: '100%',
                 justifyContent: 'center',
+                flexWrap: 'wrap',
               }}
             >
               <ProfessionalButton
@@ -3415,6 +3946,20 @@ const DailyTimeRecordFaculty = () => {
                 }}
               >
                 Print All Selected DTRs ({previewUsers.length})
+              </ProfessionalButton>
+              <ProfessionalButton
+                variant="contained"
+                onClick={handleDownloadAllSelected}
+                startIcon={<PrintIcon />}
+                sx={{
+                  backgroundColor: accentColor,
+                  color: textSecondaryColor,
+                  '&:hover': { backgroundColor: hoverColor },
+                  py: 1.5,
+                  px: 4,
+                }}
+              >
+                Download All as PDF ({previewUsers.length})
               </ProfessionalButton>
               <ProfessionalButton
                 variant="outlined"
@@ -3434,6 +3979,106 @@ const DailyTimeRecordFaculty = () => {
               </ProfessionalButton>
             </Box>
           </DialogContent>
+        </Dialog>
+
+        {/* Alert Modal */}
+        <Dialog
+          open={alertModal.open}
+          onClose={closeAlert}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle sx={{ 
+            backgroundColor: primaryColor,
+            color: textPrimaryColor,
+            fontWeight: 700
+          }}>
+            {alertModal.title}
+          </DialogTitle>
+          <DialogContent sx={{ mt: 2 }}>
+            <Typography variant="body1">
+              {alertModal.message}
+            </Typography>
+          </DialogContent>
+          <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end' }}>
+            <ProfessionalButton
+              variant="contained"
+              onClick={closeAlert}
+              sx={{
+                backgroundColor: accentColor,
+                color: textSecondaryColor,
+                '&:hover': { backgroundColor: hoverColor },
+              }}
+            >
+              OK
+            </ProfessionalButton>
+          </Box>
+        </Dialog>
+
+        {/* Re-print Confirmation Modal */}
+        <Dialog
+          open={confirmModal.open}
+          onClose={closeConfirm}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle sx={{ 
+            backgroundColor: primaryColor,
+            color: textPrimaryColor,
+            fontWeight: 700
+          }}>
+            {printStatusMap.has(confirmModal.user?.employeeNumber) 
+              ? 'Re-print DTR' 
+              : 'Print DTR'}
+          </DialogTitle>
+          <DialogContent sx={{ mt: 2 }}>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              {confirmModal.user && (
+                <>
+                  <strong>Employee:</strong> {confirmModal.user.fullName || `${confirmModal.user.firstName} ${confirmModal.user.lastName}`}
+                  <br />
+                  <strong>Employee Number:</strong> {confirmModal.user.employeeNumber}
+                  <br />
+                  <strong>Period:</strong> {formatMonth(startDate)}
+                </>
+              )}
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              {printStatusMap.has(confirmModal.user?.employeeNumber) 
+                ? 'This DTR has already been printed. Do you want to print it again?' 
+                : 'Are you sure you want to print this DTR?'}
+            </Typography>
+          </DialogContent>
+          <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+            <ProfessionalButton
+              variant="outlined"
+              onClick={closeConfirm}
+              sx={{
+                borderColor: accentColor,
+                color: textPrimaryColor,
+                '&:hover': { 
+                  borderColor: hoverColor,
+                  backgroundColor: alpha(accentColor, 0.1),
+                },
+              }}
+            >
+              Cancel
+            </ProfessionalButton>
+            <ProfessionalButton
+              variant="contained"
+              onClick={() => confirmModal.user && handleIndividualPrintConfirmed(confirmModal.user)}
+              startIcon={<PrintIcon />}
+              sx={{
+                backgroundColor: accentColor,
+                color: textSecondaryColor,
+                '&:hover': { backgroundColor: hoverColor },
+              }}
+            >
+              {printStatusMap.has(confirmModal.user?.employeeNumber) 
+                ? 'Re-print' 
+                : 'Print'}
+            </ProfessionalButton>
+          </Box>
         </Dialog>
       </Box>
     </Container>

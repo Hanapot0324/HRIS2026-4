@@ -59,7 +59,7 @@ const app = express();
 // CORS configuration - MUST be before body parsing middleware
 const allowedOrigins = [
   'http://localhost:5137',
-  'http://192.168.50.53:5137',
+  'http://192.168.50.42:5137',
   'http://192.168.50.45:5137',
   'http://136.239.248.42:5137',
   'http://192.168.50.97:5137',
@@ -80,7 +80,7 @@ app.use(
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     exposedHeaders: ['Content-Type', 'Authorization'],
-  })
+  }),
 );
 
 // Body parsing middleware - AFTER CORS

@@ -54,6 +54,9 @@ import {
   Print as PrintIcon,
   People,
   CheckCircle,
+  ArrowBack, // ADD THIS
+  ArrowForward, // ADD THIS
+  SearchOutlined, // ADD THIS
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
@@ -155,6 +158,71 @@ const ViewAttendanceRecord = () => {
   const [viewMode, setViewMode] = useState('single');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
+  // Pagination states
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordFilter, setRecordFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter and pagination logic
+  const getFilteredUsers = () => {
+    let filtered = allUsersDTR.slice();
+
+    // Apply record filter first
+    if (recordFilter === 'has') {
+      filtered = filtered.filter((u) => u.records && u.records.length > 0);
+    } else if (recordFilter === 'no') {
+      filtered = filtered.filter((u) => !u.records || u.records.length === 0);
+    }
+
+    if (!searchQuery || searchQuery.trim() === '') return filtered;
+    const q = searchQuery.trim().toLowerCase();
+    return filtered.filter((user) => {
+      const full = (user.fullName || '').toLowerCase();
+      const last = (user.lastName || '').toLowerCase();
+      const emp = (user.employeeNumber || '').toLowerCase();
+      return full.includes(q) || last.includes(q) || emp.includes(q);
+    });
+  };
+
+  const filteredUsers = getFilteredUsers();
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / rowsPerPage));
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage,
+  );
+
+  const goToPage = (page) => {
+    const p = Math.min(Math.max(1, page), totalPages);
+    setCurrentPage(p);
+  };
+
+  const highlightMatch = (text, q) => {
+    if (!q || !text) return text;
+    const lower = text.toLowerCase();
+    const qLower = q.toLowerCase();
+    const idx = lower.indexOf(qLower);
+    if (idx === -1) return text;
+    const before = text.slice(0, idx);
+    const match = text.slice(idx, idx + q.length);
+    const after = text.slice(idx + q.length);
+    return (
+      <span>
+        {before}
+        <span
+          style={{
+            backgroundColor: alpha(accentColor, 0.25),
+            padding: '0 3px',
+            borderRadius: 2,
+          }}
+        >
+          {match}
+        </span>
+        {after}
+      </span>
+    );
+  };
+
   const navigate = useNavigate();
 
   const primaryColor = settings.accentColor || '#FEF9E1';
@@ -204,14 +272,14 @@ const ViewAttendanceRecord = () => {
       const response = await axios.post(
         `${API_BASE_URL}/attendance/api/all-attendance`,
         { personID, startDate, endDate },
-        getAuthHeaders()
+        getAuthHeaders(),
       );
       setRecords(response.data);
       if (response.data.length > 0) {
         setPersonName(response.data[0].PersonName);
         showSnackbar(
           `Loaded ${response.data.length} records and auto-saved to database`,
-          'success'
+          'success',
         );
       } else {
         setPersonName('');
@@ -239,7 +307,7 @@ const ViewAttendanceRecord = () => {
       // CHANGED: Fetch ALL users from device (not just registered users)
       const usersResponse = await axios.get(
         `${API_BASE_URL}/attendance/api/all-device-users`,
-        getAuthHeaders()
+        getAuthHeaders(),
       );
 
       const users = usersResponse.data || [];
@@ -252,7 +320,7 @@ const ViewAttendanceRecord = () => {
           const dtrResponse = await axios.post(
             `${API_BASE_URL}/attendance/api/all-attendance`,
             { personID: user.PersonID, startDate, endDate },
-            getAuthHeaders()
+            getAuthHeaders(),
           );
 
           const dtrData = dtrResponse.data || [];
@@ -295,20 +363,20 @@ const ViewAttendanceRecord = () => {
 
       const totalRecords = allDTRData.reduce(
         (sum, user) => sum + user.records.length,
-        0
+        0,
       );
       const usersWithRecords = allDTRData.filter((u) => u.hasRecords).length;
 
       showSnackbar(
         `Loaded ${users.length} device users (${usersWithRecords} with records, ${totalRecords} total records auto-saved)`,
-        'success'
+        'success',
       );
     } catch (error) {
       console.error('Error fetching all users DTR:', error);
       showSnackbar(
         'Error fetching users DTR data: ' +
           (error.response?.data?.error || error.message),
-        'error'
+        'error',
       );
     } finally {
       setLoadingAllUsers(false);
@@ -327,7 +395,7 @@ const ViewAttendanceRecord = () => {
       const response = await axios.post(
         `${API_BASE_URL}/attendance/api/bulk-auto-save`,
         { startDate, endDate },
-        getAuthHeaders()
+        getAuthHeaders(),
       );
 
       if (response.data.success) {
@@ -340,7 +408,7 @@ const ViewAttendanceRecord = () => {
       showSnackbar(
         'Error auto-saving records: ' +
           (error.response?.data?.error || error.message),
-        'error'
+        'error',
       );
     } finally {
       setLoadingAllUsers(false);
@@ -356,7 +424,7 @@ const ViewAttendanceRecord = () => {
       const response = await axios.post(
         `${API_BASE_URL}/attendance/api/send-to-dtr`,
         { personID, startDate, endDate },
-        getAuthHeaders()
+        getAuthHeaders(),
       );
 
       if (response.data.success) {
@@ -375,7 +443,7 @@ const ViewAttendanceRecord = () => {
       console.error('Error sending to DTR:', error);
       showSnackbar(
         error.response?.data?.message || 'Failed to view to DTR',
-        'error'
+        'error',
       );
     }
   };
@@ -383,7 +451,7 @@ const ViewAttendanceRecord = () => {
   const handleBulkSendToDTR = async () => {
     const filtered = getFilteredUsers();
     const selected = filtered.filter((user) =>
-      selectedUsers.has(user.employeeNumber)
+      selectedUsers.has(user.employeeNumber),
     );
 
     if (selected.length === 0) {
@@ -396,7 +464,7 @@ const ViewAttendanceRecord = () => {
       const response = await axios.post(
         `${API_BASE_URL}/attendance/api/bulk-send-to-dtr`,
         { userIDs, startDate, endDate },
-        getAuthHeaders()
+        getAuthHeaders(),
       );
 
       if (response.data.success) {
@@ -415,7 +483,7 @@ const ViewAttendanceRecord = () => {
       console.error('Error bulk sending to DTR:', error);
       showSnackbar(
         error.response?.data?.message || 'Failed to view DTR',
-        'error'
+        'error',
       );
     }
   };
@@ -437,14 +505,6 @@ const ViewAttendanceRecord = () => {
     } else {
       setSelectedUsers(new Set());
     }
-  };
-
-  const getFilteredUsers = () => {
-    if (surnameFilter === 'All') return allUsersDTR;
-    return allUsersDTR.filter((user) => {
-      const lastName = (user.lastName || '').toUpperCase();
-      return lastName.startsWith(surnameFilter.toUpperCase());
-    });
   };
 
   const getSurnameInitials = () => {
@@ -1088,6 +1148,7 @@ const ViewAttendanceRecord = () => {
               <Box sx={{ p: 4 }}>
                 {allUsersDTR.length > 0 ? (
                   <>
+                    {/* Toolbar with filters */}
                     <Box
                       sx={{
                         display: 'flex',
@@ -1097,57 +1158,121 @@ const ViewAttendanceRecord = () => {
                         alignItems: 'center',
                       }}
                     >
-                      <FormControl sx={{ minWidth: 200 }}>
-                        <InputLabel>Filter by Surname</InputLabel>
+                      {/* Search Box */}
+                      <TextField
+                        label="Search users"
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchOutlined />
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={{ minWidth: 300, backgroundColor: 'white' }}
+                      />
+
+                      {/* Records Filter */}
+                      <FormControl
+                        sx={{ minWidth: 160, backgroundColor: 'white' }}
+                      >
+                        <InputLabel>Records</InputLabel>
                         <Select
-                          value={surnameFilter}
-                          onChange={(e) => setSurnameFilter(e.target.value)}
-                          label="Filter by Surname"
-                          sx={{
-                            backgroundColor: 'white',
-                            '& .MuiOutlinedInput-notchedOutline': {
-                              borderColor: accentColor,
-                            },
+                          value={recordFilter}
+                          label="Records"
+                          onChange={(e) => {
+                            setRecordFilter(e.target.value);
+                            setCurrentPage(1);
                           }}
                         >
-                          <MenuItem value="All">All</MenuItem>
-                          {getSurnameInitials().map((initial) => (
-                            <MenuItem key={initial} value={initial}>
-                              {initial}
-                            </MenuItem>
-                          ))}
+                          <MenuItem value="all">All</MenuItem>
+                          <MenuItem value="has">Has Records</MenuItem>
+                          <MenuItem value="no">No Records</MenuItem>
                         </Select>
                       </FormControl>
 
+                      {/* Select All Button */}
                       <ProfessionalButton
                         variant="outlined"
                         onClick={() =>
                           handleSelectAll(
-                            selectedUsers.size !== getFilteredUsers().length
+                            selectedUsers.size !== filteredUsers.length,
                           )
                         }
                         sx={{ borderColor: accentColor, color: accentColor }}
                       >
-                        {selectedUsers.size === getFilteredUsers().length
+                        {selectedUsers.size === filteredUsers.length
                           ? 'Deselect All'
                           : 'Select All'}
                       </ProfessionalButton>
+
+                      {/* Rows Per Page */}
+                      <FormControl
+                        sx={{ minWidth: 140, backgroundColor: 'white' }}
+                      >
+                        <InputLabel>Rows</InputLabel>
+                        <Select
+                          value={rowsPerPage}
+                          label="Rows"
+                          onChange={(e) => {
+                            setRowsPerPage(Number(e.target.value));
+                            setCurrentPage(1);
+                          }}
+                        >
+                          <MenuItem value={10}>10</MenuItem>
+                          <MenuItem value={20}>20</MenuItem>
+                          <MenuItem value={50}>50</MenuItem>
+                          <MenuItem value={100}>100</MenuItem>
+                        </Select>
+                      </FormControl>
+
+                      {/* Compact Pagination */}
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
+                        <IconButton
+                          onClick={() => goToPage(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          sx={{ bgcolor: 'white' }}
+                        >
+                          <ArrowBack />
+                        </IconButton>
+                        <Typography sx={{ minWidth: 36, textAlign: 'center' }}>
+                          {currentPage} / {totalPages}
+                        </Typography>
+                        <IconButton
+                          onClick={() => goToPage(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          sx={{ bgcolor: 'white' }}
+                        >
+                          <ArrowForward />
+                        </IconButton>
+                      </Box>
                     </Box>
 
-                    <PremiumTableContainer>
-                      <Table>
+                    {/* Table */}
+                    <PremiumTableContainer
+                      sx={{
+                        boxShadow: `0 4px 24px ${alpha(accentColor, 0.06)}`,
+                        maxHeight: 400,
+                      }}
+                    >
+                      <Table sx={{ minWidth: 800 }} stickyHeader>
                         <TableHead sx={{ bgcolor: alpha(primaryColor, 0.7) }}>
                           <TableRow>
                             <PremiumTableCell isHeader>
                               <Checkbox
                                 checked={
-                                  selectedUsers.size ===
-                                    getFilteredUsers().length &&
-                                  getFilteredUsers().length > 0
+                                  selectedUsers.size === filteredUsers.length &&
+                                  filteredUsers.length > 0
                                 }
                                 indeterminate={
                                   selectedUsers.size > 0 &&
-                                  selectedUsers.size < getFilteredUsers().length
+                                  selectedUsers.size < filteredUsers.length
                                 }
                                 onChange={(e) =>
                                   handleSelectAll(e.target.checked)
@@ -1193,7 +1318,7 @@ const ViewAttendanceRecord = () => {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {getFilteredUsers().map((user) => (
+                          {paginatedUsers.map((user) => (
                             <TableRow
                               key={user.employeeNumber}
                               sx={{
@@ -1209,7 +1334,7 @@ const ViewAttendanceRecord = () => {
                               <PremiumTableCell>
                                 <Checkbox
                                   checked={selectedUsers.has(
-                                    user.employeeNumber
+                                    user.employeeNumber,
                                   )}
                                   onChange={() =>
                                     handleUserSelect(user.employeeNumber)
@@ -1220,7 +1345,9 @@ const ViewAttendanceRecord = () => {
                                 {user.employeeNumber}
                               </PremiumTableCell>
                               <PremiumTableCell>
-                                {user.fullName}
+                                {searchQuery
+                                  ? highlightMatch(user.fullName, searchQuery)
+                                  : user.fullName}
                               </PremiumTableCell>
                               <PremiumTableCell>
                                 {user.lastName}
@@ -1284,6 +1411,65 @@ const ViewAttendanceRecord = () => {
                         </TableBody>
                       </Table>
                     </PremiumTableContainer>
+
+                    {/* Bottom Pagination */}
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        mt: 2,
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{ color: textPrimaryColor }}
+                      >
+                        Showing{' '}
+                        {Math.min(
+                          filteredUsers.length,
+                          (currentPage - 1) * rowsPerPage + 1,
+                        )}{' '}
+                        -{' '}
+                        {Math.min(
+                          filteredUsers.length,
+                          currentPage * rowsPerPage,
+                        )}{' '}
+                        of {filteredUsers.length} users
+                      </Typography>
+                      <Box
+                        sx={{ display: 'flex', gap: 1, alignItems: 'center' }}
+                      >
+                        <ProfessionalButton
+                          variant="outlined"
+                          onClick={() => goToPage(1)}
+                          disabled={currentPage === 1}
+                        >
+                          First
+                        </ProfessionalButton>
+                        <ProfessionalButton
+                          variant="outlined"
+                          onClick={() => goToPage(currentPage - 1)}
+                          disabled={currentPage === 1}
+                        >
+                          Prev
+                        </ProfessionalButton>
+                        <ProfessionalButton
+                          variant="outlined"
+                          onClick={() => goToPage(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                        >
+                          Next
+                        </ProfessionalButton>
+                        <ProfessionalButton
+                          variant="outlined"
+                          onClick={() => goToPage(totalPages)}
+                          disabled={currentPage === totalPages}
+                        >
+                          Last
+                        </ProfessionalButton>
+                      </Box>
+                    </Box>
                   </>
                 ) : (
                   <Box
